@@ -1,0 +1,103 @@
+erDiagram
+    roles ||--o{ users : has
+    languages ||--o{ user_profiles : preferred
+    users ||--|| user_profiles : owns
+    users ||--o{ restaurants : owns
+    users ||--o{ favorites : saves
+    users ||--o{ carts : creates
+    users ||--o{ orders : places
+    users ||--o{ restaurant_reviews : writes
+    users ||--o{ dish_reviews : writes
+    users ||--o{ notifications : receives
+    users ||--o{ audit_logs : performs
+
+    restaurants ||--o{ restaurant_images : has
+    restaurants ||--o{ restaurant_opening_hours : has
+    restaurants ||--o{ restaurant_special_closures : has
+    restaurants ||--o{ restaurant_translations : translated_to
+    restaurants ||--o{ menu_uploads : uploads
+    restaurants ||--o{ menus : has
+    restaurants ||--o{ menu_categories : has
+    restaurants ||--o{ dishes : sells
+    restaurants ||--o{ carts : receives
+    restaurants ||--o{ orders : receives
+    restaurants ||--o{ restaurant_reviews : reviewed_by
+
+    languages ||--o{ restaurant_translations : language
+    languages ||--o{ dish_translations : language
+    languages ||--o{ audio_files : language
+
+    menus ||--o{ dishes : contains
+    menu_categories ||--o{ dishes : groups
+    dishes ||--o{ dish_images : has
+    dishes ||--o{ dish_translations : translated_to
+    dishes ||--o{ dish_allergens : contains
+    allergens ||--o{ dish_allergens : used_in
+    dishes ||--o{ dish_dietary_tags : has
+    dietary_tags ||--o{ dish_dietary_tags : labels
+    dishes ||--o{ cart_items : selected
+    dishes ||--o{ order_items : ordered
+    dishes ||--o{ dish_reviews : reviewed_by
+
+    carts ||--o{ cart_items : contains
+    orders ||--o{ order_items : contains
+    orders ||--o{ payments : paid_by
+    payment_methods ||--o{ payments : method
+
+    roles {
+        int id PK
+        varchar code UK
+        varchar name
+    }
+    users {
+        bigint id PK
+        int role_id FK
+        varchar full_name
+        varchar email UK
+        varchar status
+    }
+    restaurants {
+        bigint id PK
+        bigint owner_id FK
+        varchar name
+        varchar slug UK
+        numeric latitude
+        numeric longitude
+        varchar status
+    }
+    menus {
+        bigint id PK
+        bigint restaurant_id FK
+        varchar name
+        boolean is_active
+    }
+    menu_categories {
+        bigint id PK
+        bigint restaurant_id FK
+        varchar name
+    }
+    dishes {
+        bigint id PK
+        bigint restaurant_id FK
+        bigint menu_id FK
+        bigint category_id FK
+        varchar name
+        numeric price_vnd
+        boolean is_available
+    }
+    orders {
+        bigint id PK
+        bigint restaurant_id FK
+        bigint user_id FK
+        varchar order_code UK
+        numeric total_amount
+        varchar status
+        varchar payment_status
+    }
+    payments {
+        bigint id PK
+        bigint order_id FK
+        int payment_method_id FK
+        numeric amount
+        varchar status
+    }
