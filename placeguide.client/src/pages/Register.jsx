@@ -1,9 +1,11 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import ToastMessage from '../components/ToastMessage';
+import { registerUser } from '../services/authService';
 
 
 function Register() {
+    const navigate = useNavigate();
     const [fullName, setFullName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -12,9 +14,10 @@ function Register() {
         message: '',
         type: 'success',
     });
+    
     //const [terms, setTerms] = useState(false);
 
-    const handleRegister = (e) => {
+    const handleRegister = async (e) => {
         e.preventDefault();
 
         if (password !== confirmPassword) {
@@ -25,18 +28,26 @@ function Register() {
             return;
         }
 
-        console.log('Register attempt:', {
-            fullName,
-            email,
-            password,
-        });
+        try{
+            await registerUser({
+                fullName,
+                email,
+                password,
+            });
+            setToast({
+                message: 'Đăng ký thành công!',
+                type: 'success',
+            });
+            setTimeout(() => {
+                navigate('/');
+            }, 1000);
+        }catch(error){
+            setToast({
+                message: error.message,
+                type: 'error',
+            });
+        }
 
-        setToast({
-            message: 'Đăng ký tài khoản thành công!',
-            type: 'success',
-        });
-
-        // Sau này chỗ này sẽ gọi API backend
     };
 
     return (

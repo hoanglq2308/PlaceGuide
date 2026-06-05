@@ -8,9 +8,22 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 // cau hinh Identity
-builder.Services.AddIdentity<ApplicationUser, IdentityRole<long>>()
-    .AddEntityFrameworkStores<ApplicationDbContext>()
-    .AddDefaultTokenProviders();
+builder.Services.AddIdentity<ApplicationUser, IdentityRole<long>>(options =>
+{
+    // Password settings - giảm độ khó mật khẩu
+    options.Password.RequiredLength = 6;
+    options.Password.RequiredUniqueChars = 1;
+
+    options.Password.RequireDigit = false;
+    options.Password.RequireLowercase = false;
+    options.Password.RequireUppercase = false;
+    options.Password.RequireNonAlphanumeric = false;
+
+    // User settings
+    options.User.RequireUniqueEmail = true;
+})
+.AddEntityFrameworkStores<ApplicationDbContext>()
+.AddDefaultTokenProviders();
 builder.Services.AddAuthentication(options =>
 {   
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;

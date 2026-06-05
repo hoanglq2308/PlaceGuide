@@ -39,7 +39,13 @@ namespace PlaceGuide.Server.Controllers
 
             var result = await _userManager.CreateAsync(user, model.Password);
             if (!result.Succeeded)
-                return StatusCode(StatusCodes.Status500InternalServerError, new { Message = "Lỗi khi tạo tài khoản!" });
+            {
+                return BadRequest(new
+                {
+                    Message = "Đăng ký thất bại!",
+                    Errors = result.Errors.Select(e => e.Description)
+                });
+            }
 
             return Ok(new { Message = "Tạo tài khoản thành công!" });
         }

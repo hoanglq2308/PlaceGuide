@@ -1,18 +1,36 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { useNavigate } from 'react-router-dom';
+import { Link,useNavigate } from 'react-router-dom';
+
+import ToastMessage from '../components/ToastMessage';
+import { loginUser } from '../services/authService';
 function Login() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const navigate = useNavigate();
-    const handleSubmit = (e) => {
+
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        console.log('Login attempt:', { email, password });
-        navigate('/home');
+        try {
+            const result = await loginUser({ email, password });
+            localStorage.setItem('token', result.token);
+            localStorage.setItem('user', JSON.stringify(result.user));
+            setToast({ message: 'Đăng nhập thành công!', type: 'success' });
+            setTimeout(() => {
+                navigate('/home');
+            }, 1000); 
+        } catch (error) {
+            setToast({ message: error.message, type: 'error' });
+        }
     };
+    const [toast, setToast] = useState({
+    message: '',
+    type: 'success',
+    });
+
 
     return (
         <div className="bg-orange-50 text-stone-900 font-sans h-screen w-full flex items-center justify-center overflow-hidden relative">
+                <ToastMessage message={toast.message} type={toast.type} onClose={() => setToast({ message: '', type: 'success' })} />
             <div className="absolute inset-0 z-0">
                 <img
                     alt="Vietnamese street food spread with pho, banh mi, and spring rolls"

@@ -13,7 +13,17 @@ namespace PlaceGuide.Server.Data
         {
         }
 
-        // Add DbSets here, for example:
-        // public DbSet<WeatherForecast> WeatherForecasts { get; set; }
+        protected override void OnModelCreating(ModelBuilder builder)
+        {
+            base.OnModelCreating(builder);
+
+            builder.Entity<ApplicationUser>().ToTable("users");
+            builder.Entity<IdentityRole>().ToTable("roles");
+            builder.Entity<IdentityUserRole<long>>().ToTable("user_roles");
+            builder.Entity<IdentityUserClaim<long>>().ToTable("user_claims");
+            builder.Entity<IdentityUserLogin<long>>().ToTable("user_logins");
+            builder.Entity<IdentityRoleClaim<long>>().ToTable("role_claims");
+            builder.Entity<IdentityUserToken<long>>().ToTable("user_tokens");
+        }
     }
 }
