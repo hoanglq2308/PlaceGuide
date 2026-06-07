@@ -12,7 +12,7 @@ function Login() {
         e.preventDefault();
         try {
             const result = await loginUser({ email, password });
-            localStorage.setItem('token', result.token);
+            localStorage.setItem('token', result.token || result.Token);
             localStorage.setItem('user', JSON.stringify(result.user));
             setToast({ message: 'Đăng nhập thành công!', type: 'success' });
             setTimeout(() => {
