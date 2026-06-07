@@ -1,0 +1,47 @@
+export const mockRestaurants = [
+    {
+        id: 1,
+        name: 'Phở Thìn Bờ Hồ',
+        image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCLbkQksznVaBRUnwTGSqbMzUoZYqMnZ0FhBwPzlRTJz1j78Gdxqhtbop8YF2w11A9GB41TSJDQQOYRUgxAEXbyG8XxfcbTKJgXsAWyFLW4V0peRV1OgM-LphwYFeBzh9DDtwVuCSJ-V-GaQSjARLYz5inUjcFyLxHXdHunP1nVW1Xte6b8f_R0mwUwPYSCGZ3HUaw4KorkCJGPa7Ke_vsviKGr61hexR3lcmSBnh-YjMq_LHosgwwQf4SQlD6T3aHUZZpyzP_6bIVx',
+        badge: 'Freshness',
+        distance: '350m',
+        rating: 4.6,
+        priceRange: '50k - 120k',
+        highlightDishes: ['Phở bò', 'Nem cuốn'],
+        tags: ['Local food', 'Family friendly'],
+        narration: {
+            vi: 'Phở Thìn Bờ Hồ là một quán phở nổi bật gần bạn. Quán phù hợp nếu bạn muốn thưởng thức hương vị phở truyền thống Việt Nam, nước dùng đậm đà, thịt bò mềm và không gian quen thuộc với người địa phương.',
+            en: 'Pho Thin Bo Ho is a popular Vietnamese pho restaurant nearby. It is suitable if you want to try traditional Vietnamese noodle soup with rich broth, tender beef, and a local dining atmosphere.',
+        },
+    },
+    {
+        id: 2,
+        name: 'Bún Chả Hương Liên',
+        image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAkqNXCZ2syf5Qc0-hgPvjQ-0Nzm7-TWblTKzPu94UQcanYi0TIRaIu8c4d0stfdXutwekmLrUgMmA8VFViGq4PJbCvmA7dj8B6OUsVqUbslBc0I4_OTxb7d4rgZMI8SFqEWP0O-UxO9d_akV6cROZQcPYdimeiG-KWZBvMETdTEDDKRwrjlxHI_RObUImDdjXhZOlJLNVSC_uA5vTlo93DXz3Km9YlcTNLYI7KVssmUQx7HssmNW7GwCkHfO5cdFbwS41CgkMa2qaM',
+        badge: 'Legend',
+        distance: '1.2km',
+        rating: 4.8,
+        priceRange: '60k - 150k',
+        highlightDishes: ['Bún chả Obama', 'Nem cua bể'],
+        tags: ['Historical', 'Must try'],
+        narration: {
+            vi: 'Bún Chả Hương Liên là địa điểm nổi tiếng với món bún chả Hà Nội. Món ăn gồm thịt nướng thơm, nước chấm chua ngọt, bún tươi và rau sống. Đây là lựa chọn tốt nếu bạn muốn thử món ăn đặc trưng của thủ đô.',
+            en: 'Bun Cha Huong Lien is famous for Hanoi grilled pork with noodles. The dish includes grilled pork, sweet and sour dipping sauce, fresh noodles, and herbs. It is a great choice for visitors who want to try a signature Hanoi dish.',
+        },
+    },
+    {
+        id: 3,
+        name: 'Bánh Mì Hội An',
+        image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCeGHUfQA0sf0JOSIB3mWLUmV4u3ESohzlRuN1QqW_mNwOL7lStpb5z8cvYsnhWr8jy2ME455BpEBMUI46hqAs95zOmOQ3qtLntJjLvExQJWZeiuX8JDKtoPqwEUjyhazaVgslrrifjMBndS4Ek2XdsxxO-ChBOUTtRDtTogn-XhnLx2-WURRHAMSHwL9gjCio66Di2GkAxSiGgLHf_NTbqc1CussngBi0NI_eO_oFdhHSwMl-JsSsGYrYmT5-9OU2f7tyVak3NERpI',
+        badge: 'Artisan',
+        distance: '600m',
+        rating: 4.5,
+        priceRange: '25k - 55k',
+        highlightDishes: ['Bánh mì thập cẩm'],
+        tags: ['Quick bite', 'Vegetarian option'],
+        narration: {
+            vi: 'Bánh Mì Hội An là lựa chọn phù hợp nếu bạn muốn ăn nhanh, giá hợp lý và dễ thưởng thức. Bánh mì có vỏ giòn, nhân đa dạng, thường có pate, thịt, rau thơm và đồ chua.',
+            en: 'Banh Mi Hoi An is a good option for a quick and affordable meal. Vietnamese banh mi has a crispy baguette, various fillings, pate, meat, herbs, and pickled vegetables.',
+        },
+    },
+];
