@@ -1,29 +1,32 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
-using System.Collections.Generic;
 using PlaceGuide.Server.Models;
 
 namespace PlaceGuide.Server.Data
 {
-    public class ApplicationDbContext : IdentityDbContext<ApplicationUser, IdentityRole<long>,long>
+    public class ApplicationDbContext : IdentityDbContext<ApplicationUser, IdentityRole<long>, long>
     {
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
             : base(options)
         {
         }
 
+        public DbSet<Restaurant> Restaurants { get; set; }
+
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
 
             builder.Entity<ApplicationUser>().ToTable("users");
-            builder.Entity<IdentityRole>().ToTable("roles");
+            builder.Entity<IdentityRole<long>>().ToTable("roles");
             builder.Entity<IdentityUserRole<long>>().ToTable("user_roles");
             builder.Entity<IdentityUserClaim<long>>().ToTable("user_claims");
             builder.Entity<IdentityUserLogin<long>>().ToTable("user_logins");
             builder.Entity<IdentityRoleClaim<long>>().ToTable("role_claims");
             builder.Entity<IdentityUserToken<long>>().ToTable("user_tokens");
+
+            builder.Entity<Restaurant>().ToTable("restaurants");
         }
     }
 }

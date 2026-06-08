@@ -57,6 +57,17 @@ namespace PlaceGuide.Server.Controllers
 
             if (user != null && await _userManager.CheckPasswordAsync(user, model.Password))
             {
+                if (string.IsNullOrWhiteSpace(user.Email))
+                {
+                    return Unauthorized(new { Message = "Tài khoản không có email hợp lệ!" });
+                }
+
+                var jwtKey = _configuration["Jwt:Key"];
+                if (string.IsNullOrWhiteSpace(jwtKey))
+                {
+                    return StatusCode(StatusCodes.Status500InternalServerError, new { Message = "Thiếu cấu hình JWT Key!" });
+                }
+
                 var authClaims = new List<Claim>
                 {
                     new Claim(ClaimTypes.Name, user.Email),
@@ -65,7 +76,7 @@ namespace PlaceGuide.Server.Controllers
                     new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
                 };
 
-                var authSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]));
+                var authSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
 
                 var token = new JwtSecurityToken(
                     issuer: _configuration["Jwt:Issuer"],

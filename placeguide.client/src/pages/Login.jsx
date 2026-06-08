@@ -6,26 +6,42 @@ import { loginUser } from '../services/authService';
 function Login() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [toast, setToast] = useState({
+        message: '',
+        type: 'success',
+    });
     const navigate = useNavigate();
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+
+        if (isSubmitting) return;
+
+        setIsSubmitting(true);
+
         try {
-            const result = await loginUser({ email, password });
-            localStorage.setItem('token', result.token || result.Token);
-            localStorage.setItem('user', JSON.stringify(result.user));
+            const result = await loginUser({
+                email: email.trim(),
+                password,
+            });
+
+            if (!result?.token || typeof result.token !== 'string') {
+                throw new Error('Phản hồi đăng nhập không hợp lệ!');
+            }
+
+            localStorage.setItem('token', result.token);
+            localStorage.setItem('user', JSON.stringify(result.user || null));
             setToast({ message: 'Đăng nhập thành công!', type: 'success' });
+
             setTimeout(() => {
                 navigate('/home');
-            }, 1000); 
+            }, 1000);
         } catch (error) {
             setToast({ message: error.message, type: 'error' });
+            setIsSubmitting(false);
         }
     };
-    const [toast, setToast] = useState({
-    message: '',
-    type: 'success',
-    });
 
 
     return (
@@ -100,10 +116,11 @@ function Login() {
                         </div>
 
                         <button
-                            className="w-full bg-red-700 text-white rounded-full py-4 text-sm font-semibold hover:bg-red-800 transition-colors shadow-sm mt-3"
+                            className="w-full bg-red-700 text-white rounded-full py-4 text-sm font-semibold hover:bg-red-800 transition-colors shadow-sm mt-3 disabled:cursor-not-allowed disabled:opacity-70"
+                            disabled={isSubmitting}
                             type="submit"
                         >
-                            Đăng nhập
+                            {isSubmitting ? 'Đang đăng nhập...' : 'Đăng nhập'}
                         </button>
                     </form>
 

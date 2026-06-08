@@ -1,7 +1,47 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import ToastMessage from '../components/ToastMessage';
 import RestaurantCard from '../components/RestaurantCard';
 import { mockRestaurants } from '../data/mockRestaurants';
+import { getRestaurants } from '../services/restaurantService';
+
+function clearAuthSession() {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+}
+
+function decodeJwtPayload(token) {
+    const payload = token.split('.')[1];
+    const base64 = payload.replace(/-/g, '+').replace(/_/g, '/');
+    const paddedBase64 = base64.padEnd(
+        base64.length + ((4 - (base64.length % 4)) % 4),
+        '='
+    );
+
+    return JSON.parse(window.atob(paddedBase64));
+}
+
+function isTokenValid(token) {
+    if (!token || typeof token !== 'string') {
+        return false;
+    }
+
+    if (token.split('.').length !== 3) {
+        return false;
+    }
+
+    try {
+        const payload = decodeJwtPayload(token);
+
+        if (typeof payload.exp !== 'number') {
+            return false;
+        }
+
+        return payload.exp > Math.floor(Date.now() / 1000);
+    } catch {
+        return false;
+    }
+}
 
 function Home() {
     const navigate = useNavigate();
@@ -10,20 +50,82 @@ function Home() {
     const [searchText, setSearchText] = useState('');
     const [locationText, setLocationText] = useState('Chưa lấy vị trí');
     const [isGettingLocation, setIsGettingLocation] = useState(false);
+    const [restaurants, setRestaurants] = useState([]);
+    const [toast, setToast] = useState({
+        message: '',
+        type: 'info',
+    });
+
+    useEffect(() => {
+        const ensureValidSession = () => {
+            const token = localStorage.getItem('token');
+
+            if (!isTokenValid(token)) {
+                clearAuthSession();
+                navigate('/', { replace: true });
+            }
+        };
+
+        ensureValidSession();
+
+        window.addEventListener('focus', ensureValidSession);
+        window.addEventListener('storage', ensureValidSession);
+
+        return () => {
+            window.removeEventListener('focus', ensureValidSession);
+            window.removeEventListener('storage', ensureValidSession);
+        };
+    }, [navigate]);
+
+    useEffect(() => {
+        let isActive = true;
+
+        async function loadRestaurants() {
+            try {
+                const data = await getRestaurants();
+
+                if (isActive) {
+                    setRestaurants(data);
+                }
+            } catch (error) {
+                if (isActive) {
+                    setRestaurants(mockRestaurants);
+                    setToast({
+                        message: `${error.message} Đang hiển thị dữ liệu mẫu.`,
+                        type: 'warning',
+                    });
+                }
+            }
+        }
+
+        loadRestaurants();
+
+        return () => {
+            isActive = false;
+        };
+    }, []);
 
     const filteredRestaurants = useMemo(() => {
-        return mockRestaurants.filter((restaurant) =>
-            restaurant.name.toLowerCase().includes(searchText.toLowerCase()) ||
-            restaurant.highlightDishes.some((dish) =>
-                dish.toLowerCase().includes(searchText.toLowerCase())
-            )
-        );
-    }, [searchText]);
+        const normalizedSearchText = searchText.toLowerCase();
+
+        return restaurants.filter((restaurant) => {
+            const highlightDishes = Array.isArray(restaurant.highlightDishes)
+                ? restaurant.highlightDishes
+                : [];
+
+            return (
+                restaurant.name.toLowerCase().includes(normalizedSearchText) ||
+                highlightDishes.some((dish) =>
+                    dish.toLowerCase().includes(normalizedSearchText)
+                )
+            );
+        });
+    }, [restaurants, searchText]);
 
     const handleLogout = () => {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        navigate('/');
+        window.speechSynthesis?.cancel();
+        clearAuthSession();
+        navigate('/', { replace: true });
     };
 
     const handleGetLocation = () => {
@@ -68,6 +170,17 @@ function Home() {
 
     return (
         <div className="min-h-screen bg-[#fcf9f8] text-stone-900 font-sans">
+            <ToastMessage
+                message={toast.message}
+                type={toast.type}
+                onClose={() =>
+                    setToast({
+                        message: '',
+                        type: 'info',
+                    })
+                }
+            />
+
             {/* Top Navigation */}
             <header className="bg-white/80 backdrop-blur-lg border-b border-red-100 shadow-sm sticky top-0 z-50">
                 <div className="flex justify-between items-center w-full px-5 md:px-16 py-4 max-w-7xl mx-auto">

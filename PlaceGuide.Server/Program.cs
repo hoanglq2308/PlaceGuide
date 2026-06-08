@@ -76,6 +76,12 @@ using (var scope = app.Services.CreateScope())
         if (context.Database.CanConnect())
         {
             Console.WriteLine("✅ THÀNH CÔNG: Đã kết nối tới PostgreSQL!");
+
+            if (app.Environment.IsDevelopment())
+            {
+                RestaurantSeeder.SeedDevelopmentRestaurants(context);
+                Console.WriteLine("✅ Development seed data đã sẵn sàng.");
+            }
         }
         else
         {
