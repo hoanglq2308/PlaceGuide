@@ -52,21 +52,39 @@ export function formatDistance(distanceInMeters) {
     return `${(distanceInMeters / 1000).toFixed(1)}km`;
 }
 
-export function sortRestaurantsByDistance(restaurants, userLocation) {
-    return restaurants
-        .map((restaurant, index) => {
-            const distanceInMeters = calculateDistanceInMeters(
-                userLocation,
-                restaurant
-            );
+function addDistanceMetadata(restaurants, userLocation) {
+    return restaurants.map((restaurant, index) => {
+        const distanceInMeters = calculateDistanceInMeters(
+            userLocation,
+            restaurant
+        );
 
-            return {
-                ...restaurant,
-                distance: formatDistance(distanceInMeters) || restaurant.distance,
-                distanceInMeters,
-                originalIndex: index,
-            };
-        })
+        return {
+            ...restaurant,
+            distance: formatDistance(distanceInMeters) || restaurant.distance,
+            distanceInMeters,
+            originalIndex: index,
+        };
+    });
+}
+
+function removeDistanceMetadata(restaurant) {
+    const cleanedRestaurant = { ...restaurant };
+
+    delete cleanedRestaurant.distanceInMeters;
+    delete cleanedRestaurant.originalIndex;
+
+    return cleanedRestaurant;
+}
+
+export function addDistanceToRestaurants(restaurants, userLocation) {
+    return addDistanceMetadata(restaurants, userLocation).map(
+        removeDistanceMetadata
+    );
+}
+
+export function sortRestaurantsByDistance(restaurants, userLocation) {
+    return addDistanceMetadata(restaurants, userLocation)
         .sort((left, right) => {
             const leftHasDistance = Number.isFinite(left.distanceInMeters);
             const rightHasDistance = Number.isFinite(right.distanceInMeters);
@@ -80,12 +98,5 @@ export function sortRestaurantsByDistance(restaurants, userLocation) {
 
             return left.originalIndex - right.originalIndex;
         })
-        .map((restaurant) => {
-            const cleanedRestaurant = { ...restaurant };
-
-            delete cleanedRestaurant.distanceInMeters;
-            delete cleanedRestaurant.originalIndex;
-
-            return cleanedRestaurant;
-        });
+        .map(removeDistanceMetadata);
 }

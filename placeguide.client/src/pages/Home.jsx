@@ -4,9 +4,18 @@ import ToastMessage from '../components/ToastMessage';
 import RestaurantCard from '../components/RestaurantCard';
 import { mockRestaurants } from '../data/mockRestaurants';
 import { getRestaurants } from '../services/restaurantService';
-import { sortRestaurantsByDistance } from '../utils/distance';
+import {
+    addDistanceToRestaurants,
+    sortRestaurantsByDistance,
+} from '../utils/distance';
+import { filterRestaurants, PRICE_FILTERS } from '../utils/restaurantFilters';
 
 const RESTAURANTS_PER_PAGE = 9;
+const FILTER_BUTTON_BASE_CLASS =
+    'px-5 py-2 rounded-full border text-sm font-semibold transition-all whitespace-nowrap';
+const FILTER_BUTTON_INACTIVE_CLASS =
+    'border-gray-300 bg-white hover:border-red-700 hover:text-red-700';
+const FILTER_BUTTON_ACTIVE_CLASS = 'border-green-200 bg-green-100 text-green-800';
 
 function clearAuthSession() {
     localStorage.removeItem('token');
@@ -56,6 +65,11 @@ function Home() {
     const [userLocation, setUserLocation] = useState(null);
     const [restaurants, setRestaurants] = useState([]);
     const [currentPage, setCurrentPage] = useState(1);
+    const [openOnly, setOpenOnly] = useState(false);
+    const [vegetarianOnly, setVegetarianOnly] = useState(false);
+    const [nonSpicyOnly, setNonSpicyOnly] = useState(false);
+    const [priceFilter, setPriceFilter] = useState(PRICE_FILTERS.ALL);
+    const [distanceSortEnabled, setDistanceSortEnabled] = useState(false);
     const [toast, setToast] = useState({
         message: '',
         type: 'info',
@@ -112,30 +126,38 @@ function Home() {
         };
     }, []);
 
-    const restaurantsWithDistance = useMemo(() => {
-        if (!userLocation) {
-            return restaurants;
-        }
-
-        return sortRestaurantsByDistance(restaurants, userLocation);
-    }, [restaurants, userLocation]);
+    const restaurantsWithDistance = useMemo(
+        () =>
+            userLocation
+                ? addDistanceToRestaurants(restaurants, userLocation)
+                : restaurants,
+        [restaurants, userLocation]
+    );
 
     const filteredRestaurants = useMemo(() => {
-        const normalizedSearchText = searchText.toLowerCase();
-
-        return restaurantsWithDistance.filter((restaurant) => {
-            const highlightDishes = Array.isArray(restaurant.highlightDishes)
-                ? restaurant.highlightDishes
-                : [];
-
-            return (
-                restaurant.name.toLowerCase().includes(normalizedSearchText) ||
-                highlightDishes.some((dish) =>
-                    dish.toLowerCase().includes(normalizedSearchText)
-                )
-            );
+        const filtered = filterRestaurants(restaurantsWithDistance, {
+            searchText,
+            openOnly,
+            vegetarianOnly,
+            nonSpicyOnly,
+            priceFilter,
         });
-    }, [restaurantsWithDistance, searchText]);
+
+        if (distanceSortEnabled && userLocation) {
+            return sortRestaurantsByDistance(filtered, userLocation);
+        }
+
+        return filtered;
+    }, [
+        restaurantsWithDistance,
+        searchText,
+        openOnly,
+        vegetarianOnly,
+        nonSpicyOnly,
+        priceFilter,
+        distanceSortEnabled,
+        userLocation,
+    ]);
 
     const totalPages = Math.max(
         1,
@@ -157,11 +179,27 @@ function Home() {
         activePage * RESTAURANTS_PER_PAGE,
         filteredRestaurants.length
     );
-
+    const getFilterButtonClass = (isActive) =>
+        `${FILTER_BUTTON_BASE_CLASS} ${
+            isActive ? FILTER_BUTTON_ACTIVE_CLASS : FILTER_BUTTON_INACTIVE_CLASS
+        }`;
     const handleLogout = () => {
         window.speechSynthesis?.cancel();
         clearAuthSession();
         navigate('/', { replace: true });
+    };
+
+    const handleToggleDistanceSort = () => {
+        if (!userLocation) {
+            setToast({
+                message: 'Hãy bấm “Dùng vị trí của tôi” trước để sắp xếp theo khoảng cách.',
+                type: 'info',
+            });
+            return;
+        }
+
+        setDistanceSortEnabled((currentValue) => !currentValue);
+        setCurrentPage(1);
     };
 
     const handleGetLocation = () => {
@@ -367,26 +405,72 @@ function Home() {
                     </div>
 
                     <div className="flex gap-3 overflow-x-auto pb-2">
-                        <button className="px-5 py-2 rounded-full border border-gray-300 bg-white text-sm font-semibold hover:border-red-700 hover:text-red-700 transition-all">
+                        <button
+                            type="button"
+                            onClick={handleToggleDistanceSort}
+                            className={getFilterButtonClass(distanceSortEnabled)}
+                        >
                             Khoảng cách
                         </button>
 
-                        <button className="px-5 py-2 rounded-full border border-gray-300 bg-white text-sm font-semibold hover:border-red-700 hover:text-red-700 transition-all">
-                            Giá
-                        </button>
+                        <label
+                            className={`${FILTER_BUTTON_BASE_CLASS} ${
+                                priceFilter !== PRICE_FILTERS.ALL
+                                    ? FILTER_BUTTON_ACTIVE_CLASS
+                                    : FILTER_BUTTON_INACTIVE_CLASS
+                            } flex items-center gap-2`}
+                        >
+                            <span>Giá:</span>
+                            <select
+                                value={priceFilter}
+                                onChange={(event) => {
+                                    setPriceFilter(event.target.value);
+                                    setCurrentPage(1);
+                                }}
+                                className="bg-transparent text-sm font-semibold outline-none"
+                            >
+                                <option value={PRICE_FILTERS.ALL}>Tất cả</option>
+                                <option value={PRICE_FILTERS.CHEAP}>Giá rẻ</option>
+                                <option value={PRICE_FILTERS.MEDIUM}>
+                                    Trung bình
+                                </option>
+                                <option value={PRICE_FILTERS.HIGH}>Cao</option>
+                            </select>
+                        </label>
 
-                        <button className="px-5 py-2 rounded-full bg-green-100 text-green-800 border border-green-200 text-sm font-semibold flex items-center gap-2">
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setOpenOnly((value) => !value);
+                                setCurrentPage(1);
+                            }}
+                            className={`${getFilterButtonClass(openOnly)} flex items-center gap-2`}
+                        >
                             <span className="material-symbols-outlined text-[16px]">
                                 timer
                             </span>
                             Đang mở cửa
                         </button>
 
-                        <button className="px-5 py-2 rounded-full border border-gray-300 bg-white text-sm font-semibold hover:border-red-700 hover:text-red-700 transition-all">
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setVegetarianOnly((value) => !value);
+                                setCurrentPage(1);
+                            }}
+                            className={getFilterButtonClass(vegetarianOnly)}
+                        >
                             Món chay
                         </button>
 
-                        <button className="px-5 py-2 rounded-full border border-gray-300 bg-white text-sm font-semibold hover:border-red-700 hover:text-red-700 transition-all">
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setNonSpicyOnly((value) => !value);
+                                setCurrentPage(1);
+                            }}
+                            className={getFilterButtonClass(nonSpicyOnly)}
+                        >
                             Không cay
                         </button>
 
