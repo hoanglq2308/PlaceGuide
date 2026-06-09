@@ -2,6 +2,10 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import ToastMessage from '../components/ToastMessage';
 import { getRestaurantById } from '../services/restaurantService';
+import {
+    isFavoriteRestaurant,
+    toggleFavoriteRestaurant,
+} from '../utils/favoriteStorage';
 
 const FALLBACK_IMAGE =
     'https://images.unsplash.com/photo-1555396273-367ea4eb4db5';
@@ -50,6 +54,9 @@ function RestaurantDetail() {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState('');
     const [language, setLanguage] = useState('vi');
+    const [isFavorite, setIsFavorite] = useState(() =>
+        isFavoriteRestaurant(id)
+    );
     const [toast, setToast] = useState({
         message: '',
         type: 'info',
@@ -67,6 +74,7 @@ function RestaurantDetail() {
 
                 if (isActive) {
                     setRestaurant(data);
+                    setIsFavorite(isFavoriteRestaurant(id));
                 }
             } catch (loadError) {
                 if (isActive) {
@@ -143,9 +151,14 @@ function RestaurantDetail() {
     };
 
     const handleSave = () => {
+        const result = toggleFavoriteRestaurant(displayRestaurant.id);
+
+        setIsFavorite(result.isFavorite);
         setToast({
-            message: 'Tính năng lưu quán sẽ được nối backend ở bước sau.',
-            type: 'info',
+            message: result.isFavorite
+                ? 'Đã lưu quán vào Bookmarks.'
+                : 'Đã bỏ lưu quán.',
+            type: result.isFavorite ? 'success' : 'info',
         });
     };
 
@@ -357,13 +370,17 @@ function RestaurantDetail() {
                             <button
                                 type="button"
                                 onClick={handleSave}
-                                className="flex flex-col items-center justify-center p-5 bg-white border border-gray-200 text-stone-900 rounded-xl hover:bg-gray-50 transition-colors"
+                                className={`flex flex-col items-center justify-center p-5 rounded-xl border transition-colors ${
+                                    isFavorite
+                                        ? 'bg-green-50 border-green-100 text-green-800'
+                                        : 'bg-white border-gray-200 text-stone-900 hover:bg-gray-50'
+                                }`}
                             >
                                 <span className="material-symbols-outlined mb-1">
-                                    bookmark
+                                    {isFavorite ? 'bookmark_added' : 'bookmark'}
                                 </span>
                                 <span className="text-sm font-semibold text-center">
-                                    Lưu quán
+                                    {isFavorite ? 'Đã lưu' : 'Lưu quán'}
                                 </span>
                             </button>
                         </div>

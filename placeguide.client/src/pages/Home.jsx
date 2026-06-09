@@ -238,7 +238,11 @@ function Home() {
                             <button className="text-gray-600 font-medium hover:text-red-700 transition-colors text-sm">
                                 Map
                             </button>
-                            <button className="text-gray-600 font-medium hover:text-red-700 transition-colors text-sm">
+                            <button
+                                type="button"
+                                onClick={() => navigate('/bookmarks')}
+                                className="text-gray-600 font-medium hover:text-red-700 transition-colors text-sm"
+                            >
                                 Bookmarks
                             </button>
                             <button className="text-gray-600 font-medium hover:text-red-700 transition-colors text-sm">
@@ -536,7 +540,11 @@ function Home() {
                     <span className="text-xs font-semibold">Map</span>
                 </button>
 
-                <button className="flex flex-col items-center justify-center text-gray-500">
+                <button
+                    type="button"
+                    onClick={() => navigate('/bookmarks')}
+                    className="flex flex-col items-center justify-center text-gray-500"
+                >
                     <span className="material-symbols-outlined">
                         bookmark
                     </span>
