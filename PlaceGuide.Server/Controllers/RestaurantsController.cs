@@ -49,6 +49,7 @@ namespace PlaceGuide.Server.Controllers
             {
                 Id = restaurant.Id,
                 Name = restaurant.Name,
+                Address = restaurant.Address,
                 Image = restaurant.ImageUrl,
                 Badge = restaurant.Badge,
                 Distance = "Chưa xác định",

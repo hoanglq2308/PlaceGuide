@@ -4,6 +4,9 @@ import ToastMessage from '../components/ToastMessage';
 import RestaurantCard from '../components/RestaurantCard';
 import { mockRestaurants } from '../data/mockRestaurants';
 import { getRestaurants } from '../services/restaurantService';
+import { sortRestaurantsByDistance } from '../utils/distance';
+
+const RESTAURANTS_PER_PAGE = 9;
 
 function clearAuthSession() {
     localStorage.removeItem('token');
@@ -50,7 +53,9 @@ function Home() {
     const [searchText, setSearchText] = useState('');
     const [locationText, setLocationText] = useState('Chưa lấy vị trí');
     const [isGettingLocation, setIsGettingLocation] = useState(false);
+    const [userLocation, setUserLocation] = useState(null);
     const [restaurants, setRestaurants] = useState([]);
+    const [currentPage, setCurrentPage] = useState(1);
     const [toast, setToast] = useState({
         message: '',
         type: 'info',
@@ -86,10 +91,12 @@ function Home() {
 
                 if (isActive) {
                     setRestaurants(data);
+                    setCurrentPage(1);
                 }
             } catch (error) {
                 if (isActive) {
                     setRestaurants(mockRestaurants);
+                    setCurrentPage(1);
                     setToast({
                         message: `${error.message} Đang hiển thị dữ liệu mẫu.`,
                         type: 'warning',
@@ -105,10 +112,18 @@ function Home() {
         };
     }, []);
 
+    const restaurantsWithDistance = useMemo(() => {
+        if (!userLocation) {
+            return restaurants;
+        }
+
+        return sortRestaurantsByDistance(restaurants, userLocation);
+    }, [restaurants, userLocation]);
+
     const filteredRestaurants = useMemo(() => {
         const normalizedSearchText = searchText.toLowerCase();
 
-        return restaurants.filter((restaurant) => {
+        return restaurantsWithDistance.filter((restaurant) => {
             const highlightDishes = Array.isArray(restaurant.highlightDishes)
                 ? restaurant.highlightDishes
                 : [];
@@ -120,7 +135,28 @@ function Home() {
                 )
             );
         });
-    }, [restaurants, searchText]);
+    }, [restaurantsWithDistance, searchText]);
+
+    const totalPages = Math.max(
+        1,
+        Math.ceil(filteredRestaurants.length / RESTAURANTS_PER_PAGE)
+    );
+    const activePage = Math.min(currentPage, totalPages);
+    const paginatedRestaurants = useMemo(() => {
+        const startIndex = (activePage - 1) * RESTAURANTS_PER_PAGE;
+
+        return filteredRestaurants.slice(
+            startIndex,
+            startIndex + RESTAURANTS_PER_PAGE
+        );
+    }, [activePage, filteredRestaurants]);
+    const resultStart = filteredRestaurants.length
+        ? (activePage - 1) * RESTAURANTS_PER_PAGE + 1
+        : 0;
+    const resultEnd = Math.min(
+        activePage * RESTAURANTS_PER_PAGE,
+        filteredRestaurants.length
+    );
 
     const handleLogout = () => {
         window.speechSynthesis?.cancel();
@@ -139,7 +175,10 @@ function Home() {
         navigator.geolocation.getCurrentPosition(
             (position) => {
                 const { latitude, longitude } = position.coords;
+                const currentLocation = { latitude, longitude };
 
+                setUserLocation(currentLocation);
+                setCurrentPage(1);
                 setLocationText(
                     `Lat: ${latitude.toFixed(4)}, Lng: ${longitude.toFixed(4)}`
                 );
@@ -308,7 +347,10 @@ function Home() {
                                 placeholder="Tìm món hoặc quán ăn..."
                                 type="text"
                                 value={searchText}
-                                onChange={(e) => setSearchText(e.target.value)}
+                                onChange={(e) => {
+                                    setSearchText(e.target.value);
+                                    setCurrentPage(1);
+                                }}
                             />
                         </div>
 
@@ -363,7 +405,7 @@ function Home() {
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                        {filteredRestaurants.map((restaurant) => (
+                        {paginatedRestaurants.map((restaurant) => (
                             <RestaurantCard
                                 key={restaurant.id}
                                 restaurant={restaurant}
@@ -372,6 +414,45 @@ function Home() {
                             />
                         ))}
                     </div>
+
+                    {filteredRestaurants.length > 0 && (
+                        <div className="flex flex-col md:flex-row items-center justify-between gap-4 pt-2">
+                            <p className="text-sm font-medium text-gray-600">
+                                Hiển thị {resultStart}-{resultEnd} /{' '}
+                                {filteredRestaurants.length} quán
+                            </p>
+
+                            <div className="flex items-center gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() =>
+                                        setCurrentPage(Math.max(1, activePage - 1))
+                                    }
+                                    disabled={activePage === 1}
+                                    className="px-4 py-2 rounded-full border border-gray-300 bg-white text-sm font-semibold text-gray-700 hover:border-red-700 hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-gray-300 disabled:hover:text-gray-700 transition-all"
+                                >
+                                    Trước
+                                </button>
+
+                                <span className="px-4 py-2 rounded-full bg-red-700 text-white text-sm font-bold">
+                                    {activePage} / {totalPages}
+                                </span>
+
+                                <button
+                                    type="button"
+                                    onClick={() =>
+                                        setCurrentPage(
+                                            Math.min(totalPages, activePage + 1)
+                                        )
+                                    }
+                                    disabled={activePage === totalPages}
+                                    className="px-4 py-2 rounded-full border border-gray-300 bg-white text-sm font-semibold text-gray-700 hover:border-red-700 hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-gray-300 disabled:hover:text-gray-700 transition-all"
+                                >
+                                    Sau
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </section>
 
                 {/* Story & Culture */}

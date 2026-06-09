@@ -1,4 +1,14 @@
+import { useNavigate } from 'react-router-dom';
+
 function RestaurantCard({ restaurant, language, onSpeak }) {
+    const navigate = useNavigate();
+
+    const handleViewDetails = () => {
+        if (!restaurant.id) return;
+
+        navigate(`/restaurants/${restaurant.id}`);
+    };
+
     return (
         <article className="group bg-white rounded-xl overflow-hidden border border-gray-200 shadow-[0_4px_20px_rgba(183,20,34,0.08)] transition-transform hover:-translate-y-1">
             <div className="relative h-56 overflow-hidden">
@@ -6,6 +16,8 @@ function RestaurantCard({ restaurant, language, onSpeak }) {
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                     src={restaurant.image}
                     alt={restaurant.name}
+                    loading="lazy"
+                    decoding="async"
                 />
 
                 <div className="absolute top-4 right-4 bg-green-700 text-white px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1 shadow-lg">
@@ -80,6 +92,7 @@ function RestaurantCard({ restaurant, language, onSpeak }) {
 
                     <button
                         type="button"
+                        onClick={handleViewDetails}
                         className="px-4 border border-gray-300 text-gray-600 rounded-lg hover:bg-gray-100 transition-all"
                     >
                         <span className="material-symbols-outlined">

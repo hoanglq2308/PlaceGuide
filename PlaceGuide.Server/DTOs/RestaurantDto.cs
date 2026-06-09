@@ -4,6 +4,7 @@ namespace PlaceGuide.Server.DTOs
     {
         public Guid Id { get; set; }
         public string Name { get; set; } = string.Empty;
+        public string Address { get; set; } = string.Empty;
         public string Image { get; set; } = string.Empty;
         public string Badge { get; set; } = string.Empty;
         public string Distance { get; set; } = string.Empty;

@@ -59,7 +59,7 @@ async function handleResponse(response) {
     return result;
 }
 
-export async function getRestaurants() {
+function getAuthHeaders() {
     const token = localStorage.getItem('token');
     const headers = {};
 
@@ -67,8 +67,12 @@ export async function getRestaurants() {
         headers.Authorization = `Bearer ${token}`;
     }
 
+    return headers;
+}
+
+export async function getRestaurants() {
     const response = await fetch(getApiUrl('/restaurants'), {
-        headers,
+        headers: getAuthHeaders(),
     });
 
     const restaurants = await handleResponse(response);
@@ -78,4 +82,25 @@ export async function getRestaurants() {
     }
 
     return restaurants;
+}
+
+export async function getRestaurantById(id) {
+    if (!id) {
+        throw new Error('Thiếu mã quán ăn!');
+    }
+
+    const response = await fetch(
+        getApiUrl(`/restaurants/${encodeURIComponent(id)}`),
+        {
+            headers: getAuthHeaders(),
+        }
+    );
+
+    const restaurant = await handleResponse(response);
+
+    if (!restaurant || typeof restaurant !== 'object') {
+        throw new Error('Dữ liệu chi tiết quán ăn từ server không hợp lệ!');
+    }
+
+    return restaurant;
 }
