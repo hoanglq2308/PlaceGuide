@@ -2,10 +2,12 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import ToastMessage from '../components/ToastMessage';
 import { getRestaurantById } from '../services/restaurantService';
+import { getDishesByRestaurantId } from '../services/dishService';
 import {
-    isFavoriteRestaurant,
-    toggleFavoriteRestaurant,
-} from '../utils/favoriteStorage';
+    addFavoriteRestaurant,
+    getFavoriteStatus,
+    removeFavoriteRestaurant,
+} from '../services/favoriteService';
 
 const FALLBACK_IMAGE =
     'https://images.unsplash.com/photo-1555396273-367ea4eb4db5';
@@ -25,6 +27,28 @@ function hasCoordinates(restaurant) {
 
 function getNarration(restaurant, language) {
     return restaurant?.narration?.[language] || '';
+}
+
+function getDishDescription(dish, language) {
+    return dish?.description?.[language] || dish?.description?.vi || '';
+}
+
+function getDishNarration(dish, language) {
+    return dish?.narration?.[language] || dish?.narration?.vi || '';
+}
+
+function formatDishPrice(price) {
+    const numericPrice = Number(price);
+
+    if (!Number.isFinite(numericPrice)) {
+        return 'Chưa cập nhật';
+    }
+
+    return new Intl.NumberFormat('vi-VN', {
+        style: 'currency',
+        currency: 'VND',
+        maximumFractionDigits: 0,
+    }).format(numericPrice);
 }
 
 function getDisplayRestaurant(restaurant) {
@@ -54,9 +78,10 @@ function RestaurantDetail() {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState('');
     const [language, setLanguage] = useState('vi');
-    const [isFavorite, setIsFavorite] = useState(() =>
-        isFavoriteRestaurant(id)
-    );
+    const [dishes, setDishes] = useState([]);
+    const [dishesError, setDishesError] = useState('');
+    const [isFavorite, setIsFavorite] = useState(false);
+    const [isSavingFavorite, setIsSavingFavorite] = useState(false);
     const [toast, setToast] = useState({
         message: '',
         type: 'info',
@@ -70,11 +95,25 @@ function RestaurantDetail() {
             setError('');
 
             try {
-                const data = await getRestaurantById(id);
+                const [data, favoriteStatus, dishResult] = await Promise.all([
+                    getRestaurantById(id),
+                    getFavoriteStatus(id).catch(() => false),
+                    getDishesByRestaurantId(id)
+                        .then((dishData) => ({
+                            data: dishData,
+                            error: '',
+                        }))
+                        .catch((dishError) => ({
+                            data: [],
+                            error: dishError.message,
+                        })),
+                ]);
 
                 if (isActive) {
                     setRestaurant(data);
-                    setIsFavorite(isFavoriteRestaurant(id));
+                    setIsFavorite(favoriteStatus);
+                    setDishes(dishResult.data);
+                    setDishesError(dishResult.error);
                 }
             } catch (loadError) {
                 if (isActive) {
@@ -112,6 +151,10 @@ function RestaurantDetail() {
     };
 
     const handleSpeak = () => {
+        handleSpeakText(narration, 'Quán này chưa có nội dung thuyết minh.');
+    };
+
+    const handleSpeakText = (text, missingMessage) => {
         if (!window.speechSynthesis) {
             setToast({
                 message: 'Trình duyệt không hỗ trợ đọc thuyết minh.',
@@ -120,9 +163,9 @@ function RestaurantDetail() {
             return;
         }
 
-        if (!narration) {
+        if (!text) {
             setToast({
-                message: 'Quán này chưa có nội dung thuyết minh.',
+                message: missingMessage,
                 type: 'warning',
             });
             return;
@@ -130,7 +173,7 @@ function RestaurantDetail() {
 
         window.speechSynthesis.cancel();
 
-        const utterance = new SpeechSynthesisUtterance(narration);
+        const utterance = new SpeechSynthesisUtterance(text);
         utterance.lang = language === 'vi' ? 'vi-VN' : 'en-US';
         utterance.rate = 0.95;
 
@@ -150,16 +193,38 @@ function RestaurantDetail() {
         window.open(url, '_blank', 'noopener,noreferrer');
     };
 
-    const handleSave = () => {
-        const result = toggleFavoriteRestaurant(displayRestaurant.id);
+    const handleSave = async () => {
+        if (!displayRestaurant.id || isSavingFavorite) {
+            return;
+        }
 
-        setIsFavorite(result.isFavorite);
-        setToast({
-            message: result.isFavorite
-                ? 'Đã lưu quán vào Bookmarks.'
-                : 'Đã bỏ lưu quán.',
-            type: result.isFavorite ? 'success' : 'info',
-        });
+        setIsSavingFavorite(true);
+
+        try {
+            if (isFavorite) {
+                await removeFavoriteRestaurant(displayRestaurant.id);
+                setIsFavorite(false);
+                setToast({
+                    message: 'Đã bỏ lưu quán.',
+                    type: 'info',
+                });
+                return;
+            }
+
+            await addFavoriteRestaurant(displayRestaurant.id);
+            setIsFavorite(true);
+            setToast({
+                message: 'Đã lưu quán vào Bookmarks.',
+                type: 'success',
+            });
+        } catch (saveError) {
+            setToast({
+                message: saveError.message,
+                type: 'warning',
+            });
+        } finally {
+            setIsSavingFavorite(false);
+        }
     };
 
     if (isLoading) {
@@ -370,17 +435,22 @@ function RestaurantDetail() {
                             <button
                                 type="button"
                                 onClick={handleSave}
+                                disabled={isSavingFavorite}
                                 className={`flex flex-col items-center justify-center p-5 rounded-xl border transition-colors ${
                                     isFavorite
                                         ? 'bg-green-50 border-green-100 text-green-800'
                                         : 'bg-white border-gray-200 text-stone-900 hover:bg-gray-50'
-                                }`}
+                                } disabled:cursor-not-allowed disabled:opacity-60`}
                             >
                                 <span className="material-symbols-outlined mb-1">
                                     {isFavorite ? 'bookmark_added' : 'bookmark'}
                                 </span>
                                 <span className="text-sm font-semibold text-center">
-                                    {isFavorite ? 'Đã lưu' : 'Lưu quán'}
+                                    {isSavingFavorite
+                                        ? 'Đang lưu...'
+                                        : isFavorite
+                                            ? 'Đã lưu'
+                                            : 'Lưu quán'}
                                 </span>
                             </button>
                         </div>
@@ -496,42 +566,129 @@ function RestaurantDetail() {
                             </div>
                         </section>
 
-                        <section>
-                            <h2 className="text-2xl font-bold mb-5">
-                                Món ăn đặc sắc
-                            </h2>
+                        {(dishes.length > 0 || dishesError) && (
+                            <section>
+                                <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3 mb-5">
+                                    <div>
+                                        <h2 className="text-2xl font-bold">
+                                            Món nên thử
+                                        </h2>
+                                        <p className="text-sm text-gray-600 mt-1">
+                                            Thực đơn gợi ý từ quán, có mô tả và
+                                            thuyết minh theo ngôn ngữ bạn chọn.
+                                        </p>
+                                    </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                {[primaryDish, secondaryDish, tertiaryDish].map(
-                                    (dish, index) => (
-                                        <article
-                                            key={`${dish}-${index}`}
-                                            className="bg-white p-4 rounded-xl border border-gray-200 hover:border-red-200 transition-all"
-                                        >
-                                            <div className="aspect-square rounded-lg bg-gray-100 mb-3 overflow-hidden">
-                                                <img
-                                                    className="w-full h-full object-cover hover:scale-110 transition-transform duration-500"
-                                                    src={displayRestaurant.image}
-                                                    alt={dish}
-                                                    loading="lazy"
-                                                    decoding="async"
-                                                />
-                                            </div>
-                                            <h3 className="text-lg font-bold mb-1">
-                                                {dish}
-                                            </h3>
-                                            <p className="text-xs text-gray-500 mb-3">
-                                                Gợi ý nổi bật từ thực đơn của
-                                                quán.
-                                            </p>
-                                            <span className="inline-flex items-center bg-gray-100 text-gray-600 px-2 py-1 rounded text-[10px] font-bold uppercase">
-                                                Must try
-                                            </span>
-                                        </article>
-                                    )
+                                    <span className="inline-flex items-center gap-2 bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider w-fit">
+                                        <span className="material-symbols-outlined text-[16px]">
+                                            restaurant_menu
+                                        </span>
+                                        Menu
+                                    </span>
+                                </div>
+
+                                {dishesError ? (
+                                    <div className="bg-white rounded-xl border border-red-100 shadow-[0_4px_20px_rgba(183,20,34,0.08)] p-5 text-sm font-semibold text-gray-600">
+                                        Chưa tải được danh sách món ăn. Bạn vẫn
+                                        có thể xem thông tin quán bình thường.
+                                    </div>
+                                ) : (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                                        {dishes.map((dish) => {
+                                            const dishDescription =
+                                                getDishDescription(
+                                                    dish,
+                                                    language
+                                                );
+                                            const dishNarration =
+                                                getDishNarration(dish, language);
+
+                                            return (
+                                                <article
+                                                    key={dish.id}
+                                                    className="bg-white rounded-xl border border-gray-200 shadow-[0_4px_20px_rgba(183,20,34,0.08)] overflow-hidden hover:border-red-200 hover:-translate-y-1 transition-all"
+                                                >
+                                                    <div className="aspect-[4/3] bg-gray-100 overflow-hidden">
+                                                        <img
+                                                            className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
+                                                            src={
+                                                                dish.image ||
+                                                                displayRestaurant.image
+                                                            }
+                                                            alt={dish.name}
+                                                            loading="lazy"
+                                                            decoding="async"
+                                                        />
+                                                    </div>
+
+                                                    <div className="p-4 space-y-4">
+                                                        <div>
+                                                            <div className="flex items-start justify-between gap-3">
+                                                                <h3 className="text-lg font-bold text-stone-900 leading-tight">
+                                                                    {dish.name}
+                                                                </h3>
+                                                                <span className="text-sm font-extrabold text-red-700 whitespace-nowrap">
+                                                                    {formatDishPrice(
+                                                                        dish.price
+                                                                    )}
+                                                                </span>
+                                                            </div>
+
+                                                            <p className="text-sm text-gray-600 mt-2 line-clamp-3">
+                                                                {dishDescription ||
+                                                                    'Chưa có mô tả cho món này.'}
+                                                            </p>
+                                                        </div>
+
+                                                        <div className="flex flex-wrap gap-2">
+                                                            {dish.isVegetarian && (
+                                                                <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider">
+                                                                    Món chay
+                                                                </span>
+                                                            )}
+
+                                                            {dish.isSpicy && (
+                                                                <span className="bg-red-100 text-red-800 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider">
+                                                                    Cay
+                                                                </span>
+                                                            )}
+
+                                                            {dish.allergyInfo && (
+                                                                <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider">
+                                                                    Dị ứng
+                                                                </span>
+                                                            )}
+                                                        </div>
+
+                                                        {dish.allergyInfo && (
+                                                            <p className="text-xs text-gray-500">
+                                                                {dish.allergyInfo}
+                                                            </p>
+                                                        )}
+
+                                                        <button
+                                                            type="button"
+                                                            onClick={() =>
+                                                                handleSpeakText(
+                                                                    dishNarration,
+                                                                    'Món này chưa có nội dung thuyết minh.'
+                                                                )
+                                                            }
+                                                            className="w-full bg-green-50 text-green-800 py-3 rounded-lg font-bold flex items-center justify-center gap-2 hover:bg-green-100 transition-colors text-sm"
+                                                        >
+                                                            <span className="material-symbols-outlined text-[20px]">
+                                                                volume_up
+                                                            </span>
+                                                            Nghe thuyết minh món
+                                                        </button>
+                                                    </div>
+                                                </article>
+                                            );
+                                        })}
+                                    </div>
                                 )}
-                            </div>
-                        </section>
+                            </section>
+                        )}
                     </div>
 
                     <aside className="space-y-6">

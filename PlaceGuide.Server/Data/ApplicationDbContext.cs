@@ -14,6 +14,10 @@ namespace PlaceGuide.Server.Data
 
         public DbSet<Restaurant> Restaurants { get; set; }
 
+        public DbSet<FavoriteRestaurant> FavoriteRestaurants { get; set; }
+
+        public DbSet<Dish> Dishes { get; set; }
+
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
@@ -27,6 +31,42 @@ namespace PlaceGuide.Server.Data
             builder.Entity<IdentityUserToken<long>>().ToTable("user_tokens");
 
             builder.Entity<Restaurant>().ToTable("restaurants");
+
+            builder.Entity<Dish>(entity =>
+            {
+                entity.ToTable("dishes");
+
+                entity.Property(dish => dish.Price)
+                    .HasPrecision(12, 2);
+
+                entity.HasIndex(dish => dish.RestaurantId);
+
+                entity.HasOne(dish => dish.Restaurant)
+                    .WithMany()
+                    .HasForeignKey(dish => dish.RestaurantId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            builder.Entity<FavoriteRestaurant>(entity =>
+            {
+                entity.ToTable("favorite_restaurants");
+
+                entity.HasIndex(favorite => new
+                {
+                    favorite.UserId,
+                    favorite.RestaurantId
+                }).IsUnique();
+
+                entity.HasOne(favorite => favorite.User)
+                    .WithMany()
+                    .HasForeignKey(favorite => favorite.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(favorite => favorite.Restaurant)
+                    .WithMany()
+                    .HasForeignKey(favorite => favorite.RestaurantId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
         }
     }
 }

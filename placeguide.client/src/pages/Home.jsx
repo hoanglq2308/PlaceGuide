@@ -273,7 +273,11 @@ function Home() {
                             <button className="text-red-700 font-bold border-b-2 border-red-700 text-sm">
                                 Explore
                             </button>
-                            <button className="text-gray-600 font-medium hover:text-red-700 transition-colors text-sm">
+                            <button
+                                type="button"
+                                onClick={() => navigate('/map')}
+                                className="text-gray-600 font-medium hover:text-red-700 transition-colors text-sm"
+                            >
                                 Map
                             </button>
                             <button
@@ -396,7 +400,11 @@ function Home() {
                             />
                         </div>
 
-                        <button className="hidden md:flex items-center gap-2 bg-green-700 text-white px-6 py-4 rounded-full font-bold hover:bg-green-800 transition-all">
+                        <button
+                            type="button"
+                            onClick={() => navigate('/map')}
+                            className="hidden md:flex items-center gap-2 bg-green-700 text-white px-6 py-4 rounded-full font-bold hover:bg-green-800 transition-all"
+                        >
                             <span className="material-symbols-outlined">
                                 map
                             </span>
@@ -600,7 +608,11 @@ function Home() {
                             Xem các điểm ăn uống xung quanh theo thời gian thực.
                         </p>
 
-                        <button className="text-red-700 font-bold hover:underline">
+                        <button
+                            type="button"
+                            onClick={() => navigate('/map')}
+                            className="text-red-700 font-bold hover:underline"
+                        >
                             Mở bản đồ full-screen
                         </button>
                     </div>
@@ -608,7 +620,11 @@ function Home() {
             </main>
 
             {/* Mobile Map Button */}
-            <button className="md:hidden fixed bottom-24 right-6 bg-green-700 text-white w-14 h-14 rounded-full flex items-center justify-center shadow-xl z-50 hover:scale-110 active:scale-90 transition-all">
+            <button
+                type="button"
+                onClick={() => navigate('/map')}
+                className="md:hidden fixed bottom-24 right-6 bg-green-700 text-white w-14 h-14 rounded-full flex items-center justify-center shadow-xl z-50 hover:scale-110 active:scale-90 transition-all"
+            >
                 <span className="material-symbols-outlined">map</span>
             </button>
 
@@ -619,7 +635,11 @@ function Home() {
                     <span className="text-xs font-semibold">Explore</span>
                 </button>
 
-                <button className="flex flex-col items-center justify-center text-gray-500">
+                <button
+                    type="button"
+                    onClick={() => navigate('/map')}
+                    className="flex flex-col items-center justify-center text-gray-500"
+                >
                     <span className="material-symbols-outlined">map</span>
                     <span className="text-xs font-semibold">Map</span>
                 </button>

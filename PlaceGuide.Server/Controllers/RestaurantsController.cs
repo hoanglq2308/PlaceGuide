@@ -43,6 +43,27 @@ namespace PlaceGuide.Server.Controllers
             return Ok(ToResponse(restaurant));
         }
 
+        [HttpGet("{restaurantId:guid}/dishes")]
+        public async Task<ActionResult<IEnumerable<DishResponseDto>>> GetRestaurantDishes(Guid restaurantId)
+        {
+            var restaurantExists = await _context.Restaurants
+                .AsNoTracking()
+                .AnyAsync(restaurant => restaurant.Id == restaurantId);
+
+            if (!restaurantExists)
+            {
+                return NotFound(new { Message = "Không tìm thấy nhà hàng!" });
+            }
+
+            var dishes = await _context.Dishes
+                .AsNoTracking()
+                .Where(dish => dish.RestaurantId == restaurantId)
+                .OrderBy(dish => dish.Name)
+                .ToListAsync();
+
+            return Ok(dishes.Select(ToDishResponse));
+        }
+
         private static RestaurantResponseDto ToResponse(Restaurant restaurant)
         {
             return new RestaurantResponseDto
@@ -79,6 +100,31 @@ namespace PlaceGuide.Server.Controllers
                 ',',
                 StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries
             );
+        }
+
+        private static DishResponseDto ToDishResponse(Dish dish)
+        {
+            return new DishResponseDto
+            {
+                Id = dish.Id,
+                RestaurantId = dish.RestaurantId,
+                Name = dish.Name,
+                Description = new DishDescriptionDto
+                {
+                    Vi = dish.DescriptionVi,
+                    En = dish.DescriptionEn
+                },
+                Price = dish.Price,
+                Image = dish.ImageUrl,
+                IsVegetarian = dish.IsVegetarian,
+                IsSpicy = dish.IsSpicy,
+                AllergyInfo = dish.AllergyInfo,
+                Narration = new DishNarrationDto
+                {
+                    Vi = dish.NarrationVi,
+                    En = dish.NarrationEn
+                }
+            };
         }
     }
 

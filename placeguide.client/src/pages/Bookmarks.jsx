@@ -1,15 +1,13 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import RestaurantCard from '../components/RestaurantCard';
 import ToastMessage from '../components/ToastMessage';
-import { getRestaurants } from '../services/restaurantService';
-import { getFavoriteRestaurantIds } from '../utils/favoriteStorage';
+import { getFavorites } from '../services/favoriteService';
 
 function Bookmarks() {
     const navigate = useNavigate();
 
-    const [restaurants, setRestaurants] = useState([]);
-    const [favoriteIds, setFavoriteIds] = useState([]);
+    const [favoriteRestaurants, setFavoriteRestaurants] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState('');
     const [language, setLanguage] = useState('vi');
@@ -26,14 +24,10 @@ function Bookmarks() {
             setError('');
 
             try {
-                const [restaurantData, favoriteRestaurantIds] = await Promise.all([
-                    getRestaurants(),
-                    Promise.resolve(getFavoriteRestaurantIds()),
-                ]);
+                const favorites = await getFavorites();
 
                 if (isActive) {
-                    setRestaurants(restaurantData);
-                    setFavoriteIds(favoriteRestaurantIds);
+                    setFavoriteRestaurants(favorites);
                 }
             } catch (loadError) {
                 if (isActive) {
@@ -53,14 +47,6 @@ function Bookmarks() {
             window.speechSynthesis?.cancel();
         };
     }, []);
-
-    const favoriteRestaurants = useMemo(() => {
-        const favoriteIdSet = new Set(favoriteIds);
-
-        return restaurants.filter((restaurant) =>
-            favoriteIdSet.has(String(restaurant.id))
-        );
-    }, [favoriteIds, restaurants]);
 
     const handleSpeak = (text) => {
         if (!window.speechSynthesis) {

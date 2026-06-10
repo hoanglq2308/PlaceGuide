@@ -1,4 +1,6 @@
 using PlaceGuide.Server.Models;
+using System.Globalization;
+using System.Text.RegularExpressions;
 
 namespace PlaceGuide.Server.Data
 {
@@ -14,13 +16,183 @@ namespace PlaceGuide.Server.Data
                 .Where(restaurant => !existingNames.Contains(restaurant.Name))
                 .ToArray();
 
-            if (newRestaurants.Length == 0)
+            if (newRestaurants.Length > 0)
             {
-                return;
+                context.Restaurants.AddRange(newRestaurants);
+                context.SaveChanges();
             }
 
-            context.Restaurants.AddRange(newRestaurants);
-            context.SaveChanges();
+            SeedDevelopmentDishes(context);
+        }
+
+        private static void SeedDevelopmentDishes(ApplicationDbContext context)
+        {
+            var restaurants = context.Restaurants.ToList();
+            var existingDishKeys = context.Dishes
+                .Select(dish => new
+                {
+                    dish.RestaurantId,
+                    dish.Name
+                })
+                .ToList()
+                .Select(dish => $"{dish.RestaurantId:N}|{dish.Name}")
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var newDishes = new List<Dish>();
+
+            foreach (var restaurant in restaurants)
+            {
+                var dishNames = GetDishNames(restaurant).Take(3).ToArray();
+                var basePrice = ParseBasePrice(restaurant.PriceRange);
+
+                for (var index = 0; index < dishNames.Length; index++)
+                {
+                    var dishName = dishNames[index];
+                    var dishKey = $"{restaurant.Id:N}|{dishName}";
+
+                    if (existingDishKeys.Contains(dishKey))
+                    {
+                        continue;
+                    }
+
+                    newDishes.Add(new Dish
+                    {
+                        RestaurantId = restaurant.Id,
+                        Name = dishName,
+                        DescriptionVi = $"{dishName} là món nên thử tại {restaurant.Name}, phù hợp để cảm nhận hương vị đặc trưng của quán.",
+                        DescriptionEn = $"{dishName} is a recommended dish at {restaurant.Name}, suitable for tasting the restaurant's signature flavor.",
+                        Price = basePrice + (index * 15000),
+                        ImageUrl = restaurant.ImageUrl,
+                        IsVegetarian = IsVegetarianDish(dishName, restaurant.Tags),
+                        IsSpicy = IsSpicyDish(dishName),
+                        AllergyInfo = GetAllergyInfo(dishName),
+                        NarrationVi = $"Món {dishName} tại {restaurant.Name} nổi bật nhờ cách chế biến quen thuộc, dễ ăn và thể hiện rõ phong cách ẩm thực địa phương.",
+                        NarrationEn = $"{dishName} at {restaurant.Name} stands out for its familiar preparation, approachable taste, and local culinary character.",
+                        CreatedAt = DateTime.UtcNow
+                    });
+                }
+            }
+
+            if (newDishes.Count > 0)
+            {
+                context.Dishes.AddRange(newDishes);
+                context.SaveChanges();
+            }
+        }
+
+        private static IEnumerable<string> GetDishNames(Restaurant restaurant)
+        {
+            var names = SplitList(restaurant.HighlightDishes).ToList();
+            var fallbackNames = new[]
+            {
+                "Món đặc biệt",
+                "Combo địa phương",
+                "Món theo ngày"
+            };
+
+            foreach (var fallbackName in fallbackNames)
+            {
+                if (names.Count >= 3)
+                {
+                    break;
+                }
+
+                if (!names.Contains(fallbackName, StringComparer.OrdinalIgnoreCase))
+                {
+                    names.Add(fallbackName);
+                }
+            }
+
+            return names;
+        }
+
+        private static string[] SplitList(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return Array.Empty<string>();
+            }
+
+            return value.Split(
+                ',',
+                StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries
+            );
+        }
+
+        private static decimal ParseBasePrice(string priceRange)
+        {
+            var match = Regex.Match(priceRange, @"\d+(?:[.,]\d+)?");
+
+            if (!match.Success)
+            {
+                return 50000;
+            }
+
+            var normalizedValue = match.Value.Replace(',', '.');
+
+            if (!decimal.TryParse(
+                normalizedValue,
+                NumberStyles.Number,
+                CultureInfo.InvariantCulture,
+                out var price))
+            {
+                return 50000;
+            }
+
+            return priceRange.Contains('k', StringComparison.OrdinalIgnoreCase)
+                ? price * 1000
+                : price;
+        }
+
+        private static bool IsVegetarianDish(string dishName, string tags)
+        {
+            var text = $"{dishName} {tags}".ToLowerInvariant();
+
+            return text.Contains("vegetarian") ||
+                text.Contains("chay") ||
+                text.Contains("rau") ||
+                text.Contains("nấm") ||
+                text.Contains("đậu hũ");
+        }
+
+        private static bool IsSpicyDish(string dishName)
+        {
+            var text = dishName.ToLowerInvariant();
+
+            return text.Contains("cay") ||
+                text.Contains("bún bò") ||
+                text.Contains("phá lấu") ||
+                text.Contains("lẩu");
+        }
+
+        private static string GetAllergyInfo(string dishName)
+        {
+            var text = dishName.ToLowerInvariant();
+
+            if (text.Contains("cua") ||
+                text.Contains("cá") ||
+                text.Contains("tôm") ||
+                text.Contains("ốc") ||
+                text.Contains("nghêu") ||
+                text.Contains("hải sản"))
+            {
+                return "Có thể chứa hải sản.";
+            }
+
+            if (text.Contains("đậu") ||
+                text.Contains("đậu phộng"))
+            {
+                return "Có thể chứa đậu hoặc đậu phộng.";
+            }
+
+            if (text.Contains("bò") ||
+                text.Contains("gà") ||
+                text.Contains("sườn") ||
+                text.Contains("thịt"))
+            {
+                return "Có thể chứa thịt và gia vị truyền thống.";
+            }
+
+            return string.Empty;
         }
 
         private static Restaurant[] GetSeedRestaurants()
