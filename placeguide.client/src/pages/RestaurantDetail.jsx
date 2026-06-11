@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import ToastMessage from '../components/ToastMessage';
 import { getRestaurantById } from '../services/restaurantService';
 import { getDishesByRestaurantId } from '../services/dishService';
+import ReviewsSection from "../components/ReviewsSection";
 import {
     addFavoriteRestaurant,
     getFavoriteStatus,
@@ -764,6 +765,10 @@ function RestaurantDetail() {
                         </section>
                     </aside>
                 </div>
+
+                {restaurant && (
+                    <ReviewsSection restaurant={restaurant} restaurantId={id} />
+                )}
             </main>
         </div>
     );

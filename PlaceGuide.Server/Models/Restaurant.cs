@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
+
 namespace PlaceGuide.Server.Models
 {
     public class Restaurant
@@ -39,6 +40,7 @@ namespace PlaceGuide.Server.Models
         public string NarrationEn { get; set; } = string.Empty;
 
         public bool IsOpen { get; set; } = true;
+        public ICollection<Review> Reviews { get; set; } = new List<Review>();
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }

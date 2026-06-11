@@ -18,6 +18,8 @@ namespace PlaceGuide.Server.Data
 
         public DbSet<Dish> Dishes { get; set; }
 
+        public DbSet<Review> Reviews { get; set; }
+
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
@@ -65,6 +67,21 @@ namespace PlaceGuide.Server.Data
                 entity.HasOne(favorite => favorite.Restaurant)
                     .WithMany()
                     .HasForeignKey(favorite => favorite.RestaurantId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            builder.Entity<Review>(entity =>
+            {
+                entity.ToTable("Review");
+
+                entity.HasOne(review => review.Restaurant)
+                    .WithMany(restaurant => restaurant.Reviews)
+                    .HasForeignKey(review => review.RestaurantId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(review => review.User)
+                    .WithMany()
+                    .HasForeignKey(review => review.UserId)
                     .OnDelete(DeleteBehavior.Cascade);
             });
         }
