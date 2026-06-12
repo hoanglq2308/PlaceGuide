@@ -285,6 +285,9 @@ FakesAssemblies/
 .ntvs_analysis.dat
 node_modules/
 
+# Runtime review uploads
+PlaceGuide.Server/wwwroot/uploads/
+
 # Visual Studio 6 build log
 *.plg
 

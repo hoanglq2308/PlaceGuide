@@ -22,6 +22,7 @@ namespace PlaceGuide.Server.Controllers
         {
             var restaurants = await _context.Restaurants
                 .AsNoTracking()
+                .Include(restaurant => restaurant.Reviews)
                 .OrderBy(restaurant => restaurant.Name)
                 .ToListAsync();
 
@@ -33,6 +34,7 @@ namespace PlaceGuide.Server.Controllers
         {
             var restaurant = await _context.Restaurants
                 .AsNoTracking()
+                .Include(item => item.Reviews)
                 .FirstOrDefaultAsync(item => item.Id == id);
 
             if (restaurant == null)
@@ -66,6 +68,11 @@ namespace PlaceGuide.Server.Controllers
 
         private static RestaurantResponseDto ToResponse(Restaurant restaurant)
         {
+            var reviewCount = restaurant.Reviews.Count;
+            double? rating = reviewCount > 0
+                ? Math.Round(restaurant.Reviews.Average(review => review.Rating), 1)
+                : null;
+
             return new RestaurantResponseDto
             {
                 Id = restaurant.Id,
@@ -74,7 +81,8 @@ namespace PlaceGuide.Server.Controllers
                 Image = restaurant.ImageUrl,
                 Badge = restaurant.Badge,
                 Distance = "Chưa xác định",
-                Rating = restaurant.Rating,
+                Rating = rating,
+                ReviewCount = reviewCount,
                 PriceRange = restaurant.PriceRange,
                 HighlightDishes = SplitList(restaurant.HighlightDishes),
                 Tags = SplitList(restaurant.Tags),

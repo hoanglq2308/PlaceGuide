@@ -20,6 +20,8 @@ namespace PlaceGuide.Server.Data
 
         public DbSet<Review> Reviews { get; set; }
 
+        public DbSet<ReviewMedia> ReviewMedia { get; set; }
+
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
@@ -83,6 +85,18 @@ namespace PlaceGuide.Server.Data
                     .WithMany()
                     .HasForeignKey(review => review.UserId)
                     .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasMany(review => review.MediaItems)
+                    .WithOne(media => media.Review)
+                    .HasForeignKey(media => media.ReviewId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            builder.Entity<ReviewMedia>(entity =>
+            {
+                entity.ToTable("review_media");
+
+                entity.HasIndex(media => media.ReviewId);
             });
         }
     }

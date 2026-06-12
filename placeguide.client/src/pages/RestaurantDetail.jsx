@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import ToastMessage from '../components/ToastMessage';
 import { getRestaurantById } from '../services/restaurantService';
@@ -53,6 +53,8 @@ function formatDishPrice(price) {
 }
 
 function getDisplayRestaurant(restaurant) {
+    const ratingValue = Number(restaurant?.rating);
+
     return {
         id: restaurant?.id || '',
         name: restaurant?.name || 'Quán ăn',
@@ -60,7 +62,8 @@ function getDisplayRestaurant(restaurant) {
         address: restaurant?.address || 'Chưa có địa chỉ',
         badge: restaurant?.badge || 'Local food',
         distance: restaurant?.distance || 'Chưa xác định',
-        rating: restaurant?.rating ?? 'N/A',
+        reviewCount: Number(restaurant?.reviewCount) || 0,
+        rating: Number.isFinite(ratingValue) ? ratingValue : null,
         priceRange: restaurant?.priceRange || 'Chưa cập nhật',
         highlightDishes: asArray(restaurant?.highlightDishes),
         tags: asArray(restaurant?.tags),
@@ -145,6 +148,27 @@ function RestaurantDetail() {
         displayRestaurant.highlightDishes[1] || displayRestaurant.badge;
     const tertiaryDish =
         displayRestaurant.highlightDishes[2] || displayRestaurant.priceRange;
+
+    const handleRatingSummaryChange = useCallback(({ rating, reviewCount }) => {
+        setRestaurant((currentRestaurant) => {
+            if (!currentRestaurant) {
+                return currentRestaurant;
+            }
+
+            if (
+                currentRestaurant.rating === rating &&
+                currentRestaurant.reviewCount === reviewCount
+            ) {
+                return currentRestaurant;
+            }
+
+            return {
+                ...currentRestaurant,
+                rating,
+                reviewCount,
+            };
+        });
+    }, []);
 
     const handleGoBack = () => {
         window.speechSynthesis?.cancel();
@@ -385,7 +409,17 @@ function RestaurantDetail() {
                                 <span className="material-symbols-outlined text-red-300">
                                     star
                                 </span>
-                                {displayRestaurant.rating}
+                                {displayRestaurant.reviewCount > 0 &&
+                                displayRestaurant.rating !== null ? (
+                                    <>
+                                        {displayRestaurant.rating.toFixed(1)}
+                                        <span>
+                                            ({displayRestaurant.reviewCount} đánh giá)
+                                        </span>
+                                    </>
+                                ) : (
+                                    <span>Chưa có đánh giá</span>
+                                )}
                             </span>
                             <span className="flex items-center gap-1">
                                 <span className="material-symbols-outlined">
@@ -767,7 +801,11 @@ function RestaurantDetail() {
                 </div>
 
                 {restaurant && (
-                    <ReviewsSection restaurant={restaurant} restaurantId={id} />
+                    <ReviewsSection
+                        restaurant={restaurant}
+                        restaurantId={id}
+                        onRatingSummaryChange={handleRatingSummaryChange}
+                    />
                 )}
             </main>
         </div>

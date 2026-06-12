@@ -181,6 +181,10 @@ function MapZoomControls() {
 }
 
 function RestaurantPopup({ restaurant, onDirections, onViewDetails }) {
+    const reviewCount = Number(restaurant.reviewCount) || 0;
+    const ratingValue = Number(restaurant.rating);
+    const hasReviewRating = reviewCount > 0 && Number.isFinite(ratingValue);
+
     return (
         <div className="min-w-[210px] space-y-3 font-sans">
             <div className="flex gap-3">
@@ -198,7 +202,18 @@ function RestaurantPopup({ restaurant, onDirections, onViewDetails }) {
                             <span className="material-symbols-outlined text-[14px]">
                                 star
                             </span>
-                            {restaurant.rating ?? 'N/A'}
+                            {hasReviewRating ? (
+                                <>
+                                    {ratingValue.toFixed(1)}
+                                    <span className="text-[#5b403e]">
+                                        ({reviewCount})
+                                    </span>
+                                </>
+                            ) : (
+                                <span className="text-[#5b403e]">
+                                    Chưa có đánh giá
+                                </span>
+                            )}
                         </span>
                         <span>{restaurant.priceRange || 'Chưa cập nhật'}</span>
                     </div>
@@ -235,6 +250,10 @@ function RestaurantListCard({
     onSelect,
     onViewDetails,
 }) {
+    const reviewCount = Number(restaurant.reviewCount) || 0;
+    const ratingValue = Number(restaurant.rating);
+    const hasReviewRating = reviewCount > 0 && Number.isFinite(ratingValue);
+
     return (
         <article
             className={`group cursor-pointer rounded-3xl border bg-white p-4 shadow-sm transition-all hover:shadow-md ${
@@ -267,7 +286,9 @@ function RestaurantListCard({
                                     star
                                 </span>
                                 <span className="text-xs font-bold text-[#316e52]">
-                                    {restaurant.rating ?? 'N/A'}
+                                    {hasReviewRating
+                                        ? `${ratingValue.toFixed(1)} (${reviewCount})`
+                                        : 'Mới'}
                                 </span>
                             </div>
                         </div>

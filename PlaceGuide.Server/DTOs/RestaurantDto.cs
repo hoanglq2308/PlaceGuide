@@ -8,7 +8,8 @@ namespace PlaceGuide.Server.DTOs
         public string Image { get; set; } = string.Empty;
         public string Badge { get; set; } = string.Empty;
         public string Distance { get; set; } = string.Empty;
-        public double Rating { get; set; }
+        public double? Rating { get; set; }
+        public int ReviewCount { get; set; }
         public string PriceRange { get; set; } = string.Empty;
         public string[] HighlightDishes { get; set; } = Array.Empty<string>();
         public string[] Tags { get; set; } = Array.Empty<string>();

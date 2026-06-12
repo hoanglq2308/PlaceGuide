@@ -2,6 +2,9 @@ import { useNavigate } from 'react-router-dom';
 
 function RestaurantCard({ restaurant, language, onSpeak }) {
     const navigate = useNavigate();
+    const reviewCount = Number(restaurant.reviewCount) || 0;
+    const ratingValue = Number(restaurant.rating);
+    const hasReviewRating = reviewCount > 0 && Number.isFinite(ratingValue);
 
     const handleViewDetails = () => {
         if (!restaurant.id) return;
@@ -46,7 +49,18 @@ function RestaurantCard({ restaurant, language, onSpeak }) {
                             <span className="material-symbols-outlined text-[16px]">
                                 star
                             </span>
-                            {restaurant.rating}
+                            {hasReviewRating ? (
+                                <>
+                                    {ratingValue.toFixed(1)}
+                                    <span className="text-gray-500">
+                                        ({reviewCount})
+                                    </span>
+                                </>
+                            ) : (
+                                <span className="text-gray-500">
+                                    Chưa có đánh giá
+                                </span>
+                            )}
                         </span>
 
                         <span className="flex items-center gap-1">

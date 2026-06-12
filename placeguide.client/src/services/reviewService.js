@@ -28,6 +28,23 @@ function getAuthHeaders() {
   };
 }
 
+function buildReviewFormData(reviewData) {
+  const formData = new FormData();
+
+  formData.append("rating", String(reviewData.rating));
+  formData.append("comment", reviewData.comment || "");
+
+  (reviewData.mediaFiles || []).forEach((file) => {
+    formData.append("mediaFiles", file);
+  });
+
+  (reviewData.keepMediaIds || []).forEach((id) => {
+    formData.append("keepMediaIds", id);
+  });
+
+  return formData;
+}
+
 async function handleResponse(response) {
   let data = null;
 
@@ -64,13 +81,9 @@ export async function createReview(restaurantId, reviewData) {
   const response = await fetch(getApiUrl(`/restaurants/${restaurantId}/reviews`), {
     method: "POST",
     headers: {
-      "Content-Type": "application/json",
       ...getAuthHeaders(),
     },
-    body: JSON.stringify({
-      rating: reviewData.rating,
-      comment: reviewData.comment,
-    }),
+    body: buildReviewFormData(reviewData),
   });
 
   return handleResponse(response);
@@ -82,13 +95,9 @@ export async function updateReview(restaurantId, reviewId, reviewData) {
     {
       method: "PUT",
       headers: {
-        "Content-Type": "application/json",
         ...getAuthHeaders(),
       },
-      body: JSON.stringify({
-        rating: reviewData.rating,
-        comment: reviewData.comment,
-      }),
+      body: buildReviewFormData(reviewData),
     }
   );
 

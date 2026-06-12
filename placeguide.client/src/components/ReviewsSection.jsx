@@ -1,12 +1,23 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   createReview,
   deleteReview,
   getReviews,
   updateReview,
 } from "../services/reviewService";
+import ToastMessage from "./ToastMessage";
 
-const PRIMARY = "#b71422";
+const MAX_MEDIA_FILES = 10;
+const MAX_MEDIA_FILE_SIZE = 25 * 1024 * 1024;
+const ALLOWED_MEDIA_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+  "video/mp4",
+  "video/webm",
+  "video/quicktime",
+];
 
 function StarSelector({ value, onChange, size = "text-[44px]" }) {
   return (
@@ -23,7 +34,9 @@ function StarSelector({ value, onChange, size = "text-[44px]" }) {
             className={`material-symbols-outlined ${size} transition-colors ${
               star <= value ? "text-[#b71422]" : "text-[#d6cecc]"
             }`}
-            style={{ fontVariationSettings: star <= value ? "'FILL' 1" : "'FILL' 0" }}
+            style={{
+              fontVariationSettings: star <= value ? "'FILL' 1" : "'FILL' 0",
+            }}
           >
             star
           </span>
@@ -44,7 +57,9 @@ function ReadOnlyStars({ value }) {
           className={`material-symbols-outlined text-[18px] ${
             star <= rating ? "text-[#b71422]" : "text-[#d6cecc]"
           }`}
-          style={{ fontVariationSettings: star <= rating ? "'FILL' 1" : "'FILL' 0" }}
+          style={{
+            fontVariationSettings: star <= rating ? "'FILL' 1" : "'FILL' 0",
+          }}
         >
           star
         </span>
@@ -63,31 +78,62 @@ function formatDate(value) {
   });
 }
 
-export default function ReviewsSection({ restaurant, restaurantId }) {
+function getMediaItems(review) {
+  return Array.isArray(review?.mediaItems) ? review.mediaItems : [];
+}
+
+function getMediaTypeFromFile(file) {
+  return file.type.startsWith("video/") ? "video" : "image";
+}
+
+function revokePreviewUrl(media) {
+  if (media?.previewUrl) {
+    URL.revokeObjectURL(media.previewUrl);
+  }
+}
+
+function createClientId(file) {
+  const randomId =
+    typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
+  return `${file.name}-${file.lastModified}-${randomId}`;
+}
+
+export default function ReviewsSection({
+  restaurant,
+  restaurantId,
+  onRatingSummaryChange,
+}) {
   const resolvedRestaurantId = restaurantId || restaurant?.id;
+  const mediaInputRef = useRef(null);
+  const selectedMediaRef = useRef([]);
 
   const [reviews, setReviews] = useState([]);
   const [loadingReviews, setLoadingReviews] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-  const [successMessage, setSuccessMessage] = useState("");
+  const [toast, setToast] = useState({
+    message: "",
+    type: "success",
+  });
 
   const [rating, setRating] = useState(4);
   const [comment, setComment] = useState("");
-
-  const [tasteRating, setTasteRating] = useState(5);
-  const [serviceRating, setServiceRating] = useState(4);
-  const [spaceRating, setSpaceRating] = useState(4);
-  const [priceRating, setPriceRating] = useState(4);
+  const [existingMedia, setExistingMedia] = useState([]);
+  const [selectedMedia, setSelectedMedia] = useState([]);
 
   const myReview = useMemo(
     () => reviews.find((review) => review.isMine),
     [reviews]
   );
 
+  const totalMediaCount = existingMedia.length + selectedMedia.length;
+
   const averageRating = useMemo(() => {
     if (reviews.length === 0) {
-      return restaurant?.rating || 0;
+      return null;
     }
 
     const total = reviews.reduce(
@@ -97,6 +143,28 @@ export default function ReviewsSection({ restaurant, restaurantId }) {
 
     return total / reviews.length;
   }, [reviews, restaurant?.rating]);
+
+  useEffect(() => {
+    if (!onRatingSummaryChange) return;
+
+    onRatingSummaryChange({
+      rating:
+        reviews.length > 0 && averageRating !== null
+          ? Number(averageRating.toFixed(1))
+          : null,
+      reviewCount: reviews.length,
+    });
+  }, [averageRating, onRatingSummaryChange, reviews.length]);
+
+  useEffect(() => {
+    selectedMediaRef.current = selectedMedia;
+  }, [selectedMedia]);
+
+  useEffect(() => {
+    return () => {
+      selectedMediaRef.current.forEach(revokePreviewUrl);
+    };
+  }, []);
 
   useEffect(() => {
     if (!resolvedRestaurantId) return;
@@ -109,7 +177,9 @@ export default function ReviewsSection({ restaurant, restaurantId }) {
         const data = await getReviews(resolvedRestaurantId);
         setReviews(Array.isArray(data) ? data : []);
       } catch (error) {
-        setErrorMessage(error.message || "Không tải được danh sách đánh giá.");
+        const message = error.message || "Không tải được danh sách đánh giá.";
+        setErrorMessage(message);
+        setToast({ message, type: "error" });
       } finally {
         setLoadingReviews(false);
       }
@@ -119,11 +189,96 @@ export default function ReviewsSection({ restaurant, restaurantId }) {
   }, [resolvedRestaurantId]);
 
   useEffect(() => {
-    if (!myReview) return;
+    if (!myReview) {
+      setExistingMedia([]);
+      return;
+    }
 
     setRating(myReview.rating || 4);
     setComment(myReview.comment || "");
+    setExistingMedia(getMediaItems(myReview));
   }, [myReview]);
+
+  function clearSelectedMedia() {
+    selectedMediaRef.current.forEach(revokePreviewUrl);
+    selectedMediaRef.current = [];
+    setSelectedMedia([]);
+  }
+
+  function handleChooseMedia() {
+    mediaInputRef.current?.click();
+  }
+
+  function handleMediaFilesChange(event) {
+    const files = Array.from(event.target.files || []);
+    event.target.value = "";
+
+    if (files.length === 0) return;
+
+    const availableSlots = MAX_MEDIA_FILES - totalMediaCount;
+
+    if (availableSlots <= 0) {
+      setToast({
+        message: `Mỗi đánh giá chỉ được tối đa ${MAX_MEDIA_FILES} ảnh/video.`,
+        type: "warning",
+      });
+      return;
+    }
+
+    const acceptedFiles = [];
+    const skippedMessages = [];
+
+    files.slice(0, availableSlots).forEach((file) => {
+      if (!ALLOWED_MEDIA_TYPES.includes(file.type)) {
+        skippedMessages.push(`${file.name}: định dạng chưa hỗ trợ`);
+        return;
+      }
+
+      if (file.size > MAX_MEDIA_FILE_SIZE) {
+        skippedMessages.push(`${file.name}: vượt quá 25MB`);
+        return;
+      }
+
+      acceptedFiles.push({
+        id: createClientId(file),
+        file,
+        name: file.name,
+        mediaType: getMediaTypeFromFile(file),
+        previewUrl: URL.createObjectURL(file),
+      });
+    });
+
+    if (files.length > availableSlots) {
+      skippedMessages.push(
+        `Chỉ thêm được ${availableSlots} file vì giới hạn tối đa là ${MAX_MEDIA_FILES}.`
+      );
+    }
+
+    if (acceptedFiles.length > 0) {
+      setSelectedMedia((current) => [...current, ...acceptedFiles]);
+    }
+
+    if (skippedMessages.length > 0) {
+      setToast({
+        message: skippedMessages[0],
+        type: "warning",
+      });
+    }
+  }
+
+  function handleRemoveSelectedMedia(mediaId) {
+    setSelectedMedia((current) => {
+      const mediaToRemove = current.find((media) => media.id === mediaId);
+      revokePreviewUrl(mediaToRemove);
+      return current.filter((media) => media.id !== mediaId);
+    });
+  }
+
+  function handleRemoveExistingMedia(mediaId) {
+    setExistingMedia((current) =>
+      current.filter((media) => media.id !== mediaId)
+    );
+  }
 
   async function handleSubmit(event) {
     event.preventDefault();
@@ -135,17 +290,22 @@ export default function ReviewsSection({ restaurant, restaurantId }) {
 
     if (!comment.trim()) {
       setErrorMessage("Vui lòng nhập nội dung đánh giá.");
+      setToast({
+        message: "Vui lòng nhập nội dung đánh giá.",
+        type: "warning",
+      });
       return;
     }
 
     try {
       setSubmitting(true);
       setErrorMessage("");
-      setSuccessMessage("");
 
       const payload = {
         rating,
         comment: comment.trim(),
+        mediaFiles: selectedMedia.map((media) => media.file),
+        keepMediaIds: existingMedia.map((media) => media.id),
       };
 
       const savedReview = myReview
@@ -162,11 +322,16 @@ export default function ReviewsSection({ restaurant, restaurantId }) {
         return [savedReview, ...currentReviews];
       });
 
-      setSuccessMessage(
-        myReview ? "Đã cập nhật đánh giá." : "Đã gửi đánh giá."
-      );
+      clearSelectedMedia();
+      setExistingMedia(getMediaItems(savedReview));
+      setToast({
+        message: myReview ? "Đã cập nhật đánh giá." : "Đã gửi đánh giá.",
+        type: "success",
+      });
     } catch (error) {
-      setErrorMessage(error.message || "Không gửi được đánh giá.");
+      const message = error.message || "Không gửi được đánh giá.";
+      setErrorMessage(message);
+      setToast({ message, type: "error" });
     } finally {
       setSubmitting(false);
     }
@@ -181,7 +346,6 @@ export default function ReviewsSection({ restaurant, restaurantId }) {
     try {
       setSubmitting(true);
       setErrorMessage("");
-      setSuccessMessage("");
 
       await deleteReview(resolvedRestaurantId, myReview.id);
 
@@ -190,16 +354,95 @@ export default function ReviewsSection({ restaurant, restaurantId }) {
       );
       setRating(4);
       setComment("");
-      setSuccessMessage("Đã xóa đánh giá.");
+      setExistingMedia([]);
+      clearSelectedMedia();
+      setToast({
+        message: "Đã xóa đánh giá.",
+        type: "success",
+      });
     } catch (error) {
-      setErrorMessage(error.message || "Không xóa được đánh giá.");
+      const message = error.message || "Không xóa được đánh giá.";
+      setErrorMessage(message);
+      setToast({ message, type: "error" });
     } finally {
       setSubmitting(false);
     }
   }
 
+  function renderMediaPreview(media, onRemove) {
+    const source = media.previewUrl || media.url;
+    const mediaType = media.mediaType === "video" ? "video" : "image";
+
+    return (
+      <div
+        key={media.id}
+        className="relative aspect-square rounded-lg overflow-hidden group bg-white border border-[#e4beba]/70"
+      >
+        {mediaType === "video" ? (
+          <video
+            className="w-full h-full object-cover"
+            src={source}
+            muted
+            controls
+          />
+        ) : (
+          <img
+            className="w-full h-full object-cover"
+            src={source}
+            alt={media.fileName || media.name || "Review media"}
+          />
+        )}
+
+        <button
+          type="button"
+          onClick={() => onRemove(media.id)}
+          className="absolute top-1 right-1 bg-black/60 text-white p-1 rounded-full opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
+          aria-label="Xóa ảnh/video"
+        >
+          <span className="material-symbols-outlined text-[16px]">close</span>
+        </button>
+      </div>
+    );
+  }
+
+  function renderReviewMediaGrid(mediaItems) {
+    if (mediaItems.length === 0) return null;
+
+    return (
+      <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-2">
+        {mediaItems.map((media) => (
+          <div
+            key={media.id}
+            className="aspect-square rounded-lg overflow-hidden bg-[#f0eded] border border-[#e4beba]/70"
+          >
+            {media.mediaType === "video" ? (
+              <video
+                className="w-full h-full object-cover"
+                src={media.url}
+                controls
+              />
+            ) : (
+              <img
+                className="w-full h-full object-cover"
+                src={media.url}
+                alt={media.fileName || "Review media"}
+                loading="lazy"
+              />
+            )}
+          </div>
+        ))}
+      </div>
+    );
+  }
+
   return (
     <section className="mt-10 bg-[#fcf9f8] text-[#1b1c1c]">
+      <ToastMessage
+        message={toast.message}
+        type={toast.type}
+        onClose={() => setToast({ message: "", type: "success" })}
+      />
+
       <div className="mb-6">
         <nav className="flex items-center gap-2 text-sm text-[#5b403e] mb-2">
           <span>Đánh giá</span>
@@ -220,12 +463,18 @@ export default function ReviewsSection({ restaurant, restaurantId }) {
           >
             star
           </span>
-          <span className="font-bold text-lg">
-            {Number(averageRating || 0).toFixed(1)}
-          </span>
-          <span className="text-[#5b403e]">
-            • {reviews.length} đánh giá
-          </span>
+          {reviews.length > 0 && averageRating !== null ? (
+            <>
+              <span className="font-bold text-lg">
+                {averageRating.toFixed(1)}
+              </span>
+              <span className="text-[#5b403e]">
+                • {reviews.length} đánh giá
+              </span>
+            </>
+          ) : (
+            <span className="text-[#5b403e]">Chưa có đánh giá</span>
+          )}
           {restaurant?.badge && (
             <span className="text-[#2c694e] font-medium px-2 py-1 bg-[#aeeecb]/40 rounded-lg text-xs">
               {restaurant.badge}
@@ -261,33 +510,6 @@ export default function ReviewsSection({ restaurant, restaurantId }) {
                 <StarSelector value={rating} onChange={setRating} />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {[
-                  ["Hương vị", tasteRating, setTasteRating],
-                  ["Phục vụ", serviceRating, setServiceRating],
-                  ["Không gian", spaceRating, setSpaceRating],
-                  ["Giá cả", priceRating, setPriceRating],
-                ].map(([label, value, setter]) => (
-                  <div key={label} className="space-y-3">
-                    <div className="flex justify-between items-center">
-                      <label className="font-semibold">{label}</label>
-                      <span className="text-[#b71422] font-bold">
-                        {Number(value).toFixed(1)}
-                      </span>
-                    </div>
-                    <input
-                      className="w-full h-2 bg-[#e4e2e1] rounded-lg appearance-none cursor-pointer accent-[#b71422]"
-                      type="range"
-                      min="1"
-                      max="5"
-                      step="0.5"
-                      value={value}
-                      onChange={(event) => setter(Number(event.target.value))}
-                    />
-                  </div>
-                ))}
-              </div>
-
               <div className="space-y-2">
                 <label className="font-semibold text-[#5b403e]">
                   Viết nhận xét của bạn
@@ -304,29 +526,47 @@ export default function ReviewsSection({ restaurant, restaurantId }) {
             <div className="mt-6 bg-[#f0eded] p-5 rounded-xl border border-[#e4beba]">
               <div className="flex justify-between items-center mb-4">
                 <h4 className="text-lg font-semibold">Hình ảnh & Video</h4>
-                <span className="text-xs text-[#5b403e]">Sẽ hỗ trợ sau</span>
+                <span className="text-xs text-[#5b403e]">
+                  {totalMediaCount}/{MAX_MEDIA_FILES} tệp
+                </span>
               </div>
 
-              <button
-                type="button"
-                disabled
-                className="aspect-square w-36 flex flex-col items-center justify-center gap-2 border-2 border-dashed border-[#d6cecc] rounded-lg bg-white text-[#5b403e] opacity-70 cursor-not-allowed"
-              >
-                <span className="material-symbols-outlined text-[32px]">
-                  add_a_photo
-                </span>
-                <span className="text-xs font-bold uppercase tracking-wide">
-                  Thêm hình ảnh
-                </span>
-              </button>
+              <input
+                ref={mediaInputRef}
+                type="file"
+                accept="image/*,video/mp4,video/webm,video/quicktime"
+                multiple
+                className="hidden"
+                onChange={handleMediaFilesChange}
+              />
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-sm">
+                <button
+                  type="button"
+                  onClick={handleChooseMedia}
+                  disabled={totalMediaCount >= MAX_MEDIA_FILES || submitting}
+                  className="aspect-square flex flex-col items-center justify-center gap-2 border-2 border-dashed border-[#d6cecc] rounded-lg bg-white text-[#5b403e] hover:bg-[#fcf9f8] transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <span className="material-symbols-outlined text-[32px]">
+                    add_a_photo
+                  </span>
+                  <span className="text-xs font-bold uppercase tracking-wide text-center">
+                    Thêm ảnh/video
+                  </span>
+                </button>
+
+                {existingMedia.map((media) =>
+                  renderMediaPreview(media, handleRemoveExistingMedia)
+                )}
+
+                {selectedMedia.map((media) =>
+                  renderMediaPreview(media, handleRemoveSelectedMedia)
+                )}
+              </div>
             </div>
 
             {errorMessage && (
               <p className="mt-4 text-sm text-red-600">{errorMessage}</p>
-            )}
-
-            {successMessage && (
-              <p className="mt-4 text-sm text-[#2c694e]">{successMessage}</p>
             )}
 
             <div className="flex flex-wrap justify-end gap-3 pt-6">
@@ -396,6 +636,8 @@ export default function ReviewsSection({ restaurant, restaurantId }) {
                         {review.comment}
                       </p>
                     )}
+
+                    {renderReviewMediaGrid(getMediaItems(review))}
                   </article>
                 ))}
               </div>
@@ -419,7 +661,7 @@ export default function ReviewsSection({ restaurant, restaurantId }) {
                 "Mô tả kỹ hương vị món ăn bạn đã thử.",
                 "Chia sẻ về không gian, độ sạch sẽ và cảm giác tại quán.",
                 "Nhận xét về tốc độ phục vụ và thái độ nhân viên.",
-                "Ảnh món ăn sẽ được hỗ trợ ở bước sau.",
+                "Ảnh hoặc video ngắn giúp đánh giá đáng tin hơn.",
               ].map((tip) => (
                 <li key={tip} className="flex gap-3">
                   <span className="material-symbols-outlined text-[#b71422] text-[20px]">
