@@ -1,111 +1,249 @@
 :root {
-  --primary-color: #ff4757;
-  --primary-hover: #ff6b81;
-  --bg-color: #f1f2f6;
-  --text-dark: #2f3542;
+  --bg-dark: #121214;
+  --panel-dark: #1a1a1e;
+  --accent-color: #ff4757;
+  --text-light: #f1f2f6;
+  --text-muted: #a4b0be;
 }
 
 body {
   margin: 0;
-  padding: 0;
-  background-color: var(--bg-color);
+  background-color: var(--bg-dark);
+  color: var(--text-light);
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  overflow: hidden;
 }
 
-/* Căn giữa toàn bộ cái form ra giữa màn hình */
-.auth-wrapper {
+/* Khung tổng Web */
+.desktop-web-app {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  height: 100vh;
+}
+
+/* Header */
+.main-header {
+  display: flex;
+  justify-content: space-between;
   align-items: center;
-  min-height: 100vh;
-  padding: 20px;
+  padding: 15px 30px;
+  background-color: var(--panel-dark);
+  border-bottom: 1px solid #2f3542;
 }
 
-/* Thùng bọc cái form */
-.auth-inner {
-  background: #ffffff;
-  padding: 40px;
-  border-radius: 16px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
-  width: 100%;
-  max-width: 400px;
+.logo-zone {
+  display: flex;
+  align-items: center;
+  gap: 15px;
 }
 
-.auth-inner h2 {
-  margin: 0 0 5px 0;
-  color: var(--text-dark);
-  font-size: 1.6rem;
-  text-align: center;
+.logo-icon { font-size: 2.2rem; }
+.logo-zone h2 { margin: 0; color: var(--accent-color); font-size: 1.4rem; }
+.logo-zone p { margin: 0; color: var(--text-muted); font-size: 0.85rem; }
+
+.global-lang-selector button {
+  padding: 8px 16px;
+  margin-left: 10px;
+  border: 1px solid #454d59;
+  background: transparent;
+  color: var(--text-light);
+  border-radius: 20px;
+  cursor: pointer;
+  font-weight: bold;
 }
 
-.auth-subtitle {
-  color: #747d8c;
-  font-size: 0.9rem;
-  text-align: center;
-  margin-bottom: 30px;
+.global-lang-selector button.active {
+  background: var(--accent-color);
+  border-color: var(--accent-color);
 }
 
-/* Định hình từng ô nhập liệu */
-.form-group {
-  margin-bottom: 20px;
+/* Không gian làm việc 3 cột */
+.main-workspace {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* CỘT 1: DANH SÁCH */
+.sidebar-list {
+  width: 25%;
+  background: var(--panel-dark);
+  border-right: 1px solid #2f3542;
   display: flex;
   flex-direction: column;
 }
 
-.form-group label {
-  font-size: 0.85rem;
-  font-weight: 600;
-  margin-bottom: 6px;
-  color: #57606f;
-}
-
-.form-group input {
-  padding: 12px 16px;
-  border: 1px solid #ced4da;
-  border-radius: 8px;
-  font-size: 0.95rem;
-  outline: none;
-  transition: border-color 0.2s;
-}
-
-.form-group input:focus {
-  border-color: var(--primary-color);
-}
-
-/* Nút bấm Sign In / Sign Up */
-.btn-submit {
+.search-box { padding: 15px; }
+.search-box input {
   width: 100%;
   padding: 12px;
-  background-color: var(--primary-color);
+  border-radius: 8px;
+  border: 1px solid #2f3542;
+  background: #252529;
+  color: white;
+  outline: none;
+}
+
+.cards-scroll-zone {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 15px 15px 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.mini-food-card {
+  display: flex;
+  gap: 12px;
+  background: #252529;
+  padding: 10px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: transform 0.2s, border-color 0.2s;
+  border: 2px solid transparent;
+}
+
+.mini-food-card:hover { transform: translateY(-2px); }
+.mini-food-card.selected { border-color: var(--accent-color); background: #2f2f35; }
+.mini-food-card img { width: 70px; height: 70px; object-fit: cover; border-radius: 8px; }
+.mini-card-info h3 { margin: 0 0 5px 0; font-size: 1rem; }
+.mini-address { margin: 0; font-size: 0.75rem; color: var(--text-muted); }
+.mini-rating { font-size: 0.8rem; color: #ffa502; display: block; margin-top: 4px; }
+
+/* CỘT 2: BẢN ĐỒ */
+.map-view-column {
+  width: 45%;
+  padding: 20px;
+  display: flex;
+}
+
+.mock-map {
+  flex: 1;
+  background: url('https://api.mapbox.com/styles/v1/mapbox/dark-v10/static/106.6948,10.7674,14,0/800x600?access_token=mock') no-repeat center;
+  background-size: cover;
+  background-color: #252529;
+  border-radius: 16px;
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.map-overlay-title {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  background: rgba(0,0,0,0.8);
+  padding: 10px 20px;
+  border-radius: 20px;
+  font-weight: bold;
+  border: 1px solid var(--accent-color);
+}
+
+.map-marker-pulse {
+  width: 20px;
+  height: 20px;
+  background: var(--accent-color);
+  border-radius: 50%;
+  box-shadow: 0 0 0 0 rgba(255, 71, 87, 0.7);
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(255, 71, 87, 0.7); }
+  70% { box-shadow: 0 0 0 15px rgba(255, 71, 87, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(255, 71, 87, 0); }
+}
+
+.map-instruction { position: absolute; bottom: 20px; color: var(--text-muted); font-size: 0.8rem; }
+
+/* CỘT 3: TRÌNH PHÁT AUDIO */
+.audio-player-column {
+  width: 30%;
+  background: var(--panel-dark);
+  border-left: 1px solid #2f3542;
+  padding: 25px;
+}
+
+.player-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.vinyl-wrapper {
+  display: flex;
+  justify-content: center;
+  margin: 30px 0;
+}
+
+.vinyl-disk {
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  background: #000;
+  padding: 15px;
+  box-shadow: 0 8px 25px rgba(0,0,0,0.5);
+  border: 4px solid #333;
+}
+
+.vinyl-disk img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+.vinyl-disk.spinning {
+  animation: spin 8s linear infinite;
+}
+
+@keyframes spin { 100% { transform: rotate(360deg); } }
+
+.playing-details h2 { margin: 0 0 5px 0; font-size: 1.4rem; text-align: center;}
+.playing-type { text-align: center; color: var(--accent-color); font-size: 0.85rem; font-weight: bold; margin-top: 0; }
+.playing-desc { color: var(--text-muted); font-size: 0.85rem; line-height: 1.5; height: 70px; overflow-y: auto; }
+
+/* Seekbar */
+.progress-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 20px;
+}
+.time-text { font-size: 0.75rem; color: var(--text-muted); }
+.seek-bar { flex: 1; accent-color: var(--accent-color); cursor: pointer; }
+
+/* Nút điều khiển */
+.player-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 25px;
+  gap: 10px;
+}
+
+.control-btn, .speed-btn {
+  background: #252529;
+  border: none;
+  color: white;
+  padding: 10px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.play-main-btn {
+  flex: 1;
+  background: var(--accent-color);
   color: white;
   border: none;
-  border-radius: 8px;
-  font-size: 1rem;
+  padding: 14px;
+  border-radius: 30px;
   font-weight: bold;
   cursor: pointer;
-  margin-top: 10px;
-  transition: background-color 0.2s;
 }
 
-.btn-submit:hover {
-  background-color: var(--primary-hover);
-}
-
-/* Đoạn chữ bấm đổi trạng thái */
-.auth-switch {
-  margin-top: 25px;
-  text-align: center;
-  font-size: 0.9rem;
-  color: #57606f;
-}
-
-.auth-switch span {
-  color: var(--primary-color);
-  font-weight: bold;
-  cursor: pointer;
-  text-decoration: underline;
-}
-
-.auth-switch span:hover {
-  color: var(--primary-hover);
-}
+.play-main-btn.playing { background: #2ed573; }
+.current-lang-badge { text-align: center; margin-top: 25px; font-size: 0.8rem; color: var(--text-muted); }
