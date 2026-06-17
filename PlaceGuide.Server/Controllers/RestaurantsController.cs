@@ -1,5 +1,8 @@
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 using PlaceGuide.Server.Data;
 using PlaceGuide.Server.DTOs;
 using PlaceGuide.Server.Models;
@@ -11,10 +14,13 @@ namespace PlaceGuide.Server.Controllers
     public class RestaurantsController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
+        // Bổ sung UserManager để tra cứu danh tính đại gia hay dân cày
+        private readonly UserManager<ApplicationUser> _userManager;
 
-        public RestaurantsController(ApplicationDbContext context)
+        public RestaurantsController(ApplicationDbContext context, UserManager<ApplicationUser> userManager)
         {
             _context = context;
+            _userManager = userManager;
         }
 
         [HttpGet]
@@ -65,6 +71,60 @@ namespace PlaceGuide.Server.Controllers
 
             return Ok(dishes.Select(ToDishResponse));
         }
+
+        // ==========================================
+        // API MỚI: CHẶN CỔ ĐÒI TIỀN (PAYWALL AUDIO)
+        // ==========================================
+        [Authorize] // Bắt buộc đăng nhập mới được gọi API này
+        [HttpGet("{id:guid}/audio")]
+        public async Task<IActionResult> GetRestaurantAudio(Guid id)
+        {
+            // 1. Móc ID User từ Token
+            var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdString))
+            {
+                return Unauthorized(new { Message = "Phải đăng nhập mới được xài tính năng này bồ ơi!" });
+            }
+
+            // 2. Tìm User trong DB
+            var user = await _userManager.FindByIdAsync(userIdString);
+            if (user == null)
+            {
+                return NotFound(new { Message = "Không tìm thấy dữ liệu người dùng." });
+            }
+
+            // 3. Phán quyết: Check Premium. Trả mã 402 nếu là tài khoản free
+            if (!user.IsPremium)
+            {
+                return StatusCode(402, new 
+                { 
+                    status = "unpaid", 
+                    message = "Bạn cần thanh toán để sử dụng tính năng thuyết minh này" 
+                });
+            }
+
+            // 4. Nếu đã nạp tiền, lấy data thuyết minh của nhà hàng trả về
+            var restaurant = await _context.Restaurants
+                .AsNoTracking()
+                .FirstOrDefaultAsync(item => item.Id == id);
+
+            if (restaurant == null)
+            {
+                return NotFound(new { Message = "Không tìm thấy nhà hàng!" });
+            }
+
+            return Ok(new 
+            { 
+                status = "success", 
+                restaurantId = restaurant.Id,
+                narration = new RestaurantNarrationDto
+                {
+                    Vi = restaurant.NarrationVi,
+                    En = restaurant.NarrationEn
+                }
+            });
+        }
+        // ==========================================
 
         private static RestaurantResponseDto ToResponse(Restaurant restaurant)
         {
@@ -134,6 +194,6 @@ namespace PlaceGuide.Server.Controllers
                 }
             };
         }
-    }
 
+    }
 }

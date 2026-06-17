@@ -17,5 +17,7 @@ namespace PlaceGuide.Server.Models
         public string Status { get; set; } = "active";
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+        
+        public bool IsPremium { get; set; } = false;
     }
 }
