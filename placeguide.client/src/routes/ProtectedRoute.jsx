@@ -40,7 +40,7 @@ function ProtectedRoute({ children }) {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
 
-        return <Navigate to="/" replace />;
+        return <Navigate to="/login" replace />;
     }
 
     return children;

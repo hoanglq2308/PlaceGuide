@@ -2,7 +2,9 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import RestaurantCard from '../components/RestaurantCard';
 import ToastMessage from '../components/ToastMessage';
-import { getFavorites } from '../services/favoriteService';
+import { getRestaurantAudioWithPass } from '../services/audioGuideService';
+import { getRestaurants } from '../services/restaurantService';
+import { getFavoriteRestaurantIds } from '../utils/favoriteStorage';
 
 function Bookmarks() {
     const navigate = useNavigate();
@@ -24,7 +26,14 @@ function Bookmarks() {
             setError('');
 
             try {
-                const favorites = await getFavorites();
+                const [restaurants, favoriteIds] = await Promise.all([
+                    getRestaurants(),
+                    Promise.resolve(getFavoriteRestaurantIds()),
+                ]);
+                const favoriteIdSet = new Set(favoriteIds);
+                const favorites = restaurants.filter((restaurant) =>
+                    favoriteIdSet.has(String(restaurant.id))
+                );
 
                 if (isActive) {
                     setFavoriteRestaurants(favorites);
@@ -48,7 +57,7 @@ function Bookmarks() {
         };
     }, []);
 
-    const handleSpeak = (text) => {
+    const speakText = (text, missingMessage) => {
         if (!window.speechSynthesis) {
             setToast({
                 message: 'Trình duyệt không hỗ trợ đọc thuyết minh.',
@@ -59,7 +68,7 @@ function Bookmarks() {
 
         if (!text) {
             setToast({
-                message: 'Quán này chưa có nội dung thuyết minh.',
+                message: missingMessage,
                 type: 'warning',
             });
             return;
@@ -72,6 +81,39 @@ function Bookmarks() {
         utterance.rate = 0.95;
 
         window.speechSynthesis.speak(utterance);
+    };
+
+    const handleSpeakRestaurant = async (restaurant) => {
+        if (!restaurant?.id) {
+            setToast({
+                message: 'Thiếu mã quán ăn để tải thuyết minh.',
+                type: 'warning',
+            });
+            return;
+        }
+
+        try {
+            const audio = await getRestaurantAudioWithPass(restaurant.id);
+            const text =
+                audio?.narration?.[language] ||
+                audio?.narration?.vi ||
+                audio?.narration?.en ||
+                '';
+
+            if (audio.passCreated) {
+                setToast({
+                    message: audio.audioPass?.message || 'Gói nghe đã được kích hoạt.',
+                    type: 'success',
+                });
+            }
+
+            speakText(text, 'Quán này chưa có nội dung thuyết minh.');
+        } catch (error) {
+            setToast({
+                message: error.message,
+                type: error.cancelled ? 'info' : 'warning',
+            });
+        }
     };
 
     return (
@@ -213,7 +255,7 @@ function Bookmarks() {
                                     key={restaurant.id}
                                     restaurant={restaurant}
                                     language={language}
-                                    onSpeak={handleSpeak}
+                                    onSpeak={handleSpeakRestaurant}
                                 />
                             ))}
                         </div>

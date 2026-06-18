@@ -3,36 +3,23 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Home from './pages/Home';
 import RestaurantDetail from './pages/RestaurantDetail';
+import RestaurantMenu from './pages/RestaurantMenu';
 import Bookmarks from './pages/Bookmarks';
 import MapView from './pages/MapView';
-import ProtectedRoute from './routes/ProtectedRoute';
-
+import AudioPassModalHost from './components/AudioPassModalHost';
 function App() {
     return (
         <BrowserRouter>
+            <AudioPassModalHost />
             <Routes>
-                <Route path="/" element={<Login />} />
+                <Route path="/" element={<Home />} />
+                <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
-                <Route path="/home" element={
-                    <ProtectedRoute>
-                        <Home />
-                    </ProtectedRoute>
-                } />
-                <Route path="/restaurants/:id" element={
-                    <ProtectedRoute>
-                        <RestaurantDetail />
-                    </ProtectedRoute>
-                } />
-                <Route path="/bookmarks" element={
-                    <ProtectedRoute>
-                        <Bookmarks />
-                    </ProtectedRoute>
-                } />
-                <Route path="/map" element={
-                    <ProtectedRoute>
-                        <MapView />
-                    </ProtectedRoute>
-                } />
+                <Route path="/home" element={<Home />} />
+                <Route path="/restaurants/:id" element={<RestaurantDetail />} />
+                <Route path="/restaurants/:id/menu" element={<RestaurantMenu />} />
+                <Route path="/bookmarks" element={<Bookmarks />} />
+                <Route path="/map" element={<MapView />} />
             </Routes>
         </BrowserRouter>
     );

@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using PlaceGuide.Server.Data;
+using PlaceGuide.Server.Services;
 using Microsoft.IdentityModel.Tokens;
 using PlaceGuide.Server.Models;
 using System.Text;
@@ -64,6 +65,7 @@ builder.Services.AddCors(options =>
 });
 
 builder.Services.AddControllers();
+builder.Services.AddScoped<IGuestAudioPassService, GuestAudioPassService>();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();

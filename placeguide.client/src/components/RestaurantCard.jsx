@@ -95,7 +95,7 @@ function RestaurantCard({ restaurant, language, onSpeak }) {
                 <div className="flex gap-2 pt-2">
                     <button
                         type="button"
-                        onClick={() => onSpeak(restaurant.narration[language])}
+                        onClick={() => onSpeak(restaurant)}
                         className="flex-1 bg-red-700 text-white py-3 rounded-lg font-bold flex items-center justify-center gap-2 hover:bg-red-800 transition-all text-sm"
                     >
                         <span className="material-symbols-outlined text-[20px]">

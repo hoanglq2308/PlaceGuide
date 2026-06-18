@@ -1,14 +1,18 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import ToastMessage from '../components/ToastMessage';
+import {
+    getDishAudioWithPass,
+    getRestaurantAudioWithPass,
+} from '../services/audioGuideService';
 import { getRestaurantById } from '../services/restaurantService';
 import { getDishesByRestaurantId } from '../services/dishService';
 import ReviewsSection from "../components/ReviewsSection";
 import {
     addFavoriteRestaurant,
-    getFavoriteStatus,
+    isFavoriteRestaurant,
     removeFavoriteRestaurant,
-} from '../services/favoriteService';
+} from '../utils/favoriteStorage';
 
 const FALLBACK_IMAGE =
     'https://images.unsplash.com/photo-1555396273-367ea4eb4db5';
@@ -26,16 +30,8 @@ function hasCoordinates(restaurant) {
     );
 }
 
-function getNarration(restaurant, language) {
-    return restaurant?.narration?.[language] || '';
-}
-
 function getDishDescription(dish, language) {
     return dish?.description?.[language] || dish?.description?.vi || '';
-}
-
-function getDishNarration(dish, language) {
-    return dish?.narration?.[language] || dish?.narration?.vi || '';
 }
 
 function formatDishPrice(price) {
@@ -67,7 +63,6 @@ function getDisplayRestaurant(restaurant) {
         priceRange: restaurant?.priceRange || 'Chưa cập nhật',
         highlightDishes: asArray(restaurant?.highlightDishes),
         tags: asArray(restaurant?.tags),
-        narration: restaurant?.narration || {},
         latitude: restaurant?.latitude,
         longitude: restaurant?.longitude,
         isOpen: restaurant?.isOpen ?? false,
@@ -101,7 +96,7 @@ function RestaurantDetail() {
             try {
                 const [data, favoriteStatus, dishResult] = await Promise.all([
                     getRestaurantById(id),
-                    getFavoriteStatus(id).catch(() => false),
+                    Promise.resolve(isFavoriteRestaurant(id)),
                     getDishesByRestaurantId(id)
                         .then((dishData) => ({
                             data: dishData,
@@ -142,7 +137,6 @@ function RestaurantDetail() {
         () => getDisplayRestaurant(restaurant),
         [restaurant]
     );
-    const narration = getNarration(displayRestaurant, language);
     const primaryDish = displayRestaurant.highlightDishes[0] || displayRestaurant.name;
     const secondaryDish =
         displayRestaurant.highlightDishes[1] || displayRestaurant.badge;
@@ -175,8 +169,37 @@ function RestaurantDetail() {
         navigate('/home');
     };
 
-    const handleSpeak = () => {
-        handleSpeakText(narration, 'Quán này chưa có nội dung thuyết minh.');
+    const handleSpeak = async () => {
+        if (!displayRestaurant.id) {
+            setToast({
+                message: 'Thiếu mã quán ăn để tải thuyết minh.',
+                type: 'warning',
+            });
+            return;
+        }
+
+        try {
+            const audio = await getRestaurantAudioWithPass(displayRestaurant.id);
+            const text =
+                audio?.narration?.[language] ||
+                audio?.narration?.vi ||
+                audio?.narration?.en ||
+                '';
+
+            if (audio.passCreated) {
+                setToast({
+                    message: audio.audioPass?.message || 'Gói nghe đã được kích hoạt.',
+                    type: 'success',
+                });
+            }
+
+            handleSpeakText(text, 'Quán này chưa có nội dung thuyết minh.');
+        } catch (audioError) {
+            setToast({
+                message: audioError.message,
+                type: audioError.cancelled ? 'info' : 'warning',
+            });
+        }
     };
 
     const handleSpeakText = (text, missingMessage) => {
@@ -203,6 +226,39 @@ function RestaurantDetail() {
         utterance.rate = 0.95;
 
         window.speechSynthesis.speak(utterance);
+    };
+
+    const handleSpeakDish = async (dish) => {
+        if (!displayRestaurant.id || !dish?.id) {
+            setToast({
+                message: 'Thiếu mã quán ăn hoặc món ăn để tải thuyết minh.',
+                type: 'warning',
+            });
+            return;
+        }
+
+        try {
+            const audio = await getDishAudioWithPass(displayRestaurant.id, dish.id);
+            const text =
+                audio?.narration?.[language] ||
+                audio?.narration?.vi ||
+                audio?.narration?.en ||
+                '';
+
+            if (audio.passCreated) {
+                setToast({
+                    message: audio.audioPass?.message || 'Gói nghe đã được kích hoạt.',
+                    type: 'success',
+                });
+            }
+
+            handleSpeakText(text, 'Món này chưa có nội dung thuyết minh.');
+        } catch (audioError) {
+            setToast({
+                message: audioError.message,
+                type: audioError.cancelled ? 'info' : 'warning',
+            });
+        }
     };
 
     const handleDirections = () => {
@@ -573,8 +629,8 @@ function RestaurantDetail() {
                                         Tiếng Việt
                                     </span>
                                     <p className="text-base text-gray-700 leading-relaxed">
-                                        {displayRestaurant.narration.vi ||
-                                            'Chưa có thuyết minh tiếng Việt.'}
+                                        Nội dung thuyết minh đầy đủ được mở khi
+                                        khách kích hoạt gói nghe premium.
                                     </p>
                                 </div>
 
@@ -583,8 +639,8 @@ function RestaurantDetail() {
                                         English
                                     </span>
                                     <p className="text-base text-gray-700 leading-relaxed italic">
-                                        {displayRestaurant.narration.en ||
-                                            'English narration is not available yet.'}
+                                        The full audio guide becomes available
+                                        after activating a premium audio pass.
                                     </p>
                                 </div>
                             </div>
@@ -635,9 +691,6 @@ function RestaurantDetail() {
                                                     dish,
                                                     language
                                                 );
-                                            const dishNarration =
-                                                getDishNarration(dish, language);
-
                                             return (
                                                 <article
                                                     key={dish.id}
@@ -704,10 +757,7 @@ function RestaurantDetail() {
                                                         <button
                                                             type="button"
                                                             onClick={() =>
-                                                                handleSpeakText(
-                                                                    dishNarration,
-                                                                    'Món này chưa có nội dung thuyết minh.'
-                                                                )
+                                                                handleSpeakDish(dish)
                                                             }
                                                             className="w-full bg-green-50 text-green-800 py-3 rounded-lg font-bold flex items-center justify-center gap-2 hover:bg-green-100 transition-colors text-sm"
                                                         >

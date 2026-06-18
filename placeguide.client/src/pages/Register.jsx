@@ -39,7 +39,7 @@ function Register() {
                 type: 'success',
             });
             setTimeout(() => {
-                navigate('/');
+                navigate('/login');
             }, 1000);
         }catch(error){
             setToast({
@@ -239,7 +239,7 @@ function Register() {
                             Đã có tài khoản?{' '}
                             <Link
                                 className="text-red-700 hover:text-red-800 font-bold ml-1 transition-colors hover:underline"
-                                to="/"
+                                to="/login"
                             >
                                 Đăng nhập ngay.
                             </Link>

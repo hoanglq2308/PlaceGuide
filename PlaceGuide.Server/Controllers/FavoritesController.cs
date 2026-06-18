@@ -164,11 +164,7 @@ namespace PlaceGuide.Server.Controllers
                 PriceRange = restaurant.PriceRange,
                 HighlightDishes = SplitList(restaurant.HighlightDishes),
                 Tags = SplitList(restaurant.Tags),
-                Narration = new RestaurantNarrationDto
-                {
-                    Vi = restaurant.NarrationVi,
-                    En = restaurant.NarrationEn
-                },
+                Narration = new RestaurantNarrationDto(),
                 Latitude = restaurant.Latitude,
                 Longitude = restaurant.Longitude,
                 IsOpen = restaurant.IsOpen

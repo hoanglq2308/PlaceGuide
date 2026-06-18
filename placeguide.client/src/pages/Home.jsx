@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import ToastMessage from '../components/ToastMessage';
 import RestaurantCard from '../components/RestaurantCard';
 import { mockRestaurants } from '../data/mockRestaurants';
+import { getRestaurantAudioWithPass } from '../services/audioGuideService';
 import { getRestaurants } from '../services/restaurantService';
 import {
     addDistanceToRestaurants,
@@ -22,42 +23,12 @@ function clearAuthSession() {
     localStorage.removeItem('user');
 }
 
-function decodeJwtPayload(token) {
-    const payload = token.split('.')[1];
-    const base64 = payload.replace(/-/g, '+').replace(/_/g, '/');
-    const paddedBase64 = base64.padEnd(
-        base64.length + ((4 - (base64.length % 4)) % 4),
-        '='
-    );
-
-    return JSON.parse(window.atob(paddedBase64));
-}
-
-function isTokenValid(token) {
-    if (!token || typeof token !== 'string') {
-        return false;
-    }
-
-    if (token.split('.').length !== 3) {
-        return false;
-    }
-
-    try {
-        const payload = decodeJwtPayload(token);
-
-        if (typeof payload.exp !== 'number') {
-            return false;
-        }
-
-        return payload.exp > Math.floor(Date.now() / 1000);
-    } catch {
-        return false;
-    }
-}
-
 function Home() {
     const navigate = useNavigate();
 
+    const [authToken, setAuthToken] = useState(() =>
+        localStorage.getItem('token')
+    );
     const [language, setLanguage] = useState('vi');
     const [searchText, setSearchText] = useState('');
     const [locationText, setLocationText] = useState('Chưa lấy vị trí');
@@ -74,27 +45,6 @@ function Home() {
         message: '',
         type: 'info',
     });
-
-    useEffect(() => {
-        const ensureValidSession = () => {
-            const token = localStorage.getItem('token');
-
-            if (!isTokenValid(token)) {
-                clearAuthSession();
-                navigate('/', { replace: true });
-            }
-        };
-
-        ensureValidSession();
-
-        window.addEventListener('focus', ensureValidSession);
-        window.addEventListener('storage', ensureValidSession);
-
-        return () => {
-            window.removeEventListener('focus', ensureValidSession);
-            window.removeEventListener('storage', ensureValidSession);
-        };
-    }, [navigate]);
 
     useEffect(() => {
         let isActive = true;
@@ -185,8 +135,13 @@ function Home() {
         }`;
     const handleLogout = () => {
         window.speechSynthesis?.cancel();
+        if (!authToken) {
+            navigate('/login');
+            return;
+        }
+
         clearAuthSession();
-        navigate('/', { replace: true });
+        setAuthToken(null);
     };
 
     const handleToggleDistanceSort = () => {
@@ -230,9 +185,20 @@ function Home() {
         );
     };
 
-    const handleSpeak = (text) => {
+    const speakText = (text, missingMessage) => {
         if (!window.speechSynthesis) {
-            alert('Trình duyệt không hỗ trợ đọc thuyết minh');
+            setToast({
+                message: 'Trình duyệt không hỗ trợ đọc thuyết minh.',
+                type: 'warning',
+            });
+            return;
+        }
+
+        if (!text) {
+            setToast({
+                message: missingMessage,
+                type: 'warning',
+            });
             return;
         }
 
@@ -243,6 +209,39 @@ function Home() {
         utterance.rate = 0.95;
 
         window.speechSynthesis.speak(utterance);
+    };
+
+    const handleSpeakRestaurant = async (restaurant) => {
+        if (!restaurant?.id) {
+            setToast({
+                message: 'Thiếu mã quán ăn để tải thuyết minh.',
+                type: 'warning',
+            });
+            return;
+        }
+
+        try {
+            const audio = await getRestaurantAudioWithPass(restaurant.id);
+            const text =
+                audio?.narration?.[language] ||
+                audio?.narration?.vi ||
+                audio?.narration?.en ||
+                '';
+
+            if (audio.passCreated) {
+                setToast({
+                    message: audio.audioPass?.message || 'Gói nghe đã được kích hoạt.',
+                    type: 'success',
+                });
+            }
+
+            speakText(text, 'Quán này chưa có nội dung thuyết minh.');
+        } catch (error) {
+            setToast({
+                message: error.message,
+                type: error.cancelled ? 'info' : 'warning',
+            });
+        }
     };
 
     return (
@@ -315,9 +314,11 @@ function Home() {
                             className="flex items-center gap-1 text-red-700 font-semibold hover:opacity-80 transition-all"
                         >
                             <span className="material-symbols-outlined text-[28px]">
-                                logout
+                                {authToken ? 'logout' : 'login'}
                             </span>
-                            <span className="hidden md:inline">Đăng xuất</span>
+                            <span className="hidden md:inline">
+                                {authToken ? 'Đăng xuất' : 'Đăng nhập'}
+                            </span>
                         </button>
                     </div>
                 </div>
@@ -506,7 +507,7 @@ function Home() {
                                 key={restaurant.id}
                                 restaurant={restaurant}
                                 language={language}
-                                onSpeak={handleSpeak}
+                                onSpeak={handleSpeakRestaurant}
                             />
                         ))}
                     </div>
@@ -573,10 +574,11 @@ function Home() {
                             <button
                                 type="button"
                                 onClick={() =>
-                                    handleSpeak(
+                                    speakText(
                                         language === 'vi'
                                             ? 'Hà Nội có nhiều câu chuyện gắn liền với phở. Từ những gánh hàng rong xưa đến các quán ăn hiện đại, phở vẫn là biểu tượng quen thuộc của ẩm thực Việt Nam.'
-                                            : 'Hanoi has many stories connected to pho. From old street vendors to modern restaurants, pho remains a familiar symbol of Vietnamese cuisine.'
+                                            : 'Hanoi has many stories connected to pho. From old street vendors to modern restaurants, pho remains a familiar symbol of Vietnamese cuisine.',
+                                        'Chưa có nội dung thuyết minh.'
                                     )
                                 }
                                 className="bg-white text-green-700 px-6 py-3 rounded-full font-bold flex items-center gap-2 hover:scale-105 transition-all"

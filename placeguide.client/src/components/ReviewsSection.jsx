@@ -123,6 +123,7 @@ export default function ReviewsSection({
   const [comment, setComment] = useState("");
   const [existingMedia, setExistingMedia] = useState([]);
   const [selectedMedia, setSelectedMedia] = useState([]);
+  const canWriteReview = Boolean(localStorage.getItem("token"));
 
   const myReview = useMemo(
     () => reviews.find((review) => review.isMine),
@@ -494,13 +495,14 @@ export default function ReviewsSection({
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 flex flex-col gap-8">
-          <form
-            onSubmit={handleSubmit}
-            className="bg-[#f6f3f2] p-6 rounded-xl border border-[#e4beba] shadow-sm"
-          >
-            <h3 className="text-xl md:text-2xl font-semibold mb-6">
-              Trải nghiệm của bạn thế nào?
-            </h3>
+          {canWriteReview ? (
+            <form
+              onSubmit={handleSubmit}
+              className="bg-[#f6f3f2] p-6 rounded-xl border border-[#e4beba] shadow-sm"
+            >
+              <h3 className="text-xl md:text-2xl font-semibold mb-6">
+                Trải nghiệm của bạn thế nào?
+              </h3>
 
             <div className="flex flex-col gap-8">
               <div className="flex flex-col items-center gap-3 py-4 bg-white rounded-lg border border-[#e4beba]/60">
@@ -594,7 +596,26 @@ export default function ReviewsSection({
                 <span className="material-symbols-outlined">send</span>
               </button>
             </div>
-          </form>
+            </form>
+          ) : (
+            <section className="bg-[#f6f3f2] p-6 rounded-xl border border-[#e4beba] shadow-sm">
+              <div className="flex items-start gap-3">
+                <span className="material-symbols-outlined text-[#b71422]">
+                  rate_review
+                </span>
+                <div>
+                  <h3 className="text-xl font-semibold">
+                    Đánh giá đang tạm khóa cho khách
+                  </h3>
+                  <p className="text-sm text-[#5b403e] mt-2">
+                    Bạn vẫn có thể xem đánh giá của người khác. Chức năng viết
+                    đánh giá sẽ được mở lại khi PlaceGuide hoàn thiện luồng tài
+                    khoản hoặc thanh toán phù hợp cho khách.
+                  </p>
+                </div>
+              </div>
+            </section>
+          )}
 
           <div className="bg-white p-6 rounded-xl border border-[#e4beba] shadow-sm">
             <h3 className="text-xl font-semibold mb-4">Đánh giá gần đây</h3>

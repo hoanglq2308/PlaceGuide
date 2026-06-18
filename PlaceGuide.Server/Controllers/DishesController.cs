@@ -49,11 +49,7 @@ namespace PlaceGuide.Server.Controllers
                 IsVegetarian = dish.IsVegetarian,
                 IsSpicy = dish.IsSpicy,
                 AllergyInfo = dish.AllergyInfo,
-                Narration = new DishNarrationDto
-                {
-                    Vi = dish.NarrationVi,
-                    En = dish.NarrationEn
-                }
+                Narration = new DishNarrationDto()
             };
         }
     }

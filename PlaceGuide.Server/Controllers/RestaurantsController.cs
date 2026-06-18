@@ -6,6 +6,7 @@ using System.Security.Claims;
 using PlaceGuide.Server.Data;
 using PlaceGuide.Server.DTOs;
 using PlaceGuide.Server.Models;
+using PlaceGuide.Server.Services;
 
 namespace PlaceGuide.Server.Controllers
 {
@@ -14,13 +15,17 @@ namespace PlaceGuide.Server.Controllers
     public class RestaurantsController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
-        // Bổ sung UserManager để tra cứu danh tính đại gia hay dân cày
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly IGuestAudioPassService _guestAudioPassService;
 
-        public RestaurantsController(ApplicationDbContext context, UserManager<ApplicationUser> userManager)
+        public RestaurantsController(
+            ApplicationDbContext context,
+            UserManager<ApplicationUser> userManager,
+            IGuestAudioPassService guestAudioPassService)
         {
             _context = context;
             _userManager = userManager;
+            _guestAudioPassService = guestAudioPassService;
         }
 
         [HttpGet]
@@ -72,38 +77,9 @@ namespace PlaceGuide.Server.Controllers
             return Ok(dishes.Select(ToDishResponse));
         }
 
-        // ==========================================
-        // API MỚI: CHẶN CỔ ĐÒI TIỀN (PAYWALL AUDIO)
-        // ==========================================
-        [Authorize] // Bắt buộc đăng nhập mới được gọi API này
         [HttpGet("{id:guid}/audio")]
         public async Task<IActionResult> GetRestaurantAudio(Guid id)
         {
-            // 1. Móc ID User từ Token
-            var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrEmpty(userIdString))
-            {
-                return Unauthorized(new { Message = "Phải đăng nhập mới được xài tính năng này bồ ơi!" });
-            }
-
-            // 2. Tìm User trong DB
-            var user = await _userManager.FindByIdAsync(userIdString);
-            if (user == null)
-            {
-                return NotFound(new { Message = "Không tìm thấy dữ liệu người dùng." });
-            }
-
-            // 3. Phán quyết: Check Premium. Trả mã 402 nếu là tài khoản free
-            if (!user.IsPremium)
-            {
-                return StatusCode(402, new 
-                { 
-                    status = "unpaid", 
-                    message = "Bạn cần thanh toán để sử dụng tính năng thuyết minh này" 
-                });
-            }
-
-            // 4. Nếu đã nạp tiền, lấy data thuyết minh của nhà hàng trả về
             var restaurant = await _context.Restaurants
                 .AsNoTracking()
                 .FirstOrDefaultAsync(item => item.Id == id);
@@ -113,10 +89,17 @@ namespace PlaceGuide.Server.Controllers
                 return NotFound(new { Message = "Không tìm thấy nhà hàng!" });
             }
 
-            return Ok(new 
-            { 
-                status = "success", 
+            var access = await GetAudioAccessAsync();
+            if (!access.HasAccess)
+            {
+                return CreateAudioPassRequiredResponse();
+            }
+
+            return Ok(new
+            {
+                status = "success",
                 restaurantId = restaurant.Id,
+                passExpiresAtUtc = access.PassExpiresAtUtc,
                 narration = new RestaurantNarrationDto
                 {
                     Vi = restaurant.NarrationVi,
@@ -124,7 +107,40 @@ namespace PlaceGuide.Server.Controllers
                 }
             });
         }
-        // ==========================================
+
+        [HttpGet("{restaurantId:guid}/dishes/{dishId:guid}/audio")]
+        public async Task<IActionResult> GetDishAudio(Guid restaurantId, Guid dishId)
+        {
+            var dish = await _context.Dishes
+                .AsNoTracking()
+                .FirstOrDefaultAsync(item =>
+                    item.RestaurantId == restaurantId &&
+                    item.Id == dishId);
+
+            if (dish == null)
+            {
+                return NotFound(new { Message = "Không tìm thấy món ăn!" });
+            }
+
+            var access = await GetAudioAccessAsync();
+            if (!access.HasAccess)
+            {
+                return CreateAudioPassRequiredResponse();
+            }
+
+            return Ok(new
+            {
+                status = "success",
+                restaurantId,
+                dishId = dish.Id,
+                passExpiresAtUtc = access.PassExpiresAtUtc,
+                narration = new DishNarrationDto
+                {
+                    Vi = dish.NarrationVi,
+                    En = dish.NarrationEn
+                }
+            });
+        }
 
         private static RestaurantResponseDto ToResponse(Restaurant restaurant)
         {
@@ -146,11 +162,7 @@ namespace PlaceGuide.Server.Controllers
                 PriceRange = restaurant.PriceRange,
                 HighlightDishes = SplitList(restaurant.HighlightDishes),
                 Tags = SplitList(restaurant.Tags),
-                Narration = new RestaurantNarrationDto
-                {
-                    Vi = restaurant.NarrationVi,
-                    En = restaurant.NarrationEn
-                },
+                Narration = new RestaurantNarrationDto(),
                 Latitude = restaurant.Latitude,
                 Longitude = restaurant.Longitude,
                 IsOpen = restaurant.IsOpen
@@ -187,13 +199,63 @@ namespace PlaceGuide.Server.Controllers
                 IsVegetarian = dish.IsVegetarian,
                 IsSpicy = dish.IsSpicy,
                 AllergyInfo = dish.AllergyInfo,
-                Narration = new DishNarrationDto
-                {
-                    Vi = dish.NarrationVi,
-                    En = dish.NarrationEn
-                }
+                Narration = new DishNarrationDto()
             };
         }
+
+        private async Task<AudioAccessResult> GetAudioAccessAsync()
+        {
+            if (TryGetGuestPass(out var guestPass))
+            {
+                return new AudioAccessResult(true, guestPass.ExpiresAtUtc);
+            }
+
+            if (await IsCurrentUserPremiumAsync())
+            {
+                return new AudioAccessResult(true, null);
+            }
+
+            return new AudioAccessResult(false, null);
+        }
+
+        private bool TryGetGuestPass(out GuestAudioPass guestPass)
+        {
+            var token = Request.Headers.TryGetValue("X-Premium-Pass", out var headerValues)
+                ? headerValues.FirstOrDefault()
+                : null;
+
+            return _guestAudioPassService.TryValidate(token, out guestPass);
+        }
+
+        private async Task<bool> IsCurrentUserPremiumAsync()
+        {
+            if (User.Identity?.IsAuthenticated != true)
+            {
+                return false;
+            }
+
+            var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrWhiteSpace(userIdString))
+            {
+                return false;
+            }
+
+            var user = await _userManager.FindByIdAsync(userIdString);
+            return user?.IsPremium == true;
+        }
+
+        private ObjectResult CreateAudioPassRequiredResponse()
+        {
+            return StatusCode(402, new
+            {
+                status = "unpaid",
+                code = "AUDIO_PASS_REQUIRED",
+                message = "Audio guide is a premium feature. Please buy an audio pass to listen.",
+                purchaseEndpoint = "/api/audio-passes/mock-purchase"
+            });
+        }
+
+        private sealed record AudioAccessResult(bool HasAccess, DateTimeOffset? PassExpiresAtUtc);
 
     }
 }
