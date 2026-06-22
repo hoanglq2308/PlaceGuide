@@ -11,7 +11,7 @@ function getApiUrl(path){
 function getStoreAudioPassToken(){
     return localStorage.getItem(AUDIO_PASS_TOKEN_KEY);
 }
-function setStoreAudioPassToken(token){
+export function saveAudioPassToken(token){
     if(!token)
         return;
     localStorage.setItem(AUDIO_PASS_TOKEN_KEY,token);
@@ -88,16 +88,6 @@ function requestAudioPassPurchasePrompt(message) {
         );
     });
 }
-async function createMockAudioPass() {
-    const response = await fetch(getApiUrl('/audio-passes/mock-purchase'), {
-        method: 'POST',
-    });
-    const pass = await handleResponse(response);
-
-    setStoreAudioPassToken(pass.token);
-
-    return pass;
-}
 
 async function requestPremiumAudio(path) {
     const response = await fetch(getApiUrl(path), {
@@ -108,32 +98,17 @@ async function requestPremiumAudio(path) {
 }
 
 async function withGuestAudioPass(fetchAudio) {
-    try {
-        return await fetchAudio();
-    } catch (error) {
-        if (!isAudioPassRequiredError(error)) {
-            throw error;
-        }
-
-        const accepted = await requestAudioPassPurchasePrompt(error.message);
-
-        if (!accepted) {
-            const cancelledError = new Error(
-                'Bạn cần gói nghe thuyết minh để sử dụng tính năng này.'
-            );
-            cancelledError.cancelled = true;
-            throw cancelledError;
-        }
-
-        const pass = await createMockAudioPass();
-        const audio = await fetchAudio();
-
-        return {
-            ...audio,
-            passCreated: true,
-            audioPass: pass,
-        };
+  try {
+    return await fetchAudio();
+  } catch (error) {
+    if (!isAudioPassRequiredError(error)) {
+      throw error;
     }
+
+    await requestAudioPassPurchasePrompt(error.message);
+
+    throw error;
+  }
 }
 
 export async function getRestaurantAudioWithPass(restaurantId) {
@@ -161,4 +136,3 @@ export async function getDishAudioWithPass(restaurantId, dishId) {
         )
     );
 }
-

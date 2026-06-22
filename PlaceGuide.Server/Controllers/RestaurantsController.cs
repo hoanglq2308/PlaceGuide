@@ -251,7 +251,7 @@ namespace PlaceGuide.Server.Controllers
                 status = "unpaid",
                 code = "AUDIO_PASS_REQUIRED",
                 message = "Audio guide is a premium feature. Please buy an audio pass to listen.",
-                purchaseEndpoint = "/api/audio-passes/mock-purchase"
+                purchaseEndpoint = "/api/audio-passes/checkout"
             });
         }
 

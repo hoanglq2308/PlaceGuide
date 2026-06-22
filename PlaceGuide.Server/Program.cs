@@ -6,6 +6,9 @@ using PlaceGuide.Server.Services;
 using Microsoft.IdentityModel.Tokens;
 using PlaceGuide.Server.Models;
 using System.Text;
+using PlaceGuide.Server.Configuration;
+using PayOS;
+using AppPayOSOptions = PlaceGuide.Server.Configuration.PayOSOptions;
 
 var builder = WebApplication.CreateBuilder(args);
 // cau hinh Identity
@@ -65,15 +68,73 @@ builder.Services.AddCors(options =>
 });
 
 builder.Services.AddControllers();
+
+builder.Services.AddMemoryCache();
+
 builder.Services.AddScoped<IGuestAudioPassService, GuestAudioPassService>();
+
+builder.Services.Configure<AudioPassPaymentOptions>(
+    builder.Configuration.GetSection(AudioPassPaymentOptions.SectionName));
+
+builder.Services
+    .AddOptions<AppPayOSOptions>()
+    .BindConfiguration(AppPayOSOptions.SectionName)
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
+
+builder.Services.AddSingleton<PayOSClient>(serviceProvider =>
+{
+    var payOSOptions = serviceProvider
+        .GetRequiredService<Microsoft.Extensions.Options.IOptions<AppPayOSOptions>>()
+        .Value;
+
+    return new PayOSClient(new PayOS.PayOSOptions
+    {
+        ClientId = payOSOptions.ClientId,
+        ApiKey = payOSOptions.ApiKey,
+        ChecksumKey = payOSOptions.ChecksumKey
+    });
+});
+
+builder.Services.AddScoped<IAudioPassCheckoutService, AudioPassCheckoutService>();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
+
 builder.Services.AddSwaggerGen();
 
 builder.Services.AddDbContext<PlaceGuide.Server.Data.ApplicationDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 var app = builder.Build();
+
+if (app.Environment.IsDevelopment())
+{
+    app.Lifetime.ApplicationStarted.Register(() =>
+    {
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                using var scope = app.Services.CreateScope();
+                var payOSClient = scope.ServiceProvider
+                    .GetRequiredService<PayOSClient>();
+                var payOSOptions = scope.ServiceProvider
+                    .GetRequiredService<Microsoft.Extensions.Options.IOptions<AppPayOSOptions>>()
+                    .Value;
+
+                await payOSClient.Webhooks.ConfirmAsync(payOSOptions.WebhookUrl);
+                app.Logger.LogInformation("PayOS webhook URL was registered successfully.");
+            }
+            catch (Exception exception)
+            {
+                app.Logger.LogWarning(
+                    exception,
+                    "Could not register the PayOS webhook URL. Keep the tunnel running and restart the server to retry.");
+            }
+        });
+    });
+}
+
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;

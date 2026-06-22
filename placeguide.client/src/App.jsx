@@ -7,6 +7,7 @@ import RestaurantMenu from './pages/RestaurantMenu';
 import Bookmarks from './pages/Bookmarks';
 import MapView from './pages/MapView';
 import AudioPassModalHost from './components/AudioPassModalHost';
+import AudioPassCheckout from './pages/AudioPassCheckout';
 function App() {
     return (
         <BrowserRouter>
@@ -20,6 +21,7 @@ function App() {
                 <Route path="/restaurants/:id/menu" element={<RestaurantMenu />} />
                 <Route path="/bookmarks" element={<Bookmarks />} />
                 <Route path="/map" element={<MapView />} />
+                <Route path="/audio-pass/checkout" element={<AudioPassCheckout />} />
             </Routes>
         </BrowserRouter>
     );

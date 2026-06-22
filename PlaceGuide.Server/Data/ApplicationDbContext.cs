@@ -22,6 +22,8 @@ namespace PlaceGuide.Server.Data
 
         public DbSet<ReviewMedia> ReviewMedia { get; set; }
 
+        public DbSet<PaymentOrder> PaymentOrders { get; set; }
+
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
@@ -98,6 +100,21 @@ namespace PlaceGuide.Server.Data
 
                 entity.HasIndex(media => media.ReviewId);
             });
+
+            builder.Entity<PaymentOrder>(entity =>
+            {
+                entity.ToTable("payment_orders");
+
+                entity.HasIndex(order => order.OrderCode)
+                    .IsUnique();
+
+                entity.HasIndex(order => new
+                {
+                    order.Status,
+                    order.ExpiresAt
+                });
+            });
         }
+
     }
 }

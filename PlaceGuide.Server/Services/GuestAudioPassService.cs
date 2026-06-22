@@ -20,7 +20,7 @@ namespace PlaceGuide.Server.Services
 
     public interface IGuestAudioPassService
     {
-        IssuedGuestAudioPass IssueDayPass();
+        IssuedGuestAudioPass IssueDayPass(DateTimeOffset? expiresAtUtc = null);
         bool TryValidate(string? token, out GuestAudioPass pass);
     }
 
@@ -37,16 +37,26 @@ namespace PlaceGuide.Server.Services
             _protector = dataProtectionProvider.CreateProtector(Purpose);
         }
 
-        public IssuedGuestAudioPass IssueDayPass()
+        public IssuedGuestAudioPass IssueDayPass(
+            DateTimeOffset? expiresAtUtc = null)
         {
             var now = DateTimeOffset.UtcNow;
+            var expiresAt = expiresAtUtc ?? now.AddHours(24);
+
+            if (expiresAt <= now)
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(expiresAtUtc),
+                    "The audio pass expiry must be in the future.");
+            }
+
             var pass = new GuestAudioPass
             {
                 PassId = Guid.NewGuid().ToString("N"),
                 PlanCode = DayPassPlanCode,
                 Scope = AllRestaurantsScope,
                 IssuedAtUtc = now,
-                ExpiresAtUtc = now.AddHours(24)
+                ExpiresAtUtc = expiresAt
             };
 
             var payload = JsonSerializer.Serialize(pass);
