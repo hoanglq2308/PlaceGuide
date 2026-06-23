@@ -4,7 +4,7 @@ namespace PlaceGuide.Server.Configuration
 {
     public sealed class PayOSOptions
     {
-        public const string SectionName = "PayOS";
+        public const string SectionName = "PayOSOptions";
 
         [Required]
         public string ClientId { get; set; } = string.Empty;

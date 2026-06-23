@@ -80,7 +80,8 @@ builder.Services
     .AddOptions<AppPayOSOptions>()
     .BindConfiguration(AppPayOSOptions.SectionName)
     .ValidateDataAnnotations()
-    .ValidateOnStart();
+    .ValidateDataAnnotations();
+    //.ValidateOnStart();
 
 builder.Services.AddSingleton<PayOSClient>(serviceProvider =>
 {

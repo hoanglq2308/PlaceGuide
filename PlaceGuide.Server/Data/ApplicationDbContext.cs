@@ -24,6 +24,9 @@ namespace PlaceGuide.Server.Data
 
         public DbSet<PaymentOrder> PaymentOrders { get; set; }
 
+        // BƯỚC 1: Thêm DbSet cho bảng Đăng ký Đối tác
+        public DbSet<RestaurantRegistration> RestaurantRegistrations { get; set; }
+
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
@@ -37,6 +40,18 @@ namespace PlaceGuide.Server.Data
             builder.Entity<IdentityUserToken<long>>().ToTable("user_tokens");
 
             builder.Entity<Restaurant>().ToTable("restaurants");
+
+            // BƯỚC 1: Cấu hình bảng RestaurantRegistration đồng bộ với chuẩn PostgreSQL của project
+            builder.Entity<RestaurantRegistration>(entity =>
+            {
+                entity.ToTable("restaurant_registrations");
+
+                // Cấu hình rõ ràng Khóa ngoại nối với bảng Users
+                entity.HasOne(registration => registration.User)
+                    .WithMany()
+                    .HasForeignKey(registration => registration.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
 
             builder.Entity<Dish>(entity =>
             {
@@ -115,6 +130,5 @@ namespace PlaceGuide.Server.Data
                 });
             });
         }
-
     }
 }

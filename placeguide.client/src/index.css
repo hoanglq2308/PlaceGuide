@@ -1,12 +1,43 @@
 @import "tailwindcss";
 
-/* Tạm thời xóa hết các css mặc định của Vite để tránh xung đột màu sắc khi dùng Tailwind CSS */
+/* CẤU HÌNH HỆ MÀU CUSTOM CHO TAILWIND V4 NẰM Ở ĐÂY */
+@theme {
+  --color-primary: #af101a;
+  --color-primary-container: #d32f2f;
+  --color-on-primary: #ffffff;
+  --color-surface: #fcf9f8;
+  --color-surface-variant: #e5e2e1;
+  --color-on-surface: #1b1c1c;
+  --color-on-surface-variant: #5b403d;
+  --color-outline-variant: #e4beba;
+  --color-outline: #8f6f6c;
+  --color-background: #fcf9f8;
+  --color-secondary: #1b6d24;
+  --color-secondary-container: #a0f399;
+  --color-tertiary-container: #8e6a00;
+  --color-surface-container-low: #f6f3f2;
+  --color-surface-container-high: #eae7e7;
+  --color-surface-container-highest: #e5e2e1;
+  --color-surface-container-lowest: #ffffff;
+  --color-primary-fixed-dim: #ffb3ac;
+  --color-on-primary-fixed: #410003;
+}
+
+/* Các class hiệu ứng và gradient tùy chỉnh của bồ */
+.sidebar-gradient { 
+    background: linear-gradient(135deg, #af101a 0%, #7d0b12 100%) !important; 
+}
+
+.dashed-border { 
+    background-image: url("data:image/svg+xml,%3csvg width='100%25' height='100%25' xmlns='http://www.w3.org/2000/svg'%3e%3crect width='100%25' height='100%25' fill='none' rx='16' ry='16' stroke='%23af101a' stroke-width='2' stroke-dasharray='8%2c 12' stroke-dashoffset='0' stroke-linecap='square'/%3e%3c/svg%3e") !important; 
+    border-radius: 16px; 
+}
+
 @keyframes slide-in {
     from {
         transform: translateX(120%);
         opacity: 0;
     }
-
     to {
         transform: translateX(0);
         opacity: 1;
