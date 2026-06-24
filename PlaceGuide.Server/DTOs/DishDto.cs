@@ -14,15 +14,17 @@ namespace PlaceGuide.Server.DTOs
         public DishNarrationDto Narration { get; set; } = new();
     }
 
-    public sealed class DishDescriptionDto
+    public sealed class DishDescriptionDto : Dictionary<string, string>
     {
-        public string Vi { get; set; } = string.Empty;
-        public string En { get; set; } = string.Empty;
+        public DishDescriptionDto() : base(StringComparer.OrdinalIgnoreCase)
+        {
+        }
     }
 
-    public sealed class DishNarrationDto
+    public sealed class DishNarrationDto : Dictionary<string, string>
     {
-        public string Vi { get; set; } = string.Empty;
-        public string En { get; set; } = string.Empty;
+        public DishNarrationDto() : base(StringComparer.OrdinalIgnoreCase)
+        {
+        }
     }
 }

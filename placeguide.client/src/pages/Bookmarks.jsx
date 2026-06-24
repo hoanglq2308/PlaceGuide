@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import RestaurantCard from '../components/RestaurantCard';
+import LanguageSelector from '../components/LanguageSelector';
 import ToastMessage from '../components/ToastMessage';
+import { useLanguage } from '../context/LanguageContext';
+import { getLocalizedText, getSpeechLocale } from '../i18n/languageConfig';
 import { getRestaurantAudioWithPass } from '../services/audioGuideService';
 import { getRestaurants } from '../services/restaurantService';
 import { getFavoriteRestaurantIds } from '../utils/favoriteStorage';
@@ -12,7 +15,7 @@ function Bookmarks() {
     const [favoriteRestaurants, setFavoriteRestaurants] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState('');
-    const [language, setLanguage] = useState('vi');
+    const { language } = useLanguage();
     const [toast, setToast] = useState({
         message: '',
         type: 'info',
@@ -77,7 +80,7 @@ function Bookmarks() {
         window.speechSynthesis.cancel();
 
         const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = language === 'vi' ? 'vi-VN' : 'en-US';
+        utterance.lang = getSpeechLocale(language);
         utterance.rate = 0.95;
 
         window.speechSynthesis.speak(utterance);
@@ -94,11 +97,7 @@ function Bookmarks() {
 
         try {
             const audio = await getRestaurantAudioWithPass(restaurant.id);
-            const text =
-                audio?.narration?.[language] ||
-                audio?.narration?.vi ||
-                audio?.narration?.en ||
-                '';
+            const text = getLocalizedText(audio?.narration, language);
 
             if (audio.passCreated) {
                 setToast({
@@ -150,16 +149,7 @@ function Bookmarks() {
                         </span>
                     </div>
 
-                    <button
-                        type="button"
-                        onClick={() => setLanguage(language === 'vi' ? 'en' : 'vi')}
-                        className="flex items-center gap-1 px-3 py-1.5 rounded-full border border-gray-200 text-gray-600 hover:text-red-700 hover:border-red-200 bg-white transition-all text-sm font-semibold"
-                    >
-                        <span className="material-symbols-outlined text-[18px]">
-                            language
-                        </span>
-                        <span>{language === 'vi' ? 'VN' : 'EN'}</span>
-                    </button>
+                    <LanguageSelector />
                 </div>
             </header>
 

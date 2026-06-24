@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ToastMessage from '../components/ToastMessage';
 import RestaurantCard from '../components/RestaurantCard';
+import LanguageSelector from '../components/LanguageSelector';
+import { useLanguage } from '../context/LanguageContext';
 import { mockRestaurants } from '../data/mockRestaurants';
 import { getRestaurantAudioWithPass } from '../services/audioGuideService';
 import { getRestaurants } from '../services/restaurantService';
@@ -10,6 +12,7 @@ import {
     sortRestaurantsByDistance,
 } from '../utils/distance';
 import { filterRestaurants, PRICE_FILTERS } from '../utils/restaurantFilters';
+import { getLocalizedText, getSpeechLocale } from '../i18n/languageConfig';
 
 const RESTAURANTS_PER_PAGE = 9;
 const FILTER_BUTTON_BASE_CLASS =
@@ -29,7 +32,7 @@ function Home() {
     const [authToken, setAuthToken] = useState(() =>
         localStorage.getItem('token')
     );
-    const [language, setLanguage] = useState('vi');
+    const { language, t } = useLanguage();
     const [searchText, setSearchText] = useState('');
     const [locationText, setLocationText] = useState('Chưa lấy vị trí');
     const [isGettingLocation, setIsGettingLocation] = useState(false);
@@ -205,7 +208,7 @@ function Home() {
         window.speechSynthesis.cancel();
 
         const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = language === 'vi' ? 'vi-VN' : 'en-US';
+        utterance.lang = getSpeechLocale(language);
         utterance.rate = 0.95;
 
         window.speechSynthesis.speak(utterance);
@@ -222,11 +225,7 @@ function Home() {
 
         try {
             const audio = await getRestaurantAudioWithPass(restaurant.id);
-            const text =
-                audio?.narration?.[language] ||
-                audio?.narration?.vi ||
-                audio?.narration?.en ||
-                '';
+            const text = getLocalizedText(audio?.narration, language);
 
             if (audio.passCreated) {
                 setToast({
@@ -270,41 +269,30 @@ function Home() {
 
                         <nav className="hidden md:flex gap-6">
                             <button className="text-red-700 font-bold border-b-2 border-red-700 text-sm">
-                                Explore
+                                {t('explore')}
                             </button>
                             <button
                                 type="button"
                                 onClick={() => navigate('/map')}
                                 className="text-gray-600 font-medium hover:text-red-700 transition-colors text-sm"
                             >
-                                Map
+                                {t('map')}
                             </button>
                             <button
                                 type="button"
                                 onClick={() => navigate('/bookmarks')}
                                 className="text-gray-600 font-medium hover:text-red-700 transition-colors text-sm"
                             >
-                                Bookmarks
+                                {t('bookmarks')}
                             </button>
                             <button className="text-gray-600 font-medium hover:text-red-700 transition-colors text-sm">
-                                History
+                                {t('history')}
                             </button>
                         </nav>
                     </div>
 
                     <div className="flex items-center gap-4">
-                        <button
-                            type="button"
-                            onClick={() =>
-                                setLanguage(language === 'vi' ? 'en' : 'vi')
-                            }
-                            className="flex items-center gap-1 text-gray-600 hover:text-red-700 transition-all text-sm font-semibold"
-                        >
-                            <span className="material-symbols-outlined text-[18px]">
-                                language
-                            </span>
-                            <span>{language === 'vi' ? 'VN' : 'EN'}</span>
-                        </button>
+                        <LanguageSelector className="border-0 px-0 py-0" />
 
                         <div className="h-6 w-[1px] bg-gray-300 mx-2"></div>
 
@@ -317,7 +305,7 @@ function Home() {
                                 {authToken ? 'logout' : 'login'}
                             </span>
                             <span className="hidden md:inline">
-                                {authToken ? 'Đăng xuất' : 'Đăng nhập'}
+                                {authToken ? t('logout') : t('login')}
                             </span>
                         </button>
                     </div>
@@ -336,15 +324,14 @@ function Home() {
                     <div className="w-full max-w-2xl space-y-6">
                         <div className="space-y-3">
                             <h1 className="text-4xl md:text-5xl font-extrabold text-white">
-                                Khám Phá Hương Vị{' '}
+                                {t('title')}{' '}
                                 <span className="text-red-300">
-                                    Việt Nam
+                                    {t('titleHighlight')}
                                 </span>
                             </h1>
 
                             <p className="text-lg text-white/90">
-                                Tìm quán ăn gần bạn và nghe thuyết minh bằng
-                                ngôn ngữ phù hợp.
+                                {t('subtitle')}
                             </p>
                         </div>
 
@@ -355,7 +342,7 @@ function Home() {
                                 </span>
 
                                 <p className="text-base font-semibold">
-                                    Vị trí hiện tại:{' '}
+                                    {t('currentLocation')}{' '}
                                     <span className="text-red-700">
                                         {locationText}
                                     </span>
@@ -373,8 +360,8 @@ function Home() {
 
                                 <span>
                                     {isGettingLocation
-                                        ? 'Đang lấy vị trí...'
-                                        : 'Dùng vị trí của tôi'}
+                                        ? t('gettingLocation')
+                                        : t('useLocation')}
                                 </span>
                             </button>
                         </div>
@@ -391,7 +378,7 @@ function Home() {
 
                             <input
                                 className="w-full pl-12 pr-4 py-4 rounded-full border border-gray-200 focus:ring-2 focus:ring-red-700/20 focus:border-red-700 outline-none text-base shadow-[0_4px_20px_rgba(183,20,34,0.08)] bg-white transition-all"
-                                placeholder="Tìm món hoặc quán ăn..."
+                                placeholder={t('search')}
                                 type="text"
                                 value={searchText}
                                 onChange={(e) => {
@@ -409,7 +396,7 @@ function Home() {
                             <span className="material-symbols-outlined">
                                 map
                             </span>
-                            <span>Xem bản đồ</span>
+                            <span>{t('viewMap')}</span>
                         </button>
                     </div>
 
@@ -419,7 +406,7 @@ function Home() {
                             onClick={handleToggleDistanceSort}
                             className={getFilterButtonClass(distanceSortEnabled)}
                         >
-                            Khoảng cách
+                            {t('distance')}
                         </button>
 
                         <label
@@ -429,7 +416,7 @@ function Home() {
                                     : FILTER_BUTTON_INACTIVE_CLASS
                             } flex items-center gap-2`}
                         >
-                            <span>Giá:</span>
+                            <span>{t('price')}</span>
                             <select
                                 value={priceFilter}
                                 onChange={(event) => {
@@ -438,12 +425,12 @@ function Home() {
                                 }}
                                 className="bg-transparent text-sm font-semibold outline-none"
                             >
-                                <option value={PRICE_FILTERS.ALL}>Tất cả</option>
-                                <option value={PRICE_FILTERS.CHEAP}>Giá rẻ</option>
+                                <option value={PRICE_FILTERS.ALL}>{t('all')}</option>
+                                <option value={PRICE_FILTERS.CHEAP}>{t('cheap')}</option>
                                 <option value={PRICE_FILTERS.MEDIUM}>
-                                    Trung bình
+                                    {t('medium')}
                                 </option>
-                                <option value={PRICE_FILTERS.HIGH}>Cao</option>
+                                <option value={PRICE_FILTERS.HIGH}>{t('high')}</option>
                             </select>
                         </label>
 
@@ -458,7 +445,7 @@ function Home() {
                             <span className="material-symbols-outlined text-[16px]">
                                 timer
                             </span>
-                            Đang mở cửa
+                            {t('openNow')}
                         </button>
 
                         <button
@@ -469,7 +456,7 @@ function Home() {
                             }}
                             className={getFilterButtonClass(vegetarianOnly)}
                         >
-                            Món chay
+                            {t('vegetarian')}
                         </button>
 
                         <button
@@ -480,11 +467,11 @@ function Home() {
                             }}
                             className={getFilterButtonClass(nonSpicyOnly)}
                         >
-                            Không cay
+                            {t('nonSpicy')}
                         </button>
 
                         <button className="px-5 py-2 rounded-full border border-gray-300 bg-white text-sm font-semibold hover:border-red-700 hover:text-red-700 transition-all">
-                            Dị ứng
+                            {t('allergy')}
                         </button>
                     </div>
                 </section>
@@ -493,11 +480,11 @@ function Home() {
                 <section className="space-y-6">
                     <div className="flex justify-between items-end">
                         <h2 className="text-2xl font-bold text-stone-900">
-                            Quán ăn nổi bật gần bạn
+                            {t('nearby')}
                         </h2>
 
                         <button className="text-red-700 font-bold text-sm hover:underline">
-                            Xem tất cả
+                            {t('viewAll')}
                         </button>
                     </div>
 
@@ -515,8 +502,8 @@ function Home() {
                     {filteredRestaurants.length > 0 && (
                         <div className="flex flex-col md:flex-row items-center justify-between gap-4 pt-2">
                             <p className="text-sm font-medium text-gray-600">
-                                Hiển thị {resultStart}-{resultEnd} /{' '}
-                                {filteredRestaurants.length} quán
+                                {t('show')} {resultStart}-{resultEnd} /{' '}
+                                {filteredRestaurants.length} {t('restaurants')}
                             </p>
 
                             <div className="flex items-center gap-2">
@@ -528,7 +515,7 @@ function Home() {
                                     disabled={activePage === 1}
                                     className="px-4 py-2 rounded-full border border-gray-300 bg-white text-sm font-semibold text-gray-700 hover:border-red-700 hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-gray-300 disabled:hover:text-gray-700 transition-all"
                                 >
-                                    Trước
+                                    {t('previous')}
                                 </button>
 
                                 <span className="px-4 py-2 rounded-full bg-red-700 text-white text-sm font-bold">
@@ -545,7 +532,7 @@ function Home() {
                                     disabled={activePage === totalPages}
                                     className="px-4 py-2 rounded-full border border-gray-300 bg-white text-sm font-semibold text-gray-700 hover:border-red-700 hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-gray-300 disabled:hover:text-gray-700 transition-all"
                                 >
-                                    Sau
+                                    {t('next')}
                                 </button>
                             </div>
                         </div>
@@ -575,9 +562,13 @@ function Home() {
                                 type="button"
                                 onClick={() =>
                                     speakText(
-                                        language === 'vi'
-                                            ? 'Hà Nội có nhiều câu chuyện gắn liền với phở. Từ những gánh hàng rong xưa đến các quán ăn hiện đại, phở vẫn là biểu tượng quen thuộc của ẩm thực Việt Nam.'
-                                            : 'Hanoi has many stories connected to pho. From old street vendors to modern restaurants, pho remains a familiar symbol of Vietnamese cuisine.',
+                                        getLocalizedText(
+                                            {
+                                                vi: 'Hà Nội có nhiều câu chuyện gắn liền với phở. Từ những gánh hàng rong xưa đến các quán ăn hiện đại, phở vẫn là biểu tượng quen thuộc của ẩm thực Việt Nam.',
+                                                en: 'Hanoi has many stories connected to pho. From old street vendors to modern restaurants, pho remains a familiar symbol of Vietnamese cuisine.'
+                                            },
+                                            language
+                                        ),
                                         'Chưa có nội dung thuyết minh.'
                                     )
                                 }

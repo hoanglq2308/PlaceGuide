@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using PlaceGuide.Server.Data;
 using PlaceGuide.Server.Services;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.Extensions.FileProviders;
 using PlaceGuide.Server.Models;
 using System.Text;
 using PlaceGuide.Server.Configuration;
@@ -72,6 +73,7 @@ builder.Services.AddControllers();
 builder.Services.AddMemoryCache();
 
 builder.Services.AddScoped<IGuestAudioPassService, GuestAudioPassService>();
+builder.Services.AddSingleton<IVisitorPresenceService, VisitorPresenceService>();
 
 builder.Services.Configure<AudioPassPaymentOptions>(
     builder.Configuration.GetSection(AudioPassPaymentOptions.SectionName));
@@ -148,6 +150,13 @@ using (var scope = app.Services.CreateScope())
         {
             Console.WriteLine("✅ THÀNH CÔNG: Đã kết nối tới PostgreSQL!");
 
+            var roleManager = services.GetRequiredService<RoleManager<IdentityRole<long>>>();
+            var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
+            await IdentitySeeder.SeedRolesAsync(
+                roleManager,
+                userManager,
+                builder.Configuration);
+
             if (app.Environment.IsDevelopment())
             {
                 RestaurantSeeder.SeedDevelopmentRestaurants(context);
@@ -167,6 +176,16 @@ using (var scope = app.Services.CreateScope())
 
 app.UseDefaultFiles();
 app.UseStaticFiles();
+
+var legacyUploadsPath = Path.Combine(app.Environment.ContentRootPath, "Uploads");
+if (Directory.Exists(legacyUploadsPath))
+{
+    app.UseStaticFiles(new StaticFileOptions
+    {
+        FileProvider = new PhysicalFileProvider(legacyUploadsPath),
+        RequestPath = "/Uploads"
+    });
+}
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

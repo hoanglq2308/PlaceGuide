@@ -303,6 +303,36 @@ namespace PlaceGuide.Server.Migrations
                     b.ToTable("dishes", (string)null);
                 });
 
+            modelBuilder.Entity("PlaceGuide.Server.Models.DishTranslation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("DishId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("LanguageCode")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<string>("Narration")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DishId", "LanguageCode")
+                        .IsUnique();
+
+                    b.ToTable("dish_translations", (string)null);
+                });
+
             modelBuilder.Entity("PlaceGuide.Server.Models.FavoriteRestaurant", b =>
                 {
                     b.Property<long>("Id")
@@ -411,8 +441,16 @@ namespace PlaceGuide.Server.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
+                    b.Property<string>("ContactPhone")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DistrictName")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
 
                     b.Property<string>("HighlightDishes")
                         .IsRequired()
@@ -425,6 +463,11 @@ namespace PlaceGuide.Server.Migrations
 
                     b.Property<bool>("IsOpen")
                         .HasColumnType("boolean");
+
+                    b.Property<bool>("IsPublished")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
 
                     b.Property<double>("Latitude")
                         .HasColumnType("double precision");
@@ -445,6 +488,14 @@ namespace PlaceGuide.Server.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<bool>("NeedsLocationUpdate")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<long?>("OwnerUserId")
+                        .HasColumnType("bigint");
+
                     b.Property<string>("PriceRange")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -458,6 +509,10 @@ namespace PlaceGuide.Server.Migrations
                         .HasColumnType("text");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("IsPublished");
+
+                    b.HasIndex("OwnerUserId");
 
                     b.ToTable("restaurants", (string)null);
                 });
@@ -474,6 +529,13 @@ namespace PlaceGuide.Server.Migrations
                         .IsRequired()
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
+
+                    b.Property<string>("AdminNote")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<Guid?>("ApprovedRestaurantId")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("BusinessLicenseUrl")
                         .IsRequired()
@@ -496,6 +558,12 @@ namespace PlaceGuide.Server.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
+                    b.Property<DateTime?>("ReviewedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("ReviewedByAdminId")
+                        .HasColumnType("bigint");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -506,9 +574,41 @@ namespace PlaceGuide.Server.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("ApprovedRestaurantId");
+
+                    b.HasIndex("ReviewedByAdminId");
+
                     b.HasIndex("UserId");
 
+                    b.HasIndex("Status", "CreatedAt");
+
                     b.ToTable("restaurant_registrations", (string)null);
+                });
+
+            modelBuilder.Entity("PlaceGuide.Server.Models.RestaurantTranslation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("LanguageCode")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<string>("Narration")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("RestaurantId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RestaurantId", "LanguageCode")
+                        .IsUnique();
+
+                    b.ToTable("restaurant_translations", (string)null);
                 });
 
             modelBuilder.Entity("PlaceGuide.Server.Models.Review", b =>
@@ -588,6 +688,117 @@ namespace PlaceGuide.Server.Migrations
                     b.ToTable("review_media", (string)null);
                 });
 
+            modelBuilder.Entity("PlaceGuide.Server.Models.VisitorDevice", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("DeviceIdHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<DateTime>("FirstSeenAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("LastSeenAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DeviceIdHash")
+                        .IsUnique();
+
+                    b.ToTable("visitor_devices", (string)null);
+                });
+
+            modelBuilder.Entity("PlaceGuide.Server.Models.VisitorDistrictActivity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateOnly>("ActivityDate")
+                        .HasColumnType("date");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DistrictName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("EventCount")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("FirstSeenAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("LastSeenAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("SessionKeyHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("SourceType")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActivityDate");
+
+                    b.HasIndex("DistrictName");
+
+                    b.HasIndex("SourceType");
+
+                    b.HasIndex("SessionKeyHash", "DistrictName", "SourceType", "ActivityDate")
+                        .IsUnique();
+
+                    b.ToTable("visitor_district_activities", (string)null);
+                });
+
+            modelBuilder.Entity("PlaceGuide.Server.Models.VisitorHourlyActivity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("ActivityHour")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("EventCount")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("FirstSeenAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("LastSeenAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("SessionKeyHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActivityHour");
+
+                    b.HasIndex("SessionKeyHash", "ActivityHour")
+                        .IsUnique();
+
+                    b.ToTable("visitor_hourly_activities", (string)null);
+                });
+
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<long>", b =>
                 {
                     b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole<long>", null)
@@ -650,6 +861,17 @@ namespace PlaceGuide.Server.Migrations
                     b.Navigation("Restaurant");
                 });
 
+            modelBuilder.Entity("PlaceGuide.Server.Models.DishTranslation", b =>
+                {
+                    b.HasOne("PlaceGuide.Server.Models.Dish", "Dish")
+                        .WithMany("Translations")
+                        .HasForeignKey("DishId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Dish");
+                });
+
             modelBuilder.Entity("PlaceGuide.Server.Models.FavoriteRestaurant", b =>
                 {
                     b.HasOne("PlaceGuide.Server.Models.Restaurant", "Restaurant")
@@ -669,15 +891,50 @@ namespace PlaceGuide.Server.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("PlaceGuide.Server.Models.Restaurant", b =>
+                {
+                    b.HasOne("PlaceGuide.Server.Models.ApplicationUser", "Owner")
+                        .WithMany()
+                        .HasForeignKey("OwnerUserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Owner");
+                });
+
             modelBuilder.Entity("PlaceGuide.Server.Models.RestaurantRegistration", b =>
                 {
+                    b.HasOne("PlaceGuide.Server.Models.Restaurant", "ApprovedRestaurant")
+                        .WithMany()
+                        .HasForeignKey("ApprovedRestaurantId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("PlaceGuide.Server.Models.ApplicationUser", "ReviewedByAdmin")
+                        .WithMany()
+                        .HasForeignKey("ReviewedByAdminId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("PlaceGuide.Server.Models.ApplicationUser", "User")
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.Navigation("ApprovedRestaurant");
+
+                    b.Navigation("ReviewedByAdmin");
+
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("PlaceGuide.Server.Models.RestaurantTranslation", b =>
+                {
+                    b.HasOne("PlaceGuide.Server.Models.Restaurant", "Restaurant")
+                        .WithMany("Translations")
+                        .HasForeignKey("RestaurantId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Restaurant");
                 });
 
             modelBuilder.Entity("PlaceGuide.Server.Models.Review", b =>
@@ -710,9 +967,16 @@ namespace PlaceGuide.Server.Migrations
                     b.Navigation("Review");
                 });
 
+            modelBuilder.Entity("PlaceGuide.Server.Models.Dish", b =>
+                {
+                    b.Navigation("Translations");
+                });
+
             modelBuilder.Entity("PlaceGuide.Server.Models.Restaurant", b =>
                 {
                     b.Navigation("Reviews");
+
+                    b.Navigation("Translations");
                 });
 
             modelBuilder.Entity("PlaceGuide.Server.Models.Review", b =>

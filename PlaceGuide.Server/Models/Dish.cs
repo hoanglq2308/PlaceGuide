@@ -32,6 +32,9 @@ namespace PlaceGuide.Server.Models
 
         public string NarrationEn { get; set; } = string.Empty;
 
+        public ICollection<DishTranslation> Translations { get; set; } =
+            new List<DishTranslation>();
+
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         public Restaurant? Restaurant { get; set; }

@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using PlaceGuide.Server.Models;
 using System.Globalization;
 using System.Text.RegularExpressions;
@@ -6,6 +7,31 @@ namespace PlaceGuide.Server.Data
 {
     public static class RestaurantSeeder
     {
+        private static readonly IReadOnlyDictionary<string, string> SeedDistrictByRestaurantName =
+            new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["Phở Hòa Pasteur"] = "Quận 3",
+                ["Cơm Tấm Ba Ghiền"] = "Phú Nhuận",
+                ["Bánh Mì Huỳnh Hoa"] = "Quận 1",
+                ["The Lunch Lady"] = "Quận 1",
+                ["Secret Garden Restaurant"] = "Quận 1",
+                ["Nhà hàng Ngon"] = "Quận 1",
+                ["Quán Ốc Đào"] = "Quận 1",
+                ["Bếp Mẹ Ỉn"] = "Quận 1",
+                ["Lẩu Cá Kèo Bà Huyện"] = "Quận 3",
+                ["Bún Bò Nam Bộ Bà Bà"] = "Quận 1",
+                ["Chả Cá Lã Vọng Hoàng Yến"] = "Quận 1",
+                ["Pizza 4P's Bến Thành"] = "Quận 1",
+                ["Hum Vegetarian Cafe"] = "Quận 3",
+                ["Quán Bụi Original"] = "Quận 1",
+                ["Cục Gạch Quán"] = "Quận 1",
+                ["Bún Riêu Gánh Bến Thành"] = "Quận 1",
+                ["Xôi Gà Number One"] = "Quận 1",
+                ["Phá Lấu Lì"] = "Quận 1",
+                ["Bánh Xèo 46A"] = "Quận 1",
+                ["Bột Chiên Đạt Thành"] = "Quận 3"
+            };
+
         public static void SeedDevelopmentRestaurants(ApplicationDbContext context)
         {
             var restaurants = GetSeedRestaurants();
@@ -22,7 +48,36 @@ namespace PlaceGuide.Server.Data
                 context.SaveChanges();
             }
 
+            BackfillSeedRestaurantDistricts(context);
+
             SeedDevelopmentDishes(context);
+            SeedLocalizedContent(context);
+        }
+
+        private static void BackfillSeedRestaurantDistricts(ApplicationDbContext context)
+        {
+            var restaurantNames = SeedDistrictByRestaurantName.Keys.ToArray();
+            var restaurants = context.Restaurants
+                .Where(restaurant => restaurantNames.Contains(restaurant.Name))
+                .ToList();
+            var hasChanges = false;
+
+            foreach (var restaurant in restaurants)
+            {
+                if (!string.IsNullOrWhiteSpace(restaurant.DistrictName) ||
+                    !SeedDistrictByRestaurantName.TryGetValue(restaurant.Name, out var districtName))
+                {
+                    continue;
+                }
+
+                restaurant.DistrictName = districtName;
+                hasChanges = true;
+            }
+
+            if (hasChanges)
+            {
+                context.SaveChanges();
+            }
         }
 
         private static void SeedDevelopmentDishes(ApplicationDbContext context)
@@ -77,6 +132,172 @@ namespace PlaceGuide.Server.Data
                 context.Dishes.AddRange(newDishes);
                 context.SaveChanges();
             }
+        }
+
+        private static void SeedLocalizedContent(ApplicationDbContext context)
+        {
+            var languageCodes = new[]
+            {
+                "zh-CN",
+                "zh-TW",
+                "ko",
+                "ja",
+                "th",
+                "fr",
+                "ru"
+            };
+            var restaurantTranslationKeys = context.RestaurantTranslations
+                .Select(translation => new
+                {
+                    translation.RestaurantId,
+                    translation.LanguageCode
+                })
+                .ToList()
+                .Select(translation =>
+                    $"{translation.RestaurantId:N}|{translation.LanguageCode}")
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var dishTranslationKeys = context.DishTranslations
+                .Select(translation => new
+                {
+                    translation.DishId,
+                    translation.LanguageCode
+                })
+                .ToList()
+                .Select(translation =>
+                    $"{translation.DishId:N}|{translation.LanguageCode}")
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var restaurantTranslations = new List<RestaurantTranslation>();
+            var dishTranslations = new List<DishTranslation>();
+
+            foreach (var restaurant in context.Restaurants.ToList())
+            {
+                var highlights = string.Join(
+                    ", ",
+                    SplitList(restaurant.HighlightDishes).Take(2));
+
+                foreach (var languageCode in languageCodes)
+                {
+                    var key = $"{restaurant.Id:N}|{languageCode}";
+
+                    if (restaurantTranslationKeys.Contains(key))
+                    {
+                        continue;
+                    }
+
+                    restaurantTranslations.Add(new RestaurantTranslation
+                    {
+                        RestaurantId = restaurant.Id,
+                        LanguageCode = languageCode,
+                        Narration = CreateRestaurantNarration(
+                            languageCode,
+                            restaurant.Name,
+                            highlights)
+                    });
+                }
+            }
+
+            foreach (var dish in context.Dishes
+                .Include(item => item.Restaurant)
+                .ToList())
+            {
+                foreach (var languageCode in languageCodes)
+                {
+                    var key = $"{dish.Id:N}|{languageCode}";
+
+                    if (dishTranslationKeys.Contains(key))
+                    {
+                        continue;
+                    }
+
+                    dishTranslations.Add(new DishTranslation
+                    {
+                        DishId = dish.Id,
+                        LanguageCode = languageCode,
+                        Description = CreateDishDescription(
+                            languageCode,
+                            dish.Name,
+                            dish.Restaurant?.Name ?? "the restaurant"),
+                        Narration = CreateDishNarration(
+                            languageCode,
+                            dish.Name,
+                            dish.Restaurant?.Name ?? "the restaurant")
+                    });
+                }
+            }
+
+            if (restaurantTranslations.Count == 0 && dishTranslations.Count == 0)
+            {
+                return;
+            }
+
+            context.RestaurantTranslations.AddRange(restaurantTranslations);
+            context.DishTranslations.AddRange(dishTranslations);
+            context.SaveChanges();
+        }
+
+        private static string CreateRestaurantNarration(
+            string languageCode,
+            string restaurantName,
+            string highlights)
+        {
+            var dishes = string.IsNullOrWhiteSpace(highlights)
+                ? restaurantName
+                : highlights;
+
+            return languageCode switch
+            {
+                "zh-CN" =>
+                    $"{restaurantName} 是体验越南当地美食的推荐餐厅。您可以品尝 {dishes}，感受这里独特的氛围与饮食文化。",
+                "zh-TW" =>
+                    $"{restaurantName} 是體驗越南在地美食的推薦餐廳。您可以品嚐 {dishes}，感受這裡獨特的氛圍與飲食文化。",
+                "ko" =>
+                    $"{restaurantName}은 베트남 현지 음식을 경험하기 좋은 식당입니다. {dishes} 등을 맛보며 이곳의 분위기와 음식 문화를 느껴 보세요.",
+                "ja" =>
+                    $"{restaurantName} は、ベトナムのローカル料理を楽しむのにおすすめの店です。{dishes} などを味わい、この店ならではの雰囲気と食文化を体験してください。",
+                "th" =>
+                    $"{restaurantName} เป็นร้านที่เหมาะสำหรับสัมผัสอาหารเวียดนามท้องถิ่น ลองชิม {dishes} และสัมผัสบรรยากาศกับวัฒนธรรมอาหารของร้านนี้",
+                "fr" =>
+                    $"{restaurantName} est une bonne adresse pour découvrir la cuisine vietnamienne locale. Goûtez notamment {dishes} et découvrez l'ambiance ainsi que la culture culinaire du lieu.",
+                "ru" =>
+                    $"{restaurantName} — хорошее место, чтобы познакомиться с местной вьетнамской кухней. Попробуйте {dishes} и почувствуйте атмосферу и гастрономические традиции этого места.",
+                _ => string.Empty
+            };
+        }
+
+        private static string CreateDishDescription(
+            string languageCode,
+            string dishName,
+            string restaurantName)
+        {
+            return languageCode switch
+            {
+                "zh-CN" => $"{dishName} 是 {restaurantName} 推荐品尝的菜品，展现了当地的饮食风味。",
+                "zh-TW" => $"{dishName} 是 {restaurantName} 推薦品嚐的菜品，展現了當地的飲食風味。",
+                "ko" => $"{dishName}은 {restaurantName}에서 추천하는 메뉴로, 현지 음식의 맛을 느낄 수 있습니다.",
+                "ja" => $"{dishName} は {restaurantName} でおすすめの一品で、地元らしい味わいを楽しめます。",
+                "th" => $"{dishName} เป็นเมนูแนะนำของ {restaurantName} ที่ช่วยให้คุณได้สัมผัสรสชาติอาหารท้องถิ่น",
+                "fr" => $"{dishName} est un plat recommandé chez {restaurantName}, idéal pour découvrir les saveurs locales.",
+                "ru" => $"{dishName} — рекомендуемое блюдо в {restaurantName}, позволяющее познакомиться с местными вкусами.",
+                _ => string.Empty
+            };
+        }
+
+        private static string CreateDishNarration(
+            string languageCode,
+            string dishName,
+            string restaurantName)
+        {
+            return languageCode switch
+            {
+                "zh-CN" => $"在 {restaurantName}，{dishName} 是值得一试的菜品，适合体验越南当地的餐饮风味。",
+                "zh-TW" => $"在 {restaurantName}，{dishName} 是值得一試的菜品，適合體驗越南在地的餐飲風味。",
+                "ko" => $"{restaurantName}의 {dishName}은 현지 음식 문화를 맛보고 싶은 분께 추천하는 메뉴입니다.",
+                "ja" => $"{restaurantName} の {dishName} は、ベトナムのローカルな食文化を味わいたい方におすすめです。",
+                "th" => $"{dishName} ของ {restaurantName} เป็นเมนูที่แนะนำสำหรับผู้ที่อยากสัมผัสวัฒนธรรมอาหารท้องถิ่นของเวียดนาม",
+                "fr" => $"Chez {restaurantName}, {dishName} est conseillé pour découvrir la culture culinaire vietnamienne locale.",
+                "ru" => $"{dishName} в {restaurantName} рекомендуется тем, кто хочет познакомиться с местной вьетнамской кухней.",
+                _ => string.Empty
+            };
         }
 
         private static IEnumerable<string> GetDishNames(Restaurant restaurant)

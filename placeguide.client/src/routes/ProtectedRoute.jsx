@@ -1,4 +1,4 @@
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 
 function decodeJwtPayload(token) {
     const payload = token.split('.')[1];
@@ -11,7 +11,7 @@ function decodeJwtPayload(token) {
     return JSON.parse(window.atob(paddedBase64));
 }
 
-function isTokenValid(token) {
+function getTokenPayload(token) {
     if (!token || typeof token !== 'string') {
         return false;
     }
@@ -21,26 +21,65 @@ function isTokenValid(token) {
     }
 
     try {
-        const payload = decodeJwtPayload(token);
-
-        if (typeof payload.exp !== 'number') {
-            return false;
-        }
-
-        return payload.exp > Math.floor(Date.now() / 1000);
+        return decodeJwtPayload(token);
     } catch {
-        return false;
+        return null;
     }
 }
 
-function ProtectedRoute({ children }) {
+function isTokenValid(token) {
+    const payload = getTokenPayload(token);
+
+    if (!payload || typeof payload.exp !== 'number') {
+        return false;
+    }
+
+    return payload.exp > Math.floor(Date.now() / 1000);
+}
+
+function getTokenRoles(token) {
+    const payload = getTokenPayload(token);
+
+    if (!payload) {
+        return [];
+    }
+
+    const roleValues = [
+        payload.role,
+        payload['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'],
+        payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/role']
+    ];
+
+    return roleValues.flatMap((roles) =>
+        Array.isArray(roles) ? roles : roles ? [roles] : []
+    );
+}
+
+function ProtectedRoute({ children, requiredRole }) {
     const token = localStorage.getItem('token');
+    const location = useLocation();
 
     if (!isTokenValid(token)) {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
 
-        return <Navigate to="/login" replace />;
+        return (
+            <Navigate
+                to="/login"
+                replace
+                state={{
+                    from: {
+                        pathname: location.pathname,
+                        search: location.search,
+                        hash: location.hash
+                    }
+                }}
+            />
+        );
+    }
+
+    if (requiredRole && !getTokenRoles(token).includes(requiredRole)) {
+        return <Navigate to="/home" replace />;
     }
 
     return children;

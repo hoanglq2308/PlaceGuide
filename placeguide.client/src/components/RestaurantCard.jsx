@@ -1,7 +1,9 @@
 import { useNavigate } from 'react-router-dom';
+import { useLanguage } from '../context/LanguageContext';
 
 function RestaurantCard({ restaurant, language, onSpeak }) {
     const navigate = useNavigate();
+    const { t } = useLanguage();
     const reviewCount = Number(restaurant.reviewCount) || 0;
     const ratingValue = Number(restaurant.rating);
     const hasReviewRating = reviewCount > 0 && Number.isFinite(ratingValue);
@@ -58,7 +60,7 @@ function RestaurantCard({ restaurant, language, onSpeak }) {
                                 </>
                             ) : (
                                 <span className="text-gray-500">
-                                    Chưa có đánh giá
+                                    {t('noReviews')}
                                 </span>
                             )}
                         </span>
@@ -75,7 +77,7 @@ function RestaurantCard({ restaurant, language, onSpeak }) {
                 <div className="space-y-2">
                     <p className="text-base text-gray-600 line-clamp-1">
                         <span className="font-bold text-stone-900">
-                            Món nổi bật:
+                            {t('highlights')}
                         </span>{' '}
                         {restaurant.highlightDishes.join(', ')}
                     </p>
@@ -101,7 +103,7 @@ function RestaurantCard({ restaurant, language, onSpeak }) {
                         <span className="material-symbols-outlined text-[20px]">
                             volume_up
                         </span>
-                        Nghe thuyết minh
+                        {t('listen')}
                     </button>
 
                     <button

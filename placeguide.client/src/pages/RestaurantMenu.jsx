@@ -1,15 +1,19 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import ToastMessage from '../components/ToastMessage';
+import LanguageSelector from '../components/LanguageSelector';
+import { useLanguage } from '../context/LanguageContext';
+import { getLocalizedText, getSpeechLocale } from '../i18n/languageConfig';
 import { getDishAudioWithPass } from '../services/audioGuideService';
 import { getRestaurantById } from '../services/restaurantService';
 import { getDishesByRestaurantId } from '../services/dishService';
+import { sendDistrictActivity } from '../services/publicDistrictAnalyticsService';
 
 const FALLBACK_IMAGE =
     'https://images.unsplash.com/photo-1555396273-367ea4eb4db5';
 
 function getDescription(dish, language) {
-    return dish?.description?.[language] || dish?.description?.vi || '';
+    return getLocalizedText(dish?.description, language);
 }
 
 function formatDishPrice(price) {
@@ -34,7 +38,7 @@ function RestaurantMenu() {
     const [dishes, setDishes] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState('');
-    const [language, setLanguage] = useState('vi');
+    const { language } = useLanguage();
     const [toast, setToast] = useState({
         message: '',
         type: 'info',
@@ -76,6 +80,19 @@ function RestaurantMenu() {
         };
     }, [id]);
 
+    useEffect(() => {
+        if (!restaurant?.districtName) {
+            return;
+        }
+
+        void sendDistrictActivity({
+            districtName: restaurant.districtName,
+            sourceType: 'RestaurantView',
+        }).catch(() => {
+            // District analytics must not interrupt the menu experience.
+        });
+    }, [restaurant?.districtName, restaurant?.id]);
+
     const displayRestaurant = useMemo(
         () => ({
             name: restaurant?.name || 'Quán ăn',
@@ -109,7 +126,7 @@ function RestaurantMenu() {
         window.speechSynthesis.cancel();
 
         const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = language === 'vi' ? 'vi-VN' : 'en-US';
+        utterance.lang = getSpeechLocale(language);
         utterance.rate = 0.95;
         window.speechSynthesis.speak(utterance);
     };
@@ -125,11 +142,7 @@ function RestaurantMenu() {
 
         try {
             const audio = await getDishAudioWithPass(id, dish.id);
-            const text =
-                audio?.narration?.[language] ||
-                audio?.narration?.vi ||
-                audio?.narration?.en ||
-                '';
+            const text = getLocalizedText(audio?.narration, language);
 
             if (audio.passCreated) {
                 setToast({
@@ -185,16 +198,7 @@ function RestaurantMenu() {
                         </button>
                     </div>
 
-                    <button
-                        type="button"
-                        onClick={() => setLanguage(language === 'vi' ? 'en' : 'vi')}
-                        className="flex items-center gap-1 px-3 py-1.5 rounded-full border border-gray-200 text-gray-600 hover:text-red-700 hover:border-red-200 bg-white transition-all text-sm font-semibold"
-                    >
-                        <span className="material-symbols-outlined text-[18px]">
-                            language
-                        </span>
-                        <span>{language === 'vi' ? 'VN' : 'EN'}</span>
-                    </button>
+                    <LanguageSelector />
                 </div>
             </header>
 

@@ -24,8 +24,18 @@ namespace PlaceGuide.Server.Data
 
         public DbSet<PaymentOrder> PaymentOrders { get; set; }
 
+        public DbSet<VisitorDevice> VisitorDevices { get; set; }
+
+        public DbSet<VisitorHourlyActivity> VisitorHourlyActivities { get; set; }
+
+        public DbSet<VisitorDistrictActivity> VisitorDistrictActivities { get; set; }
+
         // BƯỚC 1: Thêm DbSet cho bảng Đăng ký Đối tác
         public DbSet<RestaurantRegistration> RestaurantRegistrations { get; set; }
+
+        public DbSet<RestaurantTranslation> RestaurantTranslations { get; set; }
+
+        public DbSet<DishTranslation> DishTranslations { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -39,7 +49,61 @@ namespace PlaceGuide.Server.Data
             builder.Entity<IdentityRoleClaim<long>>().ToTable("role_claims");
             builder.Entity<IdentityUserToken<long>>().ToTable("user_tokens");
 
-            builder.Entity<Restaurant>().ToTable("restaurants");
+            builder.Entity<Restaurant>(entity =>
+            {
+                entity.ToTable("restaurants");
+
+                entity.Property(restaurant => restaurant.IsPublished)
+                    .HasDefaultValue(true);
+
+                entity.Property(restaurant => restaurant.NeedsLocationUpdate)
+                    .HasDefaultValue(false);
+
+                entity.HasIndex(restaurant => restaurant.IsPublished);
+
+                entity.HasOne(restaurant => restaurant.Owner)
+                    .WithMany()
+                    .HasForeignKey(restaurant => restaurant.OwnerUserId)
+                    .OnDelete(DeleteBehavior.SetNull);
+            });
+
+            builder.Entity<VisitorDevice>(entity =>
+            {
+                entity.ToTable("visitor_devices");
+
+                entity.HasIndex(device => device.DeviceIdHash)
+                    .IsUnique();
+            });
+
+            builder.Entity<VisitorHourlyActivity>(entity =>
+            {
+                entity.ToTable("visitor_hourly_activities");
+
+                entity.HasIndex(activity => new
+                {
+                    activity.SessionKeyHash,
+                    activity.ActivityHour
+                }).IsUnique();
+
+                entity.HasIndex(activity => activity.ActivityHour);
+            });
+
+            builder.Entity<VisitorDistrictActivity>(entity =>
+            {
+                entity.ToTable("visitor_district_activities");
+
+                entity.HasIndex(activity => new
+                {
+                    activity.SessionKeyHash,
+                    activity.DistrictName,
+                    activity.SourceType,
+                    activity.ActivityDate
+                }).IsUnique();
+
+                entity.HasIndex(activity => activity.ActivityDate);
+                entity.HasIndex(activity => activity.DistrictName);
+                entity.HasIndex(activity => activity.SourceType);
+            });
 
             // BƯỚC 1: Cấu hình bảng RestaurantRegistration đồng bộ với chuẩn PostgreSQL của project
             builder.Entity<RestaurantRegistration>(entity =>
@@ -51,6 +115,22 @@ namespace PlaceGuide.Server.Data
                     .WithMany()
                     .HasForeignKey(registration => registration.UserId)
                     .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(registration => registration.ReviewedByAdmin)
+                    .WithMany()
+                    .HasForeignKey(registration => registration.ReviewedByAdminId)
+                    .OnDelete(DeleteBehavior.SetNull);
+
+                entity.HasOne(registration => registration.ApprovedRestaurant)
+                    .WithMany()
+                    .HasForeignKey(registration => registration.ApprovedRestaurantId)
+                    .OnDelete(DeleteBehavior.SetNull);
+
+                entity.HasIndex(registration => new
+                {
+                    registration.Status,
+                    registration.CreatedAt
+                });
             });
 
             builder.Entity<Dish>(entity =>
@@ -65,6 +145,38 @@ namespace PlaceGuide.Server.Data
                 entity.HasOne(dish => dish.Restaurant)
                     .WithMany()
                     .HasForeignKey(dish => dish.RestaurantId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            builder.Entity<RestaurantTranslation>(entity =>
+            {
+                entity.ToTable("restaurant_translations");
+
+                entity.HasIndex(translation => new
+                {
+                    translation.RestaurantId,
+                    translation.LanguageCode
+                }).IsUnique();
+
+                entity.HasOne(translation => translation.Restaurant)
+                    .WithMany(restaurant => restaurant.Translations)
+                    .HasForeignKey(translation => translation.RestaurantId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            builder.Entity<DishTranslation>(entity =>
+            {
+                entity.ToTable("dish_translations");
+
+                entity.HasIndex(translation => new
+                {
+                    translation.DishId,
+                    translation.LanguageCode
+                }).IsUnique();
+
+                entity.HasOne(translation => translation.Dish)
+                    .WithMany(dish => dish.Translations)
+                    .HasForeignKey(translation => translation.DishId)
                     .OnDelete(DeleteBehavior.Cascade);
             });
 

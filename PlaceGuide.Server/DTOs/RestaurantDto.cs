@@ -5,6 +5,7 @@ namespace PlaceGuide.Server.DTOs
         public Guid Id { get; set; }
         public string Name { get; set; } = string.Empty;
         public string Address { get; set; } = string.Empty;
+        public string? DistrictName { get; set; }
         public string Image { get; set; } = string.Empty;
         public string Badge { get; set; } = string.Empty;
         public string Distance { get; set; } = string.Empty;
@@ -19,9 +20,10 @@ namespace PlaceGuide.Server.DTOs
         public bool IsOpen { get; set; }
     }
 
-    public sealed class RestaurantNarrationDto
+    public sealed class RestaurantNarrationDto : Dictionary<string, string>
     {
-        public string Vi { get; set; } = string.Empty;
-        public string En { get; set; } = string.Empty;
+        public RestaurantNarrationDto() : base(StringComparer.OrdinalIgnoreCase)
+        {
+        }
     }
 }

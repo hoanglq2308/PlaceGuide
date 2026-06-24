@@ -124,3 +124,35 @@ export async function getAudioPassCheckoutStatus(
 
   return data;
 }
+
+export async function simulateAudioPassCheckoutPayment(
+  orderCode,
+  checkoutAccessToken
+) {
+  if (!orderCode || !checkoutAccessToken) {
+    throw new Error('Thiếu thông tin bảo mật của đơn thanh toán.')
+  }
+
+  const response = await fetch(
+    getApiUrl(
+      `/audio-passes/checkout/${encodeURIComponent(orderCode)}/simulate-payment`
+    ),
+    {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'X-Checkout-Access-Token': checkoutAccessToken
+      }
+    }
+  )
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => null)
+
+    throw createRequestError(
+      response,
+      data,
+      'Không thể mô phỏng thanh toán AudioPass.'
+    )
+  }
+}

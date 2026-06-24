@@ -41,7 +41,9 @@ namespace PlaceGuide.Server.Controllers
             var currentUserId = GetCurrentUserIdOrNull();
 
             var restaurantExists = await _context.Restaurants
-                .AnyAsync(restaurant => restaurant.Id == restaurantId);
+                .AnyAsync(restaurant =>
+                    restaurant.Id == restaurantId &&
+                    restaurant.IsPublished);
 
             if (!restaurantExists)
             {

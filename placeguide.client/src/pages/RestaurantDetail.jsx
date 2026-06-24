@@ -1,12 +1,16 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import ToastMessage from '../components/ToastMessage';
+import LanguageSelector from '../components/LanguageSelector';
+import { useLanguage } from '../context/LanguageContext';
+import { getLocalizedText, getSpeechLocale } from '../i18n/languageConfig';
 import {
     getDishAudioWithPass,
     getRestaurantAudioWithPass,
 } from '../services/audioGuideService';
 import { getRestaurantById } from '../services/restaurantService';
 import { getDishesByRestaurantId } from '../services/dishService';
+import { sendDistrictActivity } from '../services/publicDistrictAnalyticsService';
 import ReviewsSection from "../components/ReviewsSection";
 import {
     addFavoriteRestaurant,
@@ -31,7 +35,7 @@ function hasCoordinates(restaurant) {
 }
 
 function getDishDescription(dish, language) {
-    return dish?.description?.[language] || dish?.description?.vi || '';
+    return getLocalizedText(dish?.description, language);
 }
 
 function formatDishPrice(price) {
@@ -76,7 +80,7 @@ function RestaurantDetail() {
     const [restaurant, setRestaurant] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState('');
-    const [language, setLanguage] = useState('vi');
+    const { language } = useLanguage();
     const [dishes, setDishes] = useState([]);
     const [dishesError, setDishesError] = useState('');
     const [isFavorite, setIsFavorite] = useState(false);
@@ -133,6 +137,19 @@ function RestaurantDetail() {
         };
     }, [id]);
 
+    useEffect(() => {
+        if (!restaurant?.districtName) {
+            return;
+        }
+
+        void sendDistrictActivity({
+            districtName: restaurant.districtName,
+            sourceType: 'RestaurantView',
+        }).catch(() => {
+            // District analytics must not interrupt the restaurant experience.
+        });
+    }, [restaurant?.districtName, restaurant?.id]);
+
     const displayRestaurant = useMemo(
         () => getDisplayRestaurant(restaurant),
         [restaurant]
@@ -180,11 +197,7 @@ function RestaurantDetail() {
 
         try {
             const audio = await getRestaurantAudioWithPass(displayRestaurant.id);
-            const text =
-                audio?.narration?.[language] ||
-                audio?.narration?.vi ||
-                audio?.narration?.en ||
-                '';
+            const text = getLocalizedText(audio?.narration, language);
 
             if (audio.passCreated) {
                 setToast({
@@ -222,7 +235,7 @@ function RestaurantDetail() {
         window.speechSynthesis.cancel();
 
         const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = language === 'vi' ? 'vi-VN' : 'en-US';
+        utterance.lang = getSpeechLocale(language);
         utterance.rate = 0.95;
 
         window.speechSynthesis.speak(utterance);
@@ -239,11 +252,7 @@ function RestaurantDetail() {
 
         try {
             const audio = await getDishAudioWithPass(displayRestaurant.id, dish.id);
-            const text =
-                audio?.narration?.[language] ||
-                audio?.narration?.vi ||
-                audio?.narration?.en ||
-                '';
+            const text = getLocalizedText(audio?.narration, language);
 
             if (audio.passCreated) {
                 setToast({
@@ -390,18 +399,7 @@ function RestaurantDetail() {
                     </div>
 
                     <div className="flex items-center gap-3">
-                        <button
-                            type="button"
-                            onClick={() =>
-                                setLanguage(language === 'vi' ? 'en' : 'vi')
-                            }
-                            className="flex items-center gap-1 px-3 py-1.5 rounded-full border border-gray-200 text-gray-600 hover:text-red-700 hover:border-red-200 bg-white transition-all text-sm font-semibold"
-                        >
-                            <span className="material-symbols-outlined text-[18px]">
-                                language
-                            </span>
-                            <span>{language === 'vi' ? 'VN' : 'EN'}</span>
-                        </button>
+                        <LanguageSelector />
 
                         <span className="material-symbols-outlined hidden md:inline text-gray-500 text-[28px]">
                             account_circle

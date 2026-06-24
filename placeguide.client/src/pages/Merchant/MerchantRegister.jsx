@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { submitMerchantRegistration } from '../../services/merchantRegistrationService';
 
 export default function MerchantRegister() {
     const navigate = useNavigate();
@@ -17,6 +18,7 @@ export default function MerchantRegister() {
 
     const [attpFile, setAttpFile] = useState(null);
     const [attpPreview, setAttpPreview] = useState(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Hàm xử lý khi thay đổi dữ liệu chữ
     const handleInputChange = (e) => {
@@ -54,7 +56,7 @@ export default function MerchantRegister() {
     };
 
     // 3. Hàm gửi dữ liệu (Gom thành FormData để chuẩn bị đập qua .NET API)
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
 
         if (!formData.restaurantName || !formData.address || !formData.phoneNumber) {
@@ -73,10 +75,16 @@ export default function MerchantRegister() {
         dataSubmit.append('FoodSafetyFile', attpFile);
         dataSubmit.append('BusinessLicenseFile', gpkdFile);
 
-        console.log('FormData đã sẵn sàng gửi lên Backend .NET:', dataSubmit);
-        
-        // Chuyển sang trang chờ duyệt sau khi nộp thành công
-        navigate('/merchant/waiting');
+        setIsSubmitting(true);
+
+        try {
+            await submitMerchantRegistration(dataSubmit);
+            navigate('/merchant/waiting');
+        } catch (error) {
+            alert(error.message);
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     return (
@@ -288,8 +296,8 @@ export default function MerchantRegister() {
                                 <span className="material-symbols-outlined">save</span>
                                 <span className="font-label-md">Lưu bản nháp</span>
                             </button>
-                            <button type="button" onClick={handleSubmit} className="flex items-center justify-center bg-primary text-on-primary rounded-full px-12 py-4 shadow-xl hover:bg-primary/90 active:scale-98 transition-all gap-3">
-                                <span className="font-label-md text-lg font-bold">Bước tiếp theo</span>
+                            <button type="button" onClick={handleSubmit} disabled={isSubmitting} className="flex items-center justify-center bg-primary text-on-primary rounded-full px-12 py-4 shadow-xl hover:bg-primary/90 active:scale-98 transition-all gap-3 disabled:cursor-not-allowed disabled:opacity-60">
+                                <span className="font-label-md text-lg font-bold">{isSubmitting ? 'Đang gửi hồ sơ...' : 'Nộp hồ sơ'}</span>
                                 <span className="material-symbols-outlined">arrow_forward</span>
                             </button>
                         </div>

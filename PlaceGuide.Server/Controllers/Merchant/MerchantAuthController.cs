@@ -1,3 +1,5 @@
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Hosting;
@@ -24,14 +26,20 @@ public class MerchantAuthController : ControllerBase
         _env = env;
     }
 
+    [Authorize]
     [HttpPost("register")]
     public async Task<IActionResult> RegisterMerchant([FromForm] MerchantRegisterDto dto)
     {
         try
         {
+            var userId = GetCurrentUserId();
+
             // 1. CHUẨN BỊ THƯ MỤC LƯU FILE VẬT LÝ TRÊN SERVER
-            // Thư mục sẽ tự động tạo tại: [Thư mục gốc của project]/Uploads/Certificates
-            string uploadsFolder = Path.Combine(_env.ContentRootPath, "Uploads", "Certificates");
+            // Thư mục nằm trong wwwroot để Admin có thể mở URL hồ sơ hợp lệ.
+            var webRootPath = string.IsNullOrWhiteSpace(_env.WebRootPath)
+                ? Path.Combine(_env.ContentRootPath, "wwwroot")
+                : _env.WebRootPath;
+            string uploadsFolder = Path.Combine(webRootPath, "Uploads", "Certificates");
             
             if (!Directory.Exists(uploadsFolder))
             {
@@ -60,16 +68,14 @@ public class MerchantAuthController : ControllerBase
             // 4. ĐÓNG GÓI DỮ LIỆU ĐỂ ĐẬP XUỐNG POSTGRESQL
             var registration = new RestaurantRegistration
             {
-                // LƯU Ý: Chỗ này thực tế mày phải lấy UserId từ Token (JWT) của thằng đang đăng nhập. 
-                // Do mình chưa ráp Auth nên tao gõ cứng số 1 để mày test form không bị lỗi khóa ngoại.
-                UserId = 1, 
+                UserId = userId,
                 RestaurantName = dto.RestaurantName,
                 Address = dto.Address,
                 PhoneNumber = dto.PhoneNumber,
                 // Lưu lại đường dẫn tương đối để mốt Frontend móc ra hiển thị thẻ <img>
                 FoodSafetyCertificateUrl = $"/Uploads/Certificates/{safetyFileName}",
                 BusinessLicenseUrl = $"/Uploads/Certificates/{licenseFileName}",
-                Status = "Pending",
+                Status = RestaurantRegistrationStatuses.Pending,
                 CreatedAt = DateTime.UtcNow
             };
 
@@ -83,10 +89,21 @@ public class MerchantAuthController : ControllerBase
                 registrationId = registration.Id 
             });
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            // Bắt lỗi 500 ném ra màn hình nếu có biến cố
-            return StatusCode(500, new { message = "Lỗi hệ thống: " + ex.Message });
+            return StatusCode(500, new { message = "Không thể nộp hồ sơ đối tác. Vui lòng thử lại." });
         }
+    }
+
+    private long GetCurrentUserId()
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        if (!long.TryParse(userId, out var parsedUserId))
+        {
+            throw new InvalidOperationException("User identity is invalid.");
+        }
+
+        return parsedUserId;
     }
 }

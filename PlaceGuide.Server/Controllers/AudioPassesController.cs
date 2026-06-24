@@ -25,6 +25,7 @@ namespace PlaceGuide.Server.Controllers
         private readonly PayOSClient _payOSClient;
         private readonly ILogger<AudioPassesController> _logger;
         private readonly AppPayOSOptions _payOSOptions;
+        private readonly IWebHostEnvironment _environment;
 
         public AudioPassesController(
             IAudioPassCheckoutService audioPassCheckoutService,
@@ -32,7 +33,8 @@ namespace PlaceGuide.Server.Controllers
             ApplicationDbContext dbContext,
             PayOSClient payOSClient,
             ILogger<AudioPassesController> logger,
-            IOptions<AppPayOSOptions> payOSOptions)
+            IOptions<AppPayOSOptions> payOSOptions,
+            IWebHostEnvironment environment)
         {
             _audioPassCheckoutService = audioPassCheckoutService;
             _guestAudioPassService = guestAudioPassService;
@@ -40,6 +42,7 @@ namespace PlaceGuide.Server.Controllers
             _payOSClient = payOSClient;
             _logger = logger;
             _payOSOptions = payOSOptions.Value;
+            _environment = environment;
         }
 
         [HttpPost("checkout")]
@@ -122,6 +125,50 @@ namespace PlaceGuide.Server.Controllers
             }
 
             return Ok(response);
+        }
+
+        // This route exists only for local demonstrations. Real PayOS checkout and
+        // webhook routes remain the only available payment flow outside Development.
+        [HttpPost("checkout/{orderCode}/simulate-payment")]
+        public async Task<IActionResult> SimulatePayment(
+            string orderCode,
+            [FromHeader(Name = "X-Checkout-Access-Token")]
+            string? checkoutAccessToken)
+        {
+            if (!_environment.IsDevelopment())
+            {
+                return NotFound();
+            }
+
+            if (string.IsNullOrWhiteSpace(checkoutAccessToken))
+            {
+                return Unauthorized(new
+                {
+                    message = "Checkout access token is required."
+                });
+            }
+
+            var paymentOrder =
+                await _audioPassCheckoutService.GetPaymentOrderForCheckoutAsync(
+                    orderCode,
+                    checkoutAccessToken);
+
+            if (paymentOrder is null)
+            {
+                return NotFound();
+            }
+
+            if (paymentOrder.Status == PaymentOrderStatuses.Pending)
+            {
+                paymentOrder.Status = PaymentOrderStatuses.Paid;
+                paymentOrder.PaidAt = DateTime.UtcNow;
+                paymentOrder.ProviderTransactionReference =
+                    $"development-simulation-{paymentOrder.Id:N}";
+
+                await _dbContext.SaveChangesAsync();
+            }
+
+            return NoContent();
         }
 
         [AllowAnonymous]

@@ -76,6 +76,10 @@ namespace PlaceGuide.Server.Controllers
                     new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
                 };
 
+                var roles = await _userManager.GetRolesAsync(user);
+                authClaims.AddRange(roles.Select(role =>
+                    new Claim(ClaimTypes.Role, role)));
+
                 var authSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
 
                 var token = new JwtSecurityToken(
@@ -90,7 +94,7 @@ namespace PlaceGuide.Server.Controllers
                 {
                     token = new JwtSecurityTokenHandler().WriteToken(token),
                     expiration = token.ValidTo,
-                    user = new { user.Id, user.FullName, user.Email }
+                    user = new { user.Id, user.FullName, user.Email, roles }
                 });
             }
 

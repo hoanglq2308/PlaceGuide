@@ -22,7 +22,12 @@ namespace PlaceGuide.Server.Controllers
         {
             var dish = await _context.Dishes
                 .AsNoTracking()
-                .FirstOrDefaultAsync(item => item.Id == id);
+                .Include(item => item.Translations)
+                .Include(item => item.Restaurant)
+                .FirstOrDefaultAsync(item =>
+                    item.Id == id &&
+                    item.Restaurant != null &&
+                    item.Restaurant.IsPublished);
 
             if (dish == null)
             {
@@ -39,11 +44,7 @@ namespace PlaceGuide.Server.Controllers
                 Id = dish.Id,
                 RestaurantId = dish.RestaurantId,
                 Name = dish.Name,
-                Description = new DishDescriptionDto
-                {
-                    Vi = dish.DescriptionVi,
-                    En = dish.DescriptionEn
-                },
+                Description = ToDescriptionResponse(dish),
                 Price = dish.Price,
                 Image = dish.ImageUrl,
                 IsVegetarian = dish.IsVegetarian,
@@ -51,6 +52,25 @@ namespace PlaceGuide.Server.Controllers
                 AllergyInfo = dish.AllergyInfo,
                 Narration = new DishNarrationDto()
             };
+        }
+
+        private static DishDescriptionDto ToDescriptionResponse(Dish dish)
+        {
+            var description = new DishDescriptionDto
+            {
+                ["vi"] = dish.DescriptionVi,
+                ["en"] = dish.DescriptionEn
+            };
+
+            foreach (var translation in dish.Translations)
+            {
+                if (!string.IsNullOrWhiteSpace(translation.Description))
+                {
+                    description[translation.LanguageCode] = translation.Description;
+                }
+            }
+
+            return description;
         }
     }
 }

@@ -33,6 +33,7 @@ namespace PlaceGuide.Server.Controllers
         {
             var restaurants = await _context.Restaurants
                 .AsNoTracking()
+                .Where(restaurant => restaurant.IsPublished)
                 .Include(restaurant => restaurant.Reviews)
                 .OrderBy(restaurant => restaurant.Name)
                 .ToListAsync();
@@ -46,7 +47,7 @@ namespace PlaceGuide.Server.Controllers
             var restaurant = await _context.Restaurants
                 .AsNoTracking()
                 .Include(item => item.Reviews)
-                .FirstOrDefaultAsync(item => item.Id == id);
+                .FirstOrDefaultAsync(item => item.Id == id && item.IsPublished);
 
             if (restaurant == null)
             {
@@ -61,7 +62,7 @@ namespace PlaceGuide.Server.Controllers
         {
             var restaurantExists = await _context.Restaurants
                 .AsNoTracking()
-                .AnyAsync(restaurant => restaurant.Id == restaurantId);
+                .AnyAsync(restaurant => restaurant.Id == restaurantId && restaurant.IsPublished);
 
             if (!restaurantExists)
             {
@@ -70,6 +71,7 @@ namespace PlaceGuide.Server.Controllers
 
             var dishes = await _context.Dishes
                 .AsNoTracking()
+                .Include(dish => dish.Translations)
                 .Where(dish => dish.RestaurantId == restaurantId)
                 .OrderBy(dish => dish.Name)
                 .ToListAsync();
@@ -82,7 +84,8 @@ namespace PlaceGuide.Server.Controllers
         {
             var restaurant = await _context.Restaurants
                 .AsNoTracking()
-                .FirstOrDefaultAsync(item => item.Id == id);
+                .Include(item => item.Translations)
+                .FirstOrDefaultAsync(item => item.Id == id && item.IsPublished);
 
             if (restaurant == null)
             {
@@ -100,11 +103,7 @@ namespace PlaceGuide.Server.Controllers
                 status = "success",
                 restaurantId = restaurant.Id,
                 passExpiresAtUtc = access.PassExpiresAtUtc,
-                narration = new RestaurantNarrationDto
-                {
-                    Vi = restaurant.NarrationVi,
-                    En = restaurant.NarrationEn
-                }
+                narration = ToNarrationResponse(restaurant)
             });
         }
 
@@ -113,9 +112,13 @@ namespace PlaceGuide.Server.Controllers
         {
             var dish = await _context.Dishes
                 .AsNoTracking()
+                .Include(item => item.Translations)
+                .Include(item => item.Restaurant)
                 .FirstOrDefaultAsync(item =>
                     item.RestaurantId == restaurantId &&
-                    item.Id == dishId);
+                    item.Id == dishId &&
+                    item.Restaurant != null &&
+                    item.Restaurant.IsPublished);
 
             if (dish == null)
             {
@@ -134,11 +137,7 @@ namespace PlaceGuide.Server.Controllers
                 restaurantId,
                 dishId = dish.Id,
                 passExpiresAtUtc = access.PassExpiresAtUtc,
-                narration = new DishNarrationDto
-                {
-                    Vi = dish.NarrationVi,
-                    En = dish.NarrationEn
-                }
+                narration = ToNarrationResponse(dish)
             });
         }
 
@@ -154,6 +153,7 @@ namespace PlaceGuide.Server.Controllers
                 Id = restaurant.Id,
                 Name = restaurant.Name,
                 Address = restaurant.Address,
+                DistrictName = restaurant.DistrictName,
                 Image = restaurant.ImageUrl,
                 Badge = restaurant.Badge,
                 Distance = "Chưa xác định",
@@ -189,11 +189,7 @@ namespace PlaceGuide.Server.Controllers
                 Id = dish.Id,
                 RestaurantId = dish.RestaurantId,
                 Name = dish.Name,
-                Description = new DishDescriptionDto
-                {
-                    Vi = dish.DescriptionVi,
-                    En = dish.DescriptionEn
-                },
+                Description = ToDescriptionResponse(dish),
                 Price = dish.Price,
                 Image = dish.ImageUrl,
                 IsVegetarian = dish.IsVegetarian,
@@ -201,6 +197,64 @@ namespace PlaceGuide.Server.Controllers
                 AllergyInfo = dish.AllergyInfo,
                 Narration = new DishNarrationDto()
             };
+        }
+
+        private static RestaurantNarrationDto ToNarrationResponse(
+            Restaurant restaurant)
+        {
+            var narration = new RestaurantNarrationDto
+            {
+                ["vi"] = restaurant.NarrationVi,
+                ["en"] = restaurant.NarrationEn
+            };
+
+            foreach (var translation in restaurant.Translations)
+            {
+                if (!string.IsNullOrWhiteSpace(translation.Narration))
+                {
+                    narration[translation.LanguageCode] = translation.Narration;
+                }
+            }
+
+            return narration;
+        }
+
+        private static DishDescriptionDto ToDescriptionResponse(Dish dish)
+        {
+            var description = new DishDescriptionDto
+            {
+                ["vi"] = dish.DescriptionVi,
+                ["en"] = dish.DescriptionEn
+            };
+
+            foreach (var translation in dish.Translations)
+            {
+                if (!string.IsNullOrWhiteSpace(translation.Description))
+                {
+                    description[translation.LanguageCode] = translation.Description;
+                }
+            }
+
+            return description;
+        }
+
+        private static DishNarrationDto ToNarrationResponse(Dish dish)
+        {
+            var narration = new DishNarrationDto
+            {
+                ["vi"] = dish.NarrationVi,
+                ["en"] = dish.NarrationEn
+            };
+
+            foreach (var translation in dish.Translations)
+            {
+                if (!string.IsNullOrWhiteSpace(translation.Narration))
+                {
+                    narration[translation.LanguageCode] = translation.Narration;
+                }
+            }
+
+            return narration;
         }
 
         private async Task<AudioAccessResult> GetAudioAccessAsync()

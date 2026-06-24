@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link,useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 
 import ToastMessage from '../components/ToastMessage';
 import { loginUser } from '../services/authService';
@@ -12,6 +12,17 @@ function Login() {
         type: 'success',
     });
     const navigate = useNavigate();
+    const location = useLocation();
+
+    const getRedirectPath = () => {
+        const from = location.state?.from;
+
+        if (typeof from?.pathname !== 'string' || !from.pathname.startsWith('/')) {
+            return '/home';
+        }
+
+        return `${from.pathname}${from.search || ''}${from.hash || ''}`;
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -35,7 +46,7 @@ function Login() {
             setToast({ message: 'Đăng nhập thành công!', type: 'success' });
 
             setTimeout(() => {
-                navigate('/home');
+                navigate(getRedirectPath(), { replace: true });
             }, 1000);
         } catch (error) {
             setToast({ message: error.message, type: 'error' });

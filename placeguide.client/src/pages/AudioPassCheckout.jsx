@@ -5,7 +5,8 @@ import {
   createAudioPassCheckout,
   getActiveAudioPassCheckout,
   getAudioPassCheckoutStatus,
-  saveActiveAudioPassCheckout
+  saveActiveAudioPassCheckout,
+  simulateAudioPassCheckoutPayment
 } from '../services/audioPassCheckoutService';
 import { saveAudioPassToken } from '../services/audioGuideService';
 
@@ -58,6 +59,8 @@ function AudioPassCheckout() {
   const [checkout, setCheckout] = useState(null);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [isSimulatingPayment, setIsSimulatingPayment] = useState(false);
+  const [demoMessage, setDemoMessage] = useState('');
   const pollTimerRef = useRef(null);
   const hasInitialized = useRef(false);
 
@@ -189,6 +192,34 @@ function AudioPassCheckout() {
     window.open(checkout.checkoutUrl, '_blank', 'noopener,noreferrer');
   }
 
+  async function handleSimulatePayment() {
+    if (!checkout) {
+      return;
+    }
+
+    setDemoMessage('');
+    setIsSimulatingPayment(true);
+
+    try {
+      await simulateAudioPassCheckoutPayment(
+        checkout.orderCode,
+        checkout.checkoutAccessToken
+      );
+
+      const updatedCheckout = await refreshCheckoutStatus();
+
+      if (updatedCheckout?.status !== 'paid') {
+        throw new Error('Không thể xác nhận giao dịch mô phỏng.');
+      }
+
+      setDemoMessage('Giao dịch mô phỏng thành công. AudioPass đã được kích hoạt.');
+    } catch (requestError) {
+      setError(requestError.message);
+    } finally {
+      setIsSimulatingPayment(false);
+    }
+  }
+
   if (error) {
     return (
       <main className="min-h-screen bg-rose-50 px-4 py-8 text-slate-800 sm:px-6">
@@ -260,6 +291,12 @@ function AudioPassCheckout() {
               Mở cổng thanh toán PayOS để quét mã QR hoặc chọn phương thức
               thanh toán được PayOS hỗ trợ. Trang này tự kiểm tra kết quả.
             </p>
+
+            {demoMessage && (
+              <p className="mt-4 rounded-md bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-800 ring-1 ring-emerald-200">
+                {demoMessage}
+              </p>
+            )}
           </header>
 
           <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(250px,320px)_minmax(0,1fr)]">
@@ -279,6 +316,28 @@ function AudioPassCheckout() {
               <p className="mt-4 text-sm leading-5 text-slate-500">
                 Đơn hết hạn lúc {formatDateTime(checkout.expiresAtUtc)}
               </p>
+
+              {import.meta.env.DEV && checkout.status === 'pending' && (
+                <div className="mt-5 w-full rounded-md border border-amber-200 bg-amber-50 p-3 text-left">
+                  <p className="text-sm font-semibold text-amber-900">
+                    Chế độ demo
+                  </p>
+                  <p className="mt-1 text-xs leading-5 text-amber-800">
+                    Sau khi quét mã để trình bày luồng, dùng nút này để mô phỏng
+                    PayOS xác nhận thanh toán. Nút không xuất hiện khi deploy.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => void handleSimulatePayment()}
+                    disabled={isSimulatingPayment}
+                    className="mt-3 w-full rounded-md bg-amber-700 px-3 py-2 text-sm font-semibold text-white hover:bg-amber-800 disabled:cursor-not-allowed disabled:bg-amber-400"
+                  >
+                    {isSimulatingPayment
+                      ? 'Đang xác nhận demo...'
+                      : 'Đã quét mã - xác nhận demo'}
+                  </button>
+                </div>
+              )}
             </div>
 
             <div className="space-y-4">
