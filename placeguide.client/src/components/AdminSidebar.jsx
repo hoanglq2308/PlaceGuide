@@ -3,14 +3,15 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 const activeNavigationItems = [
   { label: 'Tổng quan', icon: 'dashboard', to: '/admin/dashboard' },
   { label: 'Nhà hàng', icon: 'storefront', to: '/admin/restaurants' },
-  { label: 'Đăng ký đối tác', icon: 'assignment', to: '/admin/merchant-registrations' }
+  { label: 'Đăng ký đối tác', icon: 'assignment', to: '/admin/merchant-registrations' },
+  { label: 'Đánh giá', icon: 'reviews', to: '/admin/reviews' }
 ];
 
 const plannedNavigationItems = [
   { label: 'Phân tích', icon: 'analytics' },
-  { label: 'Đánh giá', icon: 'reviews' },
   { label: 'Cài đặt', icon: 'settings' }
 ];
+
 
 function AdminSidebar({ adminName = 'Quản trị viên' }) {
   const { pathname } = useLocation();

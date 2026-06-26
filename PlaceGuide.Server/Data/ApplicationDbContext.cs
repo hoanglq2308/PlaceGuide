@@ -240,6 +240,15 @@ namespace PlaceGuide.Server.Data
             {
                 entity.ToTable("Review");
 
+                entity.Property(review => review.IsHidden)
+                    .HasDefaultValue(false);
+
+                entity.Property(review => review.HiddenReason)
+                    .HasMaxLength(500);
+
+                entity.Property(review => review.GuestReviewKeyHash)
+                    .HasMaxLength(128);
+
                 entity.HasOne(review => review.Restaurant)
                     .WithMany(restaurant => restaurant.Reviews)
                     .HasForeignKey(review => review.RestaurantId)
@@ -250,10 +259,26 @@ namespace PlaceGuide.Server.Data
                     .HasForeignKey(review => review.UserId)
                     .OnDelete(DeleteBehavior.SetNull);
 
+                entity.HasOne(review => review.HiddenByAdmin)
+                    .WithMany()
+                    .HasForeignKey(review => review.HiddenByAdminId)
+                    .OnDelete(DeleteBehavior.SetNull);
+
+                entity.HasOne(review => review.RestoredByAdmin)
+                    .WithMany()
+                    .HasForeignKey(review => review.RestoredByAdminId)
+                    .OnDelete(DeleteBehavior.SetNull);
+
                 entity.HasMany(review => review.MediaItems)
                     .WithOne(media => media.Review)
                     .HasForeignKey(media => media.ReviewId)
                     .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasIndex(review => review.RestaurantId);
+                entity.HasIndex(review => review.Rating);
+                entity.HasIndex(review => review.CreatedAt);
+                entity.HasIndex(review => review.IsHidden);
+                entity.HasIndex(review => review.GuestReviewKeyHash);
             });
 
             builder.Entity<ReviewMedia>(entity =>

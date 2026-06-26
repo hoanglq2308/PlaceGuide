@@ -4,7 +4,10 @@ using Microsoft.EntityFrameworkCore;
 using PlaceGuide.Server.Data;
 using PlaceGuide.Server.DTOs;
 using PlaceGuide.Server.Models;
+using PlaceGuide.Server.Services;
 using System.Security.Claims;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace PlaceGuide.Server.Controllers
 {
@@ -26,14 +29,33 @@ namespace PlaceGuide.Server.Controllers
             "video/quicktime"
         };
 
+        /// <summary>Map content-type → safe extension (không tin extension từ client).</summary>
+        private static readonly Dictionary<string, string> SafeExtensions = new(StringComparer.OrdinalIgnoreCase)
+        {
+            ["image/jpeg"]    = ".jpg",
+            ["image/png"]     = ".png",
+            ["image/webp"]    = ".webp",
+            ["image/gif"]     = ".gif",
+            ["video/mp4"]     = ".mp4",
+            ["video/webm"]    = ".webm",
+            ["video/quicktime"] = ".mov"
+        };
+
         private readonly ApplicationDbContext _context;
         private readonly IWebHostEnvironment _environment;
+        private readonly IGuestAudioPassService _audioPassService;
 
-        public ReviewsController(ApplicationDbContext context, IWebHostEnvironment environment)
+        public ReviewsController(
+            ApplicationDbContext context,
+            IWebHostEnvironment environment,
+            IGuestAudioPassService audioPassService)
         {
             _context = context;
             _environment = environment;
+            _audioPassService = audioPassService;
         }
+
+        // ─── GET ───────────────────────────────────────────────────────────────────
 
         [HttpGet]
         public async Task<ActionResult<IEnumerable<ReviewsResponseDto>>> GetReviews(Guid restaurantId)
@@ -53,12 +75,17 @@ namespace PlaceGuide.Server.Controllers
                 .AsNoTracking()
                 .Include(review => review.User)
                 .Include(review => review.MediaItems)
-                .Where(review => review.RestaurantId == restaurantId)
+                .Where(review => review.RestaurantId == restaurantId && !review.IsHidden)
                 .OrderByDescending(review => review.CreatedAt)
                 .ToListAsync();
 
-            return Ok(reviews.Select(review => ToResponse(review)));
+            // Xác định user hiện tại (nếu có JWT) để set IsMine
+            long? currentUserId = TryGetCurrentUserId();
+
+            return Ok(reviews.Select(review => ToResponse(review, currentUserId)));
         }
+
+        // ─── POST (Guest + AudioPass required) ────────────────────────────────────
 
         [HttpPost]
         [Consumes("multipart/form-data")]
@@ -66,14 +93,26 @@ namespace PlaceGuide.Server.Controllers
             Guid restaurantId,
             [FromForm] CreateReviewDto model)
         {
+            // 1. Validate AudioPass
+            var passToken = Request.Headers["X-Premium-Pass"].FirstOrDefault();
+            if (!_audioPassService.TryValidate(passToken, out var guestPass))
+            {
+                return StatusCode(402, new
+                {
+                    Code = "AUDIO_PASS_REQUIRED",
+                    Message = "Bạn cần AudioPass hợp lệ để gửi đánh giá."
+                });
+            }
+
+            // 2. Validate media
             var mediaFiles = model.MediaFiles ?? new List<IFormFile>();
             var validationError = ValidateMediaFiles(mediaFiles, 0);
-
             if (validationError != null)
             {
                 return BadRequest(new { Message = validationError });
             }
 
+            // 3. Restaurant exists + published + not banned
             var restaurantExists = await _context.Restaurants
                 .AnyAsync(restaurant =>
                     restaurant.Id == restaurantId &&
@@ -85,12 +124,29 @@ namespace PlaceGuide.Server.Controllers
                 return NotFound(new { Message = "Không tìm thấy quán ăn!" });
             }
 
+            // 4. Tính GuestReviewKeyHash để chống spam
+            var guestKeyHash = ComputeSha256Hash(passToken!);
+
+            // 5. Kiểm tra đã review chưa (1 pass = 1 review / nhà hàng)
+            var alreadyReviewed = await _context.Reviews
+                .AnyAsync(r =>
+                    r.RestaurantId == restaurantId &&
+                    r.GuestReviewKeyHash == guestKeyHash);
+
+            if (alreadyReviewed)
+            {
+                return Conflict(new { Message = "Bạn đã đánh giá nhà hàng này rồi." });
+            }
+
+            // 6. Tạo review
             var review = new Review
             {
                 RestaurantId = restaurantId,
                 UserId = null,
+                GuestReviewKeyHash = guestKeyHash,
                 Rating = model.Rating,
                 Comment = model.Comment.Trim(),
+                IsHidden = false,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             };
@@ -98,18 +154,22 @@ namespace PlaceGuide.Server.Controllers
             _context.Reviews.Add(review);
             await _context.SaveChangesAsync();
 
+            // 7. Lưu media
             var mediaItems = await SaveMediaFilesAsync(review.Id, mediaFiles);
             _context.ReviewMedia.AddRange(mediaItems);
             await _context.SaveChangesAsync();
 
+            // 8. Re-query để trả về đầy đủ
             var createdReview = await _context.Reviews
                 .AsNoTracking()
                 .Include(item => item.User)
                 .Include(item => item.MediaItems)
                 .FirstAsync(item => item.Id == review.Id);
 
-            return Ok(ToResponse(createdReview));
+            return Ok(ToResponse(createdReview, null));
         }
+
+        // ─── PUT / DELETE (Authenticated user only) ───────────────────────────────
 
         [HttpPut("{reviewId:guid}")]
         [Authorize]
@@ -170,7 +230,7 @@ namespace PlaceGuide.Server.Controllers
                 .Include(item => item.MediaItems)
                 .FirstAsync(item => item.Id == review.Id);
 
-            return Ok(ToResponse(updatedReview));
+            return Ok(ToResponse(updatedReview, userId));
         }
 
         [HttpDelete("{reviewId:guid}")]
@@ -200,6 +260,14 @@ namespace PlaceGuide.Server.Controllers
             await _context.SaveChangesAsync();
 
             return Ok(new { Message = "Đã xóa đánh giá!" });
+        }
+
+        // ─── Private helpers ──────────────────────────────────────────────────────
+
+        private static string ComputeSha256Hash(string input)
+        {
+            var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(input));
+            return Convert.ToHexString(bytes).ToLowerInvariant();
         }
 
         private string? ValidateMediaFiles(IReadOnlyList<IFormFile> mediaFiles, int existingMediaCount)
@@ -248,7 +316,11 @@ namespace PlaceGuide.Server.Controllers
 
             foreach (var file in mediaFiles)
             {
-                var extension = Path.GetExtension(file.FileName);
+                // Dùng extension an toàn từ ContentType thay vì FileName
+                var extension = SafeExtensions.TryGetValue(file.ContentType, out var safeExt)
+                    ? safeExt
+                    : Path.GetExtension(file.FileName);
+
                 var storedFileName = $"{Guid.NewGuid():N}{extension}";
                 var storedFilePath = Path.Combine(uploadDirectory, storedFileName);
 
@@ -292,6 +364,13 @@ namespace PlaceGuide.Server.Controllers
             }
         }
 
+        /// <summary>Trả null nếu không có JWT hoặc không parse được.</summary>
+        private long? TryGetCurrentUserId()
+        {
+            var value = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            return long.TryParse(value, out var id) ? id : null;
+        }
+
         private long GetCurrentUserId()
         {
             var userIdValue = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -304,19 +383,30 @@ namespace PlaceGuide.Server.Controllers
             return userId;
         }
 
-        private ReviewsResponseDto ToResponse(Review review)
+        internal string BuildAbsoluteMediaUrl(string url)
+        {
+            if (url.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
+                url.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+            {
+                return url;
+            }
+
+            return $"{Request.Scheme}://{Request.Host}{url}";
+        }
+
+        private ReviewsResponseDto ToResponse(Review review, long? currentUserId)
         {
             return new ReviewsResponseDto
             {
                 Id = review.Id,
                 RestaurantId = review.RestaurantId,
-                UserId = null,
-                UserFullName = "Du khách",
+                UserId = review.UserId,
+                UserFullName = review.User?.UserName ?? "Du khách",
                 Rating = review.Rating,
                 Comment = review.Comment,
                 CreatedAt = review.CreatedAt,
                 UpdatedAt = review.UpdatedAt,
-                IsMine = false,
+                IsMine = currentUserId.HasValue && review.UserId == currentUserId,
                 MediaItems = review.MediaItems
                     .OrderBy(media => media.CreatedAt)
                     .Select(media => new ReviewMediaDto
@@ -329,17 +419,6 @@ namespace PlaceGuide.Server.Controllers
                     })
                     .ToList()
             };
-        }
-
-        private string BuildAbsoluteMediaUrl(string url)
-        {
-            if (url.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
-                url.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
-            {
-                return url;
-            }
-
-            return $"{Request.Scheme}://{Request.Host}{url}";
         }
     }
 }

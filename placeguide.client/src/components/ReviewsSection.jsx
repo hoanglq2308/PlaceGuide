@@ -1,9 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import {
   createReview,
-  deleteReview,
   getReviews,
-  updateReview,
 } from "../services/reviewService";
 import ToastMessage from "./ToastMessage";
 
@@ -19,15 +18,22 @@ const ALLOWED_MEDIA_TYPES = [
   "video/quicktime",
 ];
 
-function StarSelector({ value, onChange, size = "text-[36px] sm:text-[44px]" }) {
+const AUDIO_PASS_TOKEN_KEY = "placeGuideAudioPassToken";
+
+function hasValidAudioPass() {
+  return !!localStorage.getItem(AUDIO_PASS_TOKEN_KEY);
+}
+
+function StarSelector({ value, onChange, size = "text-[36px] sm:text-[44px]", disabled = false }) {
   return (
     <div className="flex gap-1">
       {[1, 2, 3, 4, 5].map((star) => (
         <button
           key={star}
           type="button"
-          onClick={() => onChange(star)}
-          className="active:scale-95 transition-transform"
+          onClick={() => !disabled && onChange(star)}
+          disabled={disabled}
+          className="active:scale-95 transition-transform disabled:cursor-not-allowed"
           aria-label={`Chọn ${star} sao`}
         >
           <span
@@ -114,35 +120,22 @@ export default function ReviewsSection({
   const [loadingReviews, setLoadingReviews] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-  const [toast, setToast] = useState({
-    message: "",
-    type: "success",
-  });
+  const [toast, setToast] = useState({ message: "", type: "success" });
 
   const [rating, setRating] = useState(4);
   const [comment, setComment] = useState("");
-  const [existingMedia, setExistingMedia] = useState([]);
   const [selectedMedia, setSelectedMedia] = useState([]);
 
-  const myReview = useMemo(
-    () => reviews.find((review) => review.isMine),
-    [reviews]
-  );
+  // Kiểm tra AudioPass ngay khi render (reactive: mỗi khi component mount hoặc cần)
+  const [audioPassAvailable, setAudioPassAvailable] = useState(() => hasValidAudioPass());
 
-  const totalMediaCount = existingMedia.length + selectedMedia.length;
+  const totalMediaCount = selectedMedia.length;
 
   const averageRating = useMemo(() => {
-    if (reviews.length === 0) {
-      return null;
-    }
-
-    const total = reviews.reduce(
-      (sum, review) => sum + (Number(review.rating) || 0),
-      0
-    );
-
+    if (reviews.length === 0) return null;
+    const total = reviews.reduce((sum, r) => sum + (Number(r.rating) || 0), 0);
     return total / reviews.length;
-  }, [reviews, restaurant?.rating]);
+  }, [reviews]);
 
   useEffect(() => {
     if (!onRatingSummaryChange) return;
@@ -188,16 +181,14 @@ export default function ReviewsSection({
     loadReviews();
   }, [resolvedRestaurantId]);
 
+  // Refresh AudioPass state khi user focus lại tab (ví dụ sau khi mua pass)
   useEffect(() => {
-    if (!myReview) {
-      setExistingMedia([]);
-      return;
+    function onFocus() {
+      setAudioPassAvailable(hasValidAudioPass());
     }
-
-    setRating(myReview.rating || 4);
-    setComment(myReview.comment || "");
-    setExistingMedia(getMediaItems(myReview));
-  }, [myReview]);
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, []);
 
   function clearSelectedMedia() {
     selectedMediaRef.current.forEach(revokePreviewUrl);
@@ -259,25 +250,16 @@ export default function ReviewsSection({
     }
 
     if (skippedMessages.length > 0) {
-      setToast({
-        message: skippedMessages[0],
-        type: "warning",
-      });
+      setToast({ message: skippedMessages[0], type: "warning" });
     }
   }
 
   function handleRemoveSelectedMedia(mediaId) {
     setSelectedMedia((current) => {
-      const mediaToRemove = current.find((media) => media.id === mediaId);
+      const mediaToRemove = current.find((m) => m.id === mediaId);
       revokePreviewUrl(mediaToRemove);
-      return current.filter((media) => media.id !== mediaId);
+      return current.filter((m) => m.id !== mediaId);
     });
-  }
-
-  function handleRemoveExistingMedia(mediaId) {
-    setExistingMedia((current) =>
-      current.filter((media) => media.id !== mediaId)
-    );
   }
 
   async function handleSubmit(event) {
@@ -289,11 +271,8 @@ export default function ReviewsSection({
     }
 
     if (!comment.trim()) {
+      setToast({ message: "Vui lòng nhập nội dung đánh giá.", type: "warning" });
       setErrorMessage("Vui lòng nhập nội dung đánh giá.");
-      setToast({
-        message: "Vui lòng nhập nội dung đánh giá.",
-        type: "warning",
-      });
       return;
     }
 
@@ -304,70 +283,29 @@ export default function ReviewsSection({
       const payload = {
         rating,
         comment: comment.trim(),
-        mediaFiles: selectedMedia.map((media) => media.file),
-        keepMediaIds: existingMedia.map((media) => media.id),
+        mediaFiles: selectedMedia.map((m) => m.file),
       };
 
-      const savedReview = myReview
-        ? await updateReview(resolvedRestaurantId, myReview.id, payload)
-        : await createReview(resolvedRestaurantId, payload);
+      const savedReview = await createReview(resolvedRestaurantId, payload);
 
-      setReviews((currentReviews) => {
-        if (myReview) {
-          return currentReviews.map((review) =>
-            review.id === savedReview.id ? savedReview : review
-          );
-        }
-
-        return [savedReview, ...currentReviews];
-      });
-
+      setReviews((current) => [savedReview, ...current]);
       clearSelectedMedia();
-      setExistingMedia(myReview ? getMediaItems(savedReview) : []);
-      if (!myReview) {
-        setRating(4);
-        setComment("");
-      }
-      setToast({
-        message: myReview ? "Đã cập nhật đánh giá." : "Đã gửi đánh giá.",
-        type: "success",
-      });
-    } catch (error) {
-      const message = error.message || "Không gửi được đánh giá.";
-      setErrorMessage(message);
-      setToast({ message, type: "error" });
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  async function handleDeleteReview() {
-    if (!myReview || !resolvedRestaurantId) return;
-
-    const confirmed = window.confirm("Bạn muốn xóa đánh giá này?");
-    if (!confirmed) return;
-
-    try {
-      setSubmitting(true);
-      setErrorMessage("");
-
-      await deleteReview(resolvedRestaurantId, myReview.id);
-
-      setReviews((currentReviews) =>
-        currentReviews.filter((review) => review.id !== myReview.id)
-      );
       setRating(4);
       setComment("");
-      setExistingMedia([]);
-      clearSelectedMedia();
-      setToast({
-        message: "Đã xóa đánh giá.",
-        type: "success",
-      });
+      setToast({ message: "Đã gửi đánh giá. Cảm ơn bạn!", type: "success" });
     } catch (error) {
-      const message = error.message || "Không xóa được đánh giá.";
-      setErrorMessage(message);
-      setToast({ message, type: "error" });
+      if (error.status === 402 || error.code === "AUDIO_PASS_REQUIRED") {
+        setAudioPassAvailable(false);
+        setToast({ message: "Bạn cần AudioPass hợp lệ để gửi đánh giá.", type: "warning" });
+        setErrorMessage("Bạn cần AudioPass hợp lệ để gửi đánh giá.");
+      } else if (error.status === 409) {
+        setToast({ message: "Bạn đã đánh giá nhà hàng này rồi.", type: "info" });
+        setErrorMessage("Bạn đã đánh giá nhà hàng này rồi.");
+      } else {
+        const message = error.message || "Không gửi được đánh giá.";
+        setErrorMessage(message);
+        setToast({ message, type: "error" });
+      }
     } finally {
       setSubmitting(false);
     }
@@ -439,6 +377,126 @@ export default function ReviewsSection({
     );
   }
 
+  // ─── Audio Pass Gate ──────────────────────────────────────────────────────────
+  function renderReviewForm() {
+    if (!audioPassAvailable) {
+      return (
+        <div className="bg-[#f6f3f2] p-5 md:p-6 rounded-xl border border-[#e4beba] shadow-sm">
+          <h3 className="text-xl md:text-2xl font-semibold mb-4">
+            Trải nghiệm của bạn thế nào?
+          </h3>
+          <div className="flex flex-col items-center gap-4 py-6 text-center">
+            <span
+              className="material-symbols-outlined text-[48px] text-[#b71422]"
+              style={{ fontVariationSettings: "'FILL' 1" }}
+            >
+              headphones
+            </span>
+            <div>
+              <p className="font-semibold text-[#1b1c1c] text-lg mb-1">
+                Cần AudioPass để gửi đánh giá
+              </p>
+              <p className="text-[#5b403e] text-sm max-w-xs mx-auto">
+                Chỉ khách có AudioPass hợp lệ mới được chia sẻ trải nghiệm về quán này.
+              </p>
+            </div>
+            <Link
+              to="/audio-pass/checkout"
+              className="inline-flex items-center gap-2 bg-[#b71422] text-white px-6 py-3 rounded-full font-bold shadow-lg hover:brightness-110 transition-all active:scale-95"
+            >
+              <span className="material-symbols-outlined text-[20px]">headphones</span>
+              Mua AudioPass
+            </Link>
+            <p className="text-xs text-[#5b403e]/70">
+              AudioPass 24 giờ — nghe thuyết minh + gửi đánh giá không giới hạn nhà hàng
+            </p>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <form
+        onSubmit={handleSubmit}
+        className="bg-[#f6f3f2] p-5 md:p-6 rounded-xl border border-[#e4beba] shadow-sm"
+      >
+        <h3 className="text-xl md:text-2xl font-semibold mb-6">
+          Trải nghiệm của bạn thế nào?
+        </h3>
+
+        <div className="flex flex-col gap-6 md:gap-8">
+          <div className="flex flex-col items-center gap-3 py-4 bg-white rounded-lg border border-[#e4beba]/60">
+            <p className="text-sm font-semibold text-[#5b403e]">Đánh giá chung</p>
+            <StarSelector value={rating} onChange={setRating} />
+          </div>
+
+          <div className="space-y-2">
+            <label className="font-semibold text-[#5b403e]">
+              Viết nhận xét của bạn
+            </label>
+            <textarea
+              className="w-full p-4 md:p-6 border border-[#e4beba] rounded-lg focus:ring-2 focus:ring-[#b71422]/20 focus:border-[#b71422] outline-none transition-all min-h-[150px] md:min-h-[160px] bg-white placeholder:text-[#5b403e]/50"
+              placeholder="Chia sẻ cảm nhận về món ăn, không gian và phục vụ để giúp người khác lựa chọn tốt hơn..."
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+            />
+          </div>
+        </div>
+
+        <div className="mt-6 bg-[#f0eded] p-4 md:p-5 rounded-xl border border-[#e4beba]">
+          <div className="flex justify-between items-center mb-4">
+            <h4 className="text-lg font-semibold">Hình ảnh & Video</h4>
+            <span className="text-xs text-[#5b403e]">
+              {totalMediaCount}/{MAX_MEDIA_FILES} tệp
+            </span>
+          </div>
+
+          <input
+            ref={mediaInputRef}
+            type="file"
+            accept="image/*,video/mp4,video/webm,video/quicktime"
+            multiple
+            className="hidden"
+            onChange={handleMediaFilesChange}
+          />
+
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+            <button
+              type="button"
+              onClick={handleChooseMedia}
+              disabled={totalMediaCount >= MAX_MEDIA_FILES || submitting}
+              className="aspect-square flex flex-col items-center justify-center gap-2 border-2 border-dashed border-[#d6cecc] rounded-lg bg-white text-[#5b403e] hover:bg-[#fcf9f8] transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <span className="material-symbols-outlined text-[32px]">add_a_photo</span>
+              <span className="text-xs font-bold uppercase tracking-wide text-center">
+                Thêm ảnh/video
+              </span>
+            </button>
+
+            {selectedMedia.map((media) =>
+              renderMediaPreview(media, handleRemoveSelectedMedia)
+            )}
+          </div>
+        </div>
+
+        {errorMessage && (
+          <p className="mt-4 text-sm text-red-600">{errorMessage}</p>
+        )}
+
+        <div className="flex flex-col justify-end gap-3 pt-6 sm:flex-row">
+          <button
+            type="submit"
+            disabled={submitting}
+            className="flex w-full items-center justify-center gap-2 bg-[#b71422] text-white px-8 py-3 rounded-full font-bold active:scale-95 transition-transform shadow-lg hover:brightness-110 disabled:opacity-60 sm:w-auto"
+          >
+            {submitting ? "Đang gửi..." : "Gửi đánh giá"}
+            <span className="material-symbols-outlined">send</span>
+          </button>
+        </div>
+      </form>
+    );
+  }
+
   return (
     <section className="mt-10 bg-[#fcf9f8] text-[#1b1c1c]">
       <ToastMessage
@@ -450,9 +508,7 @@ export default function ReviewsSection({
       <div className="mb-6">
         <nav className="flex flex-wrap items-center gap-2 text-sm text-[#5b403e] mb-2">
           <span>Đánh giá</span>
-          <span className="material-symbols-outlined text-[14px]">
-            chevron_right
-          </span>
+          <span className="material-symbols-outlined text-[14px]">chevron_right</span>
           <span>{restaurant?.name || "Quán ăn"}</span>
         </nav>
 
@@ -469,12 +525,8 @@ export default function ReviewsSection({
           </span>
           {reviews.length > 0 && averageRating !== null ? (
             <>
-              <span className="font-bold text-lg">
-                {averageRating.toFixed(1)}
-              </span>
-              <span className="text-[#5b403e]">
-                • {reviews.length} đánh giá
-              </span>
+              <span className="font-bold text-lg">{averageRating.toFixed(1)}</span>
+              <span className="text-[#5b403e]">• {reviews.length} đánh giá</span>
             </>
           ) : (
             <span className="text-[#5b403e]">Chưa có đánh giá</span>
@@ -488,9 +540,7 @@ export default function ReviewsSection({
 
         {restaurant?.address && (
           <p className="text-[#5b403e] mt-2 flex items-center gap-1">
-            <span className="material-symbols-outlined text-[18px]">
-              location_on
-            </span>
+            <span className="material-symbols-outlined text-[18px]">location_on</span>
             {restaurant.address}
           </p>
         )}
@@ -498,107 +548,7 @@ export default function ReviewsSection({
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 flex flex-col gap-8">
-            <form
-              onSubmit={handleSubmit}
-              className="bg-[#f6f3f2] p-5 md:p-6 rounded-xl border border-[#e4beba] shadow-sm"
-            >
-              <h3 className="text-xl md:text-2xl font-semibold mb-6">
-                Trải nghiệm của bạn thế nào?
-              </h3>
-
-            <div className="flex flex-col gap-6 md:gap-8">
-              <div className="flex flex-col items-center gap-3 py-4 bg-white rounded-lg border border-[#e4beba]/60">
-                <p className="text-sm font-semibold text-[#5b403e]">
-                  Đánh giá chung
-                </p>
-                <StarSelector value={rating} onChange={setRating} />
-              </div>
-
-              <div className="space-y-2">
-                <label className="font-semibold text-[#5b403e]">
-                  Viết nhận xét của bạn
-                </label>
-                <textarea
-                  className="w-full p-4 md:p-6 border border-[#e4beba] rounded-lg focus:ring-2 focus:ring-[#b71422]/20 focus:border-[#b71422] outline-none transition-all min-h-[150px] md:min-h-[160px] bg-white placeholder:text-[#5b403e]/50"
-                  placeholder="Chia sẻ cảm nhận về món ăn, không gian và phục vụ để giúp người khác lựa chọn tốt hơn..."
-                  value={comment}
-                  onChange={(event) => setComment(event.target.value)}
-                />
-              </div>
-            </div>
-
-            <div className="mt-6 bg-[#f0eded] p-4 md:p-5 rounded-xl border border-[#e4beba]">
-              <div className="flex justify-between items-center mb-4">
-                <h4 className="text-lg font-semibold">Hình ảnh & Video</h4>
-                <span className="text-xs text-[#5b403e]">
-                  {totalMediaCount}/{MAX_MEDIA_FILES} tệp
-                </span>
-              </div>
-
-              <input
-                ref={mediaInputRef}
-                type="file"
-                accept="image/*,video/mp4,video/webm,video/quicktime"
-                multiple
-                className="hidden"
-                onChange={handleMediaFilesChange}
-              />
-
-              <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-                <button
-                  type="button"
-                  onClick={handleChooseMedia}
-                  disabled={totalMediaCount >= MAX_MEDIA_FILES || submitting}
-                  className="aspect-square flex flex-col items-center justify-center gap-2 border-2 border-dashed border-[#d6cecc] rounded-lg bg-white text-[#5b403e] hover:bg-[#fcf9f8] transition-colors disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  <span className="material-symbols-outlined text-[32px]">
-                    add_a_photo
-                  </span>
-                  <span className="text-xs font-bold uppercase tracking-wide text-center">
-                    Thêm ảnh/video
-                  </span>
-                </button>
-
-                {existingMedia.map((media) =>
-                  renderMediaPreview(media, handleRemoveExistingMedia)
-                )}
-
-                {selectedMedia.map((media) =>
-                  renderMediaPreview(media, handleRemoveSelectedMedia)
-                )}
-              </div>
-            </div>
-
-            {errorMessage && (
-              <p className="mt-4 text-sm text-red-600">{errorMessage}</p>
-            )}
-
-            <div className="flex flex-col justify-end gap-3 pt-6 sm:flex-row sm:flex-wrap">
-              {myReview && (
-                <button
-                  type="button"
-                  onClick={handleDeleteReview}
-                  disabled={submitting}
-                  className="w-full px-6 py-3 rounded-full border border-[#b71422] text-[#b71422] font-bold active:scale-95 transition-transform disabled:opacity-60 sm:w-auto"
-                >
-                  Xóa đánh giá
-                </button>
-              )}
-
-              <button
-                type="submit"
-                disabled={submitting}
-                className="flex w-full items-center justify-center gap-2 bg-[#b71422] text-white px-8 py-3 rounded-full font-bold active:scale-95 transition-transform shadow-lg hover:brightness-110 disabled:opacity-60 sm:w-auto"
-              >
-                {submitting
-                  ? "Đang gửi..."
-                  : myReview
-                    ? "Cập nhật đánh giá"
-                    : "Gửi đánh giá"}
-                <span className="material-symbols-outlined">send</span>
-              </button>
-            </div>
-            </form>
+          {renderReviewForm()}
 
           <div className="bg-white p-6 rounded-xl border border-[#e4beba] shadow-sm">
             <h3 className="text-xl font-semibold mb-4">Đánh giá gần đây</h3>
@@ -619,12 +569,7 @@ export default function ReviewsSection({
                     <div className="flex justify-between gap-4">
                       <div>
                         <p className="font-bold">
-                          {review.userFullName || "Người dùng"}
-                          {review.isMine && (
-                            <span className="ml-2 text-xs text-[#2c694e]">
-                              Đánh giá của bạn
-                            </span>
-                          )}
+                          {review.userFullName || "Du khách"}
                         </p>
                         <div className="mt-1 flex items-center gap-2">
                           <ReadOnlyStars value={review.rating} />
@@ -636,9 +581,7 @@ export default function ReviewsSection({
                     </div>
 
                     {review.comment && (
-                      <p className="mt-3 text-[#5b403e] leading-6">
-                        {review.comment}
-                      </p>
+                      <p className="mt-3 text-[#5b403e] leading-6">{review.comment}</p>
                     )}
 
                     {renderReviewMediaGrid(getMediaItems(review))}
@@ -652,12 +595,8 @@ export default function ReviewsSection({
         <aside className="space-y-8">
           <div className="bg-[#eae7e7]/70 p-6 rounded-xl border border-[#e4beba]">
             <div className="flex items-center gap-3 mb-4">
-              <span className="material-symbols-outlined text-[#2c694e]">
-                tips_and_updates
-              </span>
-              <h3 className="font-semibold uppercase tracking-wide">
-                Mẹo đánh giá hay
-              </h3>
+              <span className="material-symbols-outlined text-[#2c694e]">tips_and_updates</span>
+              <h3 className="font-semibold uppercase tracking-wide">Mẹo đánh giá hay</h3>
             </div>
 
             <ul className="space-y-4 text-[#5b403e]">
@@ -690,9 +629,7 @@ export default function ReviewsSection({
 
             <div className="absolute bottom-4 left-4 right-4 bg-white/90 backdrop-blur-md p-3 rounded-lg shadow-lg">
               <p className="font-semibold mb-1">Vị trí quán</p>
-              <p className="text-xs text-[#5b403e]">
-                {restaurant?.address || "Chưa có địa chỉ"}
-              </p>
+              <p className="text-xs text-[#5b403e]">{restaurant?.address || "Chưa có địa chỉ"}</p>
             </div>
           </div>
         </aside>
