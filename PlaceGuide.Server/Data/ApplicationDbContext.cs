@@ -56,14 +56,49 @@ namespace PlaceGuide.Server.Data
                 entity.Property(restaurant => restaurant.IsPublished)
                     .HasDefaultValue(true);
 
+                entity.Property(restaurant => restaurant.CoverImageUrl)
+                    .HasMaxLength(1000);
+
+                entity.Property(restaurant => restaurant.Description)
+                    .HasMaxLength(2000);
+
+                entity.Property(restaurant => restaurant.Story)
+                    .HasMaxLength(2000);
+
+                entity.Property(restaurant => restaurant.OpeningTime)
+                    .HasMaxLength(20);
+
+                entity.Property(restaurant => restaurant.ClosingTime)
+                    .HasMaxLength(20);
+
+                entity.Property(restaurant => restaurant.IsBanned)
+                    .HasDefaultValue(false);
+
+                entity.Property(restaurant => restaurant.BanReason)
+                    .HasMaxLength(1000);
+
                 entity.Property(restaurant => restaurant.NeedsLocationUpdate)
                     .HasDefaultValue(false);
 
+                entity.Property(restaurant => restaurant.UpdatedAt)
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
                 entity.HasIndex(restaurant => restaurant.IsPublished);
+                entity.HasIndex(restaurant => restaurant.IsBanned);
 
                 entity.HasOne(restaurant => restaurant.Owner)
                     .WithMany()
                     .HasForeignKey(restaurant => restaurant.OwnerUserId)
+                    .OnDelete(DeleteBehavior.SetNull);
+
+                entity.HasOne(restaurant => restaurant.BannedByAdmin)
+                    .WithMany()
+                    .HasForeignKey(restaurant => restaurant.BannedByAdminId)
+                    .OnDelete(DeleteBehavior.SetNull);
+
+                entity.HasOne(restaurant => restaurant.UnbannedByAdmin)
+                    .WithMany()
+                    .HasForeignKey(restaurant => restaurant.UnbannedByAdminId)
                     .OnDelete(DeleteBehavior.SetNull);
             });
 

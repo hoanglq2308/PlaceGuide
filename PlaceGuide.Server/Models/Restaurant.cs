@@ -33,6 +33,9 @@ namespace PlaceGuide.Server.Models
         [MaxLength(1000)]
         public string ImageUrl { get; set; } = string.Empty;
 
+        [MaxLength(1000)]
+        public string CoverImageUrl { get; set; } = string.Empty;
+
         [MaxLength(100)]
         public string Badge { get; set; } = string.Empty;
 
@@ -40,6 +43,18 @@ namespace PlaceGuide.Server.Models
 
         [MaxLength(100)]
         public string PriceRange { get; set; } = string.Empty;
+
+        [MaxLength(2000)]
+        public string Description { get; set; } = string.Empty;
+
+        [MaxLength(2000)]
+        public string Story { get; set; } = string.Empty;
+
+        [MaxLength(20)]
+        public string OpeningTime { get; set; } = string.Empty;
+
+        [MaxLength(20)]
+        public string ClosingTime { get; set; } = string.Empty;
 
         // Tạm thời lưu dạng chuỗi: "Phở bò,Nem cuốn"
         public string HighlightDishes { get; set; } = string.Empty;
@@ -56,6 +71,26 @@ namespace PlaceGuide.Server.Models
         // Quán được tạo từ đơn duyệt sẽ ở trạng thái chưa public cho đến khi chủ quán hoàn thiện.
         public bool IsPublished { get; set; } = true;
 
+        // Admin moderation: banned restaurants are hidden from every public customer flow.
+        public bool IsBanned { get; set; }
+
+        [MaxLength(1000)]
+        public string? BanReason { get; set; }
+
+        public DateTime? BannedAt { get; set; }
+
+        public long? BannedByAdminId { get; set; }
+
+        [ForeignKey(nameof(BannedByAdminId))]
+        public ApplicationUser? BannedByAdmin { get; set; }
+
+        public DateTime? UnbannedAt { get; set; }
+
+        public long? UnbannedByAdminId { get; set; }
+
+        [ForeignKey(nameof(UnbannedByAdminId))]
+        public ApplicationUser? UnbannedByAdmin { get; set; }
+
         // Dùng để nhắc Owner/Admin bổ sung tọa độ sau khi geocoding chưa khả dụng hoặc thất bại.
         public bool NeedsLocationUpdate { get; set; }
 
@@ -65,5 +100,7 @@ namespace PlaceGuide.Server.Models
         public ICollection<Review> Reviews { get; set; } = new List<Review>();
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+        public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     }
 }

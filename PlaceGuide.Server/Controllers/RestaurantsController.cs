@@ -33,7 +33,7 @@ namespace PlaceGuide.Server.Controllers
         {
             var restaurants = await _context.Restaurants
                 .AsNoTracking()
-                .Where(restaurant => restaurant.IsPublished)
+                .Where(restaurant => restaurant.IsPublished && !restaurant.IsBanned)
                 .Include(restaurant => restaurant.Reviews)
                 .OrderBy(restaurant => restaurant.Name)
                 .ToListAsync();
@@ -47,7 +47,10 @@ namespace PlaceGuide.Server.Controllers
             var restaurant = await _context.Restaurants
                 .AsNoTracking()
                 .Include(item => item.Reviews)
-                .FirstOrDefaultAsync(item => item.Id == id && item.IsPublished);
+                .FirstOrDefaultAsync(item =>
+                    item.Id == id &&
+                    item.IsPublished &&
+                    !item.IsBanned);
 
             if (restaurant == null)
             {
@@ -62,7 +65,10 @@ namespace PlaceGuide.Server.Controllers
         {
             var restaurantExists = await _context.Restaurants
                 .AsNoTracking()
-                .AnyAsync(restaurant => restaurant.Id == restaurantId && restaurant.IsPublished);
+                .AnyAsync(restaurant =>
+                    restaurant.Id == restaurantId &&
+                    restaurant.IsPublished &&
+                    !restaurant.IsBanned);
 
             if (!restaurantExists)
             {
@@ -85,7 +91,10 @@ namespace PlaceGuide.Server.Controllers
             var restaurant = await _context.Restaurants
                 .AsNoTracking()
                 .Include(item => item.Translations)
-                .FirstOrDefaultAsync(item => item.Id == id && item.IsPublished);
+                .FirstOrDefaultAsync(item =>
+                    item.Id == id &&
+                    item.IsPublished &&
+                    !item.IsBanned);
 
             if (restaurant == null)
             {
@@ -118,7 +127,8 @@ namespace PlaceGuide.Server.Controllers
                     item.RestaurantId == restaurantId &&
                     item.Id == dishId &&
                     item.Restaurant != null &&
-                    item.Restaurant.IsPublished);
+                    item.Restaurant.IsPublished &&
+                    !item.Restaurant.IsBanned);
 
             if (dish == null)
             {
@@ -165,7 +175,8 @@ namespace PlaceGuide.Server.Controllers
                 Narration = new RestaurantNarrationDto(),
                 Latitude = restaurant.Latitude,
                 Longitude = restaurant.Longitude,
-                IsOpen = restaurant.IsOpen
+                IsOpen = restaurant.IsOpen,
+                IsBanned = restaurant.IsBanned
             };
         }
 
@@ -264,6 +275,11 @@ namespace PlaceGuide.Server.Controllers
                 return new AudioAccessResult(true, guestPass.ExpiresAtUtc);
             }
 
+            if (IsCurrentUserAdmin())
+            {
+                return new AudioAccessResult(true, null);
+            }
+
             if (await IsCurrentUserPremiumAsync())
             {
                 return new AudioAccessResult(true, null);
@@ -279,6 +295,11 @@ namespace PlaceGuide.Server.Controllers
                 : null;
 
             return _guestAudioPassService.TryValidate(token, out guestPass);
+        }
+
+        private bool IsCurrentUserAdmin()
+        {
+            return User.Identity?.IsAuthenticated == true && User.IsInRole("Admin");
         }
 
         private async Task<bool> IsCurrentUserPremiumAsync()

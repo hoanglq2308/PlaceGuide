@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PlaceGuide.Server.Data;
@@ -18,10 +19,14 @@ namespace PlaceGuide.Server.Controllers.Admin
         private const double HoChiMinhFallbackLatitude = 10.7769;
         private const double HoChiMinhFallbackLongitude = 106.7009;
         private readonly ApplicationDbContext _dbContext;
+        private readonly UserManager<ApplicationUser> _userManager;
 
-        public AdminRestaurantRegistrationsController(ApplicationDbContext dbContext)
+        public AdminRestaurantRegistrationsController(
+            ApplicationDbContext dbContext,
+            UserManager<ApplicationUser> userManager)
         {
             _dbContext = dbContext;
+            _userManager = userManager;
         }
 
         [HttpGet]
@@ -115,6 +120,11 @@ namespace PlaceGuide.Server.Controllers.Admin
                 return Conflict(new { message = "Đơn này đã được liên kết với một quán ăn." });
             }
 
+            if (registration.User is null)
+            {
+                return BadRequest(new { message = "Không tìm thấy tài khoản chủ quán." });
+            }
+
             var now = DateTime.UtcNow;
             var coordinates = await TryGeocodeAddressAsync(registration.Address);
 
@@ -137,7 +147,8 @@ namespace PlaceGuide.Server.Controllers.Admin
                 NeedsLocationUpdate = coordinates is null,
                 IsOpen = false,
                 IsPublished = false,
-                CreatedAt = now
+                CreatedAt = now,
+                UpdatedAt = now
             };
 
             // Transaction bảo đảm không có trạng thái "đơn đã duyệt nhưng quán chưa tạo" hoặc ngược lại.
@@ -154,6 +165,17 @@ namespace PlaceGuide.Server.Controllers.Admin
                 registration.ApprovedRestaurantId = restaurant.Id;
 
                 await _dbContext.SaveChangesAsync();
+
+                if (!await _userManager.IsInRoleAsync(registration.User, "Owner"))
+                {
+                    var roleResult = await _userManager.AddToRoleAsync(registration.User, "Owner");
+
+                    if (!roleResult.Succeeded)
+                    {
+                        throw new InvalidOperationException("Không thể gán quyền Owner cho chủ quán.");
+                    }
+                }
+
                 await transaction.CommitAsync();
             }
             catch

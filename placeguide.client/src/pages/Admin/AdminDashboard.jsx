@@ -5,6 +5,7 @@ import {
   getAdminDashboardSummary,
   getVisitorsByDistrict
 } from '../../services/adminDashboardService';
+import AdminSidebar from '../../components/AdminSidebar';
 
 const REFRESH_INTERVAL_MS = 5_000;
 const CHART_REFRESH_INTERVAL_MS = 60_000;
@@ -16,11 +17,12 @@ const DISTRICT_BAR_COLORS = [
   'bg-[#8f6f6d]'
 ];
 
-const futureModules = [
-  ['Đăng ký đối tác', 'Duyệt hồ sơ chủ quán và giấy tờ pháp lý.'],
-  ['Nhà hàng', 'Quản lý thông tin, trạng thái và nội dung quán.'],
-  ['Nội dung', 'Quản lý ảnh, bản dịch và thuyết minh.'],
-  ['Phân tích', 'Báo cáo chi tiết sẽ được bổ sung sau.']
+const adminModules = [
+  ['Tổng quan', 'Theo dõi du khách online, AudioPass và lưu lượng truy cập.', 'Đang dùng'],
+  ['Đăng ký đối tác', 'Duyệt hồ sơ chủ quán và giấy tờ pháp lý.', 'Đang dùng'],
+  ['Nhà hàng', 'Quản lý thông tin, trạng thái và nội dung quán.', 'Sắp triển khai'],
+  ['Nội dung', 'Quản lý ảnh, bản dịch và thuyết minh.', 'Sắp triển khai'],
+  ['Đánh giá', 'Theo dõi review và nội dung media từ du khách.', 'Sắp triển khai']
 ];
 
 function formatUpdatedAt(value) {
@@ -154,6 +156,11 @@ function AdminDashboard() {
   const activeVisitors = summary?.activeVisitors ?? 0;
   const totalVisitors = summary?.totalVisitors ?? 0;
   const paidAudioPassOrders = summary?.paidAudioPassOrders ?? 0;
+  const totalRestaurants = summary?.totalRestaurants ?? 0;
+  const publishedRestaurants = summary?.publishedRestaurants ?? 0;
+  const pendingRestaurantRegistrations = summary?.pendingRestaurantRegistrations ?? 0;
+  const approvedRestaurantRegistrations = summary?.approvedRestaurantRegistrations ?? 0;
+  const rejectedRestaurantRegistrations = summary?.rejectedRestaurantRegistrations ?? 0;
   const activeWindowSeconds = summary?.activeWindowSeconds ?? 60;
   const maximumHourlyVisitors = Math.max(
     1,
@@ -169,44 +176,7 @@ function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-[#faf9f6] text-[#1a1c1a] lg:flex">
-      <aside className="border-b border-[#e4beba] bg-white lg:sticky lg:top-0 lg:flex lg:h-screen lg:w-64 lg:flex-col lg:border-b-0 lg:border-r">
-        <div className="px-5 py-5 lg:px-6 lg:py-7">
-          <p className="text-xl font-extrabold text-[#af101a]">VinaFood Admin</p>
-          <p className="mt-1 text-sm text-[#6e6a66]">Quản trị hệ thống</p>
-        </div>
-
-        <nav className="flex gap-1 overflow-x-auto px-3 pb-4 lg:flex-col lg:px-4">
-          <Link
-            to="/admin/dashboard"
-            className="shrink-0 border-b-2 border-[#af101a] px-3 py-2 text-sm font-bold text-[#af101a] lg:rounded-md lg:border-b-0 lg:border-r-4 lg:bg-[#af101a]/8"
-          >
-            Tổng quan
-          </Link>
-          {futureModules.map(([title]) => (
-            title === 'Đăng ký đối tác' ? (
-              <Link
-                key={title}
-                to="/admin/merchant-registrations"
-                className="shrink-0 px-3 py-2 text-sm font-semibold text-[#5b403d] transition-colors hover:text-[#af101a] lg:py-2.5"
-              >
-                {title}
-              </Link>
-            ) : (
-              <span
-                key={title}
-                className="shrink-0 px-3 py-2 text-sm text-[#8f6f6d] lg:py-2.5"
-              >
-                {title}
-              </span>
-            )
-          ))}
-        </nav>
-
-        <div className="hidden border-t border-[#e5e1da] p-5 lg:mt-auto lg:block">
-          <p className="truncate text-sm font-semibold">{adminName}</p>
-          <p className="mt-1 text-xs text-[#6e6a66]">Phiên đăng nhập quản trị</p>
-        </div>
-      </aside>
+      <AdminSidebar adminName={adminName} />
 
       <main className="min-w-0 flex-1">
         <header className="flex flex-wrap items-center justify-between gap-4 border-b border-[#e5e1da] bg-white/85 px-5 py-4 backdrop-blur lg:px-8">
@@ -220,7 +190,7 @@ function AdminDashboard() {
         </header>
 
         <div className="mx-auto w-full max-w-6xl space-y-6 p-5 lg:p-8">
-          <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+          <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
             <div className="border border-[#e5e1da] bg-white p-6 shadow-sm">
               <p className="text-sm font-medium text-[#5b403d]">Tổng số du khách</p>
               <p className="mt-3 text-5xl font-extrabold tabular-nums text-[#1a1c1a]">
@@ -228,6 +198,16 @@ function AdminDashboard() {
               </p>
               <p className="mt-5 border-t border-[#f0eded] pt-4 text-sm leading-6 text-[#6e6a66]">
                 Số thiết bị đã từng truy cập PlaceGuide.
+              </p>
+            </div>
+
+            <div className="border border-[#e5e1da] bg-white p-6 shadow-sm">
+              <p className="text-sm font-medium text-[#5b403d]">Quán đang công khai</p>
+              <p className="mt-3 text-5xl font-extrabold tabular-nums text-[#1a1c1a]">
+                {isLoading ? '...' : publishedRestaurants}
+              </p>
+              <p className="mt-5 border-t border-[#f0eded] pt-4 text-sm leading-6 text-[#6e6a66]">
+                Tổng hồ sơ quán trong hệ thống: {isLoading ? '...' : totalRestaurants}.
               </p>
             </div>
 
@@ -240,6 +220,19 @@ function AdminDashboard() {
                 Giao dịch AudioPass có trạng thái đã thanh toán.
               </p>
             </div>
+
+            <Link
+              to="/admin/merchant-registrations"
+              className="border border-[#e4beba] bg-white p-6 shadow-sm transition-colors hover:bg-[#fff5f4]"
+            >
+              <p className="text-sm font-medium text-[#5b403d]">Đơn đối tác chờ duyệt</p>
+              <p className="mt-3 text-5xl font-extrabold tabular-nums text-[#af101a]">
+                {isLoading ? '...' : pendingRestaurantRegistrations}
+              </p>
+              <p className="mt-5 border-t border-[#f0eded] pt-4 text-sm leading-6 text-[#6e6a66]">
+                Đã duyệt: {isLoading ? '...' : approvedRestaurantRegistrations} · Từ chối: {isLoading ? '...' : rejectedRestaurantRegistrations}
+              </p>
+            </Link>
 
             <div className="border border-[#e4beba] bg-white p-6 shadow-sm">
               <div className="flex flex-wrap items-start justify-between gap-4">
@@ -448,15 +441,21 @@ function AdminDashboard() {
             <div className="mb-4">
               <h2 className="text-lg font-extrabold">Khu vực quản trị</h2>
               <p className="mt-1 text-sm text-[#6e6a66]">
-                Các module sẽ được nối vào dashboard theo từng giai đoạn.
+                Các module đang dùng và phần sẽ triển khai tiếp.
               </p>
             </div>
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-              {futureModules.map(([title, description]) => (
+              {adminModules.map(([title, description, status]) => (
                 <div key={title} className="border border-[#e5e1da] bg-white p-5">
                   <p className="font-bold">{title}</p>
                   <p className="mt-2 text-sm leading-6 text-[#6e6a66]">{description}</p>
-                  <p className="mt-4 text-xs font-semibold uppercase text-[#8f6f6d]">Sắp triển khai</p>
+                  <p
+                    className={`mt-4 text-xs font-semibold uppercase ${
+                      status === 'Đang dùng' ? 'text-[#1b6d24]' : 'text-[#8f6f6d]'
+                    }`}
+                  >
+                    {status}
+                  </p>
                 </div>
               ))}
             </div>

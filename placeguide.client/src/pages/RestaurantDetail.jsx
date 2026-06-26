@@ -38,33 +38,33 @@ function getDishDescription(dish, language) {
     return getLocalizedText(dish?.description, language);
 }
 
-function formatDishPrice(price) {
+function formatDishPrice(price, language, fallbackText) {
     const numericPrice = Number(price);
 
     if (!Number.isFinite(numericPrice)) {
-        return 'Chưa cập nhật';
+        return fallbackText;
     }
 
-    return new Intl.NumberFormat('vi-VN', {
+    return new Intl.NumberFormat(language || 'vi-VN', {
         style: 'currency',
         currency: 'VND',
         maximumFractionDigits: 0,
     }).format(numericPrice);
 }
 
-function getDisplayRestaurant(restaurant) {
+function getDisplayRestaurant(restaurant, t) {
     const ratingValue = Number(restaurant?.rating);
 
     return {
         id: restaurant?.id || '',
-        name: restaurant?.name || 'Quán ăn',
+        name: restaurant?.name || t('restaurantFallbackName'),
         image: restaurant?.image || FALLBACK_IMAGE,
-        address: restaurant?.address || 'Chưa có địa chỉ',
+        address: restaurant?.address || t('noAddress'),
         badge: restaurant?.badge || 'Local food',
-        distance: restaurant?.distance || 'Chưa xác định',
+        distance: restaurant?.distance || t('unknownDistance'),
         reviewCount: Number(restaurant?.reviewCount) || 0,
         rating: Number.isFinite(ratingValue) ? ratingValue : null,
-        priceRange: restaurant?.priceRange || 'Chưa cập nhật',
+        priceRange: restaurant?.priceRange || t('notUpdated'),
         highlightDishes: asArray(restaurant?.highlightDishes),
         tags: asArray(restaurant?.tags),
         latitude: restaurant?.latitude,
@@ -80,7 +80,7 @@ function RestaurantDetail() {
     const [restaurant, setRestaurant] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState('');
-    const { language } = useLanguage();
+    const { language, t } = useLanguage();
     const [dishes, setDishes] = useState([]);
     const [dishesError, setDishesError] = useState('');
     const [isFavorite, setIsFavorite] = useState(false);
@@ -151,8 +151,8 @@ function RestaurantDetail() {
     }, [restaurant?.districtName, restaurant?.id]);
 
     const displayRestaurant = useMemo(
-        () => getDisplayRestaurant(restaurant),
-        [restaurant]
+        () => getDisplayRestaurant(restaurant, t),
+        [restaurant, t]
     );
     const primaryDish = displayRestaurant.highlightDishes[0] || displayRestaurant.name;
     const secondaryDish =
@@ -189,7 +189,7 @@ function RestaurantDetail() {
     const handleSpeak = async () => {
         if (!displayRestaurant.id) {
             setToast({
-                message: 'Thiếu mã quán ăn để tải thuyết minh.',
+                message: t('missingRestaurantId'),
                 type: 'warning',
             });
             return;
@@ -201,12 +201,12 @@ function RestaurantDetail() {
 
             if (audio.passCreated) {
                 setToast({
-                    message: audio.audioPass?.message || 'Gói nghe đã được kích hoạt.',
+                    message: audio.audioPass?.message || t('passActivated'),
                     type: 'success',
                 });
             }
 
-            handleSpeakText(text, 'Quán này chưa có nội dung thuyết minh.');
+            handleSpeakText(text, t('missingRestaurantNarration'));
         } catch (audioError) {
             setToast({
                 message: audioError.message,
@@ -218,7 +218,7 @@ function RestaurantDetail() {
     const handleSpeakText = (text, missingMessage) => {
         if (!window.speechSynthesis) {
             setToast({
-                message: 'Trình duyệt không hỗ trợ đọc thuyết minh.',
+                message: t('speechUnsupported'),
                 type: 'warning',
             });
             return;
@@ -244,7 +244,7 @@ function RestaurantDetail() {
     const handleSpeakDish = async (dish) => {
         if (!displayRestaurant.id || !dish?.id) {
             setToast({
-                message: 'Thiếu mã quán ăn hoặc món ăn để tải thuyết minh.',
+                message: t('missingDishIds'),
                 type: 'warning',
             });
             return;
@@ -256,12 +256,12 @@ function RestaurantDetail() {
 
             if (audio.passCreated) {
                 setToast({
-                    message: audio.audioPass?.message || 'Gói nghe đã được kích hoạt.',
+                    message: audio.audioPass?.message || t('passActivated'),
                     type: 'success',
                 });
             }
 
-            handleSpeakText(text, 'Món này chưa có nội dung thuyết minh.');
+            handleSpeakText(text, t('missingDishNarration'));
         } catch (audioError) {
             setToast({
                 message: audioError.message,
@@ -273,7 +273,7 @@ function RestaurantDetail() {
     const handleDirections = () => {
         if (!hasCoordinates(displayRestaurant)) {
             setToast({
-                message: 'Quán này chưa có tọa độ để chỉ đường.',
+                message: t('noCoordinates'),
                 type: 'warning',
             });
             return;
@@ -295,7 +295,7 @@ function RestaurantDetail() {
                 await removeFavoriteRestaurant(displayRestaurant.id);
                 setIsFavorite(false);
                 setToast({
-                    message: 'Đã bỏ lưu quán.',
+                    message: t('removedSaved'),
                     type: 'info',
                 });
                 return;
@@ -304,7 +304,7 @@ function RestaurantDetail() {
             await addFavoriteRestaurant(displayRestaurant.id);
             setIsFavorite(true);
             setToast({
-                message: 'Đã lưu quán vào Bookmarks.',
+                message: t('savedToBookmarks'),
                 type: 'success',
             });
         } catch (saveError) {
@@ -325,7 +325,7 @@ function RestaurantDetail() {
                         restaurant
                     </span>
                     <p className="text-base font-semibold">
-                        Đang tải thông tin quán...
+                        {t('detailLoading')}
                     </p>
                 </div>
             </div>
@@ -341,7 +341,7 @@ function RestaurantDetail() {
                     </span>
                     <div className="space-y-2">
                         <h1 className="text-2xl font-bold">
-                            Không tải được quán ăn
+                            {t('detailLoadFailed')}
                         </h1>
                         <p className="text-base text-gray-600">{error}</p>
                     </div>
@@ -353,7 +353,7 @@ function RestaurantDetail() {
                         <span className="material-symbols-outlined">
                             arrow_back
                         </span>
-                        Quay lại Home
+                        {t('backToHome')}
                     </button>
                 </div>
             </div>
@@ -384,7 +384,7 @@ function RestaurantDetail() {
                             <span className="material-symbols-outlined">
                                 arrow_back
                             </span>
-                            <span>Quay lại</span>
+                            <span>{t('back')}</span>
                         </button>
 
                         <div className="hidden md:block h-6 w-[1px] bg-gray-200"></div>
@@ -433,8 +433,8 @@ function RestaurantDetail() {
                                     }`}
                                 ></span>
                                 {displayRestaurant.isOpen
-                                    ? 'Đang mở cửa'
-                                    : 'Đang đóng cửa'}
+                                    ? t('openNow')
+                                    : t('closedNow')}
                             </span>
 
                             {displayRestaurant.tags.slice(0, 2).map((tag) => (
@@ -468,11 +468,11 @@ function RestaurantDetail() {
                                     <>
                                         {displayRestaurant.rating.toFixed(1)}
                                         <span>
-                                            ({displayRestaurant.reviewCount} đánh giá)
+                                            ({displayRestaurant.reviewCount} {t('reviewLabel')})
                                         </span>
                                     </>
                                 ) : (
-                                    <span>Chưa có đánh giá</span>
+                                    <span>{t('noReviews')}</span>
                                 )}
                             </span>
                             <span className="flex items-center gap-1">
@@ -503,7 +503,7 @@ function RestaurantDetail() {
                                     volume_up
                                 </span>
                                 <span className="text-sm font-semibold text-center">
-                                    Nghe thuyết minh
+                                    {t('listen')}
                                 </span>
                             </button>
 
@@ -517,7 +517,7 @@ function RestaurantDetail() {
                                     directions
                                 </span>
                                 <span className="text-sm font-semibold text-center">
-                                    Chỉ đường
+                                    {t('directions')}
                                 </span>
                             </button>
 
@@ -536,10 +536,10 @@ function RestaurantDetail() {
                                 </span>
                                 <span className="text-sm font-semibold text-center">
                                     {isSavingFavorite
-                                        ? 'Đang lưu...'
+                                        ? t('saving')
                                         : isFavorite
-                                            ? 'Đã lưu'
-                                            : 'Lưu quán'}
+                                            ? t('savedRestaurant')
+                                            : t('saveRestaurant')}
                                 </span>
                             </button>
                         </div>
@@ -549,7 +549,7 @@ function RestaurantDetail() {
                                 <span className="material-symbols-outlined text-red-700">
                                     info
                                 </span>
-                                Thông tin chi tiết
+                                {t('detailInfo')}
                             </h2>
 
                             <div className="space-y-5">
@@ -562,7 +562,7 @@ function RestaurantDetail() {
                                             {displayRestaurant.address}
                                         </p>
                                         <p className="text-sm text-gray-500">
-                                            Cách vị trí của bạn{' '}
+                                            {t('distanceFromYou')}{' '}
                                             {displayRestaurant.distance}
                                         </p>
                                     </div>
@@ -574,8 +574,8 @@ function RestaurantDetail() {
                                     </span>
                                     <p className="text-base text-stone-900">
                                         {displayRestaurant.isOpen
-                                            ? 'Đang mở cửa'
-                                            : 'Hiện không mở cửa'}
+                                            ? t('openNow')
+                                            : t('currentlyClosed')}
                                     </p>
                                 </div>
 
@@ -595,7 +595,7 @@ function RestaurantDetail() {
                                             ))
                                         ) : (
                                             <span className="text-sm text-gray-500">
-                                                Chưa có tag
+                                                {t('noTags')}
                                             </span>
                                         )}
                                     </div>
@@ -608,7 +608,7 @@ function RestaurantDetail() {
 
                             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
                                 <h2 className="text-2xl font-bold">
-                                    Thuyết minh về quán
+                                    {t('restaurantAudioTitle')}
                                 </h2>
                                 <button
                                     type="button"
@@ -624,21 +624,19 @@ function RestaurantDetail() {
                             <div className="grid md:grid-cols-2 gap-6">
                                 <div className="space-y-2">
                                     <span className="text-xs font-bold text-red-700 uppercase tracking-wider">
-                                        Tiếng Việt
+                                        {t('selectedLanguage')}
                                     </span>
                                     <p className="text-base text-gray-700 leading-relaxed">
-                                        Nội dung thuyết minh đầy đủ được mở khi
-                                        khách kích hoạt gói nghe premium.
+                                        {t('audioLockedText')}
                                     </p>
                                 </div>
 
                                 <div className="space-y-2">
                                     <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">
-                                        English
+                                        {t('audioPassAccess')}
                                     </span>
                                     <p className="text-base text-gray-700 leading-relaxed italic">
-                                        The full audio guide becomes available
-                                        after activating a premium audio pass.
+                                        {t('audioPassText')}
                                     </p>
                                 </div>
                             </div>
@@ -648,9 +646,7 @@ function RestaurantDetail() {
                                     lightbulb
                                 </span>
                                 <p className="text-xs text-gray-600">
-                                    Nội dung giúp khách du lịch hiểu nhanh về
-                                    quán, món nên thử và bối cảnh ẩm thực địa
-                                    phương.
+                                    {t('audioGuideTip')}
                                 </p>
                             </div>
                         </section>
@@ -660,11 +656,10 @@ function RestaurantDetail() {
                                 <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3 mb-5">
                                     <div>
                                         <h2 className="text-2xl font-bold">
-                                            Món nên thử
+                                            {t('recommendedDishesTitle')}
                                         </h2>
                                         <p className="text-sm text-gray-600 mt-1">
-                                            Thực đơn gợi ý từ quán, có mô tả và
-                                            thuyết minh theo ngôn ngữ bạn chọn.
+                                            {t('recommendedDishesDescription')}
                                         </p>
                                     </div>
 
@@ -678,8 +673,7 @@ function RestaurantDetail() {
 
                                 {dishesError ? (
                                     <div className="bg-white rounded-xl border border-red-100 shadow-[0_4px_20px_rgba(183,20,34,0.08)] p-5 text-sm font-semibold text-gray-600">
-                                        Chưa tải được danh sách món ăn. Bạn vẫn
-                                        có thể xem thông tin quán bình thường.
+                                        {t('dishesLoadFailed')}
                                     </div>
                                 ) : (
                                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -715,33 +709,35 @@ function RestaurantDetail() {
                                                                 </h3>
                                                                 <span className="text-sm font-extrabold text-red-700 whitespace-nowrap">
                                                                     {formatDishPrice(
-                                                                        dish.price
+                                                                        dish.price,
+                                                                        language,
+                                                                        t('notUpdated')
                                                                     )}
                                                                 </span>
                                                             </div>
 
                                                             <p className="text-sm text-gray-600 mt-2 line-clamp-3">
                                                                 {dishDescription ||
-                                                                    'Chưa có mô tả cho món này.'}
+                                                                    t('noDishDescription')}
                                                             </p>
                                                         </div>
 
                                                         <div className="flex flex-wrap gap-2">
                                                             {dish.isVegetarian && (
                                                                 <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider">
-                                                                    Món chay
+                                                                    {t('vegetarian')}
                                                                 </span>
                                                             )}
 
                                                             {dish.isSpicy && (
                                                                 <span className="bg-red-100 text-red-800 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider">
-                                                                    Cay
+                                                                    {t('spicy')}
                                                                 </span>
                                                             )}
 
                                                             {dish.allergyInfo && (
                                                                 <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider">
-                                                                    Dị ứng
+                                                                    {t('allergy')}
                                                                 </span>
                                                             )}
                                                         </div>
@@ -762,7 +758,7 @@ function RestaurantDetail() {
                                                             <span className="material-symbols-outlined text-[20px]">
                                                                 volume_up
                                                             </span>
-                                                            Nghe thuyết minh món
+                                                            {t('listenDish')}
                                                         </button>
                                                     </div>
                                                 </article>
@@ -781,16 +777,12 @@ function RestaurantDetail() {
                                     menu_book
                                 </span>
                                 <h3 className="text-lg font-bold">
-                                    Góc văn hóa ẩm thực
+                                    {t('cultureCornerTitle')}
                                 </h3>
                             </div>
 
                             <p className="text-base text-green-950/80 leading-relaxed mb-5">
-                                Những quán ăn địa phương thường không chỉ là nơi
-                                dùng bữa, mà còn là cách nhanh nhất để cảm nhận
-                                nhịp sống của thành phố. Hãy thử quan sát cách
-                                người địa phương gọi món, ăn kèm rau thơm và
-                                dùng nước chấm.
+                                {t('cultureText')}
                             </p>
 
                             <div className="h-40 rounded-lg overflow-hidden grayscale hover:grayscale-0 transition-all duration-700">
@@ -806,15 +798,13 @@ function RestaurantDetail() {
 
                         <section className="bg-red-700 p-6 rounded-xl text-white">
                             <span className="text-[10px] font-bold uppercase tracking-widest bg-white/20 px-2 py-1 rounded mb-3 inline-block">
-                                Lời khuyên của Local
+                                {t('localTip')}
                             </span>
                             <h4 className="text-xl font-bold mb-2">
-                                Nên thử {primaryDish}
+                                {t('shouldTry')} {primaryDish}
                             </h4>
                             <p className="text-base text-white/85 leading-snug">
-                                Hãy hỏi nhân viên món bán chạy nhất trong ngày
-                                và thử dùng kèm rau thơm hoặc nước chấm đặc
-                                trưng để cảm nhận đúng vị địa phương.
+                                {t('localTipText')}
                             </p>
 
                             <div className="mt-5 flex -space-x-2 items-center">
@@ -822,14 +812,14 @@ function RestaurantDetail() {
                                 <div className="w-8 h-8 rounded-full border-2 border-red-700 bg-green-200"></div>
                                 <div className="w-8 h-8 rounded-full border-2 border-red-700 bg-white/70"></div>
                                 <span className="ml-4 text-xs">
-                                    Lưu quán để quay lại sau
+                                    {t('saveForLater')}
                                 </span>
                             </div>
                         </section>
 
                         <section className="bg-white p-6 rounded-xl shadow-[0_4px_20px_rgba(183,20,34,0.08)] border border-red-100/60">
                             <h3 className="text-lg font-bold mb-3">
-                                Vị trí quán
+                                {t('restaurantLocation')}
                             </h3>
                             <div className="h-48 bg-gray-100 rounded-lg relative overflow-hidden flex items-center justify-center">
                                 <span className="material-symbols-outlined text-red-700 text-[56px]">
@@ -842,7 +832,7 @@ function RestaurantDetail() {
                                 disabled={!hasCoordinates(displayRestaurant)}
                                 className="w-full mt-5 py-3 text-red-700 font-bold text-sm border-2 border-red-100 rounded-xl hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
                             >
-                                Mở bản đồ đầy đủ
+                                {t('openFullMap')}
                             </button>
                         </section>
                     </aside>

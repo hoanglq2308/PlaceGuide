@@ -38,7 +38,9 @@ namespace PlaceGuide.Server.Controllers
                 .ToListAsync();
 
             return Ok(favorites
-                .Where(favorite => favorite.Restaurant != null)
+                .Where(favorite => favorite.Restaurant != null &&
+                    favorite.Restaurant.IsPublished &&
+                    !favorite.Restaurant.IsBanned)
                 .Select(favorite => ToRestaurantResponse(favorite.Restaurant!)));
         }
 
@@ -54,7 +56,10 @@ namespace PlaceGuide.Server.Controllers
 
             var restaurantExists = await _context.Restaurants
                 .AsNoTracking()
-                .AnyAsync(restaurant => restaurant.Id == restaurantId);
+                .AnyAsync(restaurant =>
+                    restaurant.Id == restaurantId &&
+                    restaurant.IsPublished &&
+                    !restaurant.IsBanned);
 
             if (!restaurantExists)
             {
@@ -167,7 +172,8 @@ namespace PlaceGuide.Server.Controllers
                 Narration = new RestaurantNarrationDto(),
                 Latitude = restaurant.Latitude,
                 Longitude = restaurant.Longitude,
-                IsOpen = restaurant.IsOpen
+                IsOpen = restaurant.IsOpen,
+                IsBanned = restaurant.IsBanned
             };
         }
 

@@ -1,18 +1,18 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 
 const activeNavigationItems = [
-  { label: 'Tổng quan', icon: 'dashboard', to: '/admin/dashboard' },
-  { label: 'Nhà hàng', icon: 'storefront', to: '/admin/restaurants' },
-  { label: 'Đăng ký đối tác', icon: 'assignment', to: '/admin/merchant-registrations' }
+  { label: 'Thông tin quán', icon: 'storefront', to: '/owner/restaurant' },
+  { label: 'Menu món ăn', icon: 'restaurant_menu', to: '/merchant/menu' }
 ];
 
 const plannedNavigationItems = [
-  { label: 'Phân tích', icon: 'analytics' },
+  { label: 'Tổng quan', icon: 'dashboard' },
+  { label: 'Thuyết minh', icon: 'record_voice_over' },
   { label: 'Đánh giá', icon: 'reviews' },
   { label: 'Cài đặt', icon: 'settings' }
 ];
 
-function AdminSidebar({ adminName = 'Quản trị viên' }) {
+function OwnerSidebar({ ownerName = 'Chủ quán', ownerContact = 'Owner Portal' }) {
   const { pathname } = useLocation();
   const navigate = useNavigate();
 
@@ -23,10 +23,10 @@ function AdminSidebar({ adminName = 'Quản trị viên' }) {
   }
 
   return (
-    <aside className="border-b border-[#e4beba] bg-[#f4f3f1] lg:sticky lg:top-0 lg:flex lg:h-screen lg:w-64 lg:flex-col lg:border-b-0 lg:border-r lg:border-[#e4beba]">
+    <aside className="border-b border-[#e4beba] bg-[#f4f3f1] lg:sticky lg:top-0 lg:flex lg:h-screen lg:w-72 lg:flex-col lg:border-b-0 lg:border-r">
       <div className="px-5 py-5 lg:px-6 lg:py-7">
-        <p className="text-xl font-extrabold text-[#af101a]">VinaFood Admin</p>
-        <p className="mt-1 text-xs text-[#5b403e]">Trusted Local Friend</p>
+        <p className="text-xl font-extrabold text-[#af101a]">VinaFood Owner</p>
+        <p className="mt-1 text-xs text-[#5b403e]">Quản lý hồ sơ quán ăn</p>
       </div>
 
       <nav className="flex gap-1 overflow-x-auto px-3 pb-4 lg:flex-col lg:px-4">
@@ -35,7 +35,7 @@ function AdminSidebar({ adminName = 'Quản trị viên' }) {
 
           return (
             <Link
-              key={item.to}
+              key={`${item.to}-${item.label}`}
               to={item.to}
               className={`flex shrink-0 items-center gap-2 px-3 py-2 text-sm font-semibold transition-colors lg:rounded-md ${
                 isActive
@@ -64,11 +64,11 @@ function AdminSidebar({ adminName = 'Quản trị viên' }) {
       <div className="hidden border-t border-[#e4beba] p-5 lg:mt-auto lg:block">
         <div className="flex items-center gap-3">
           <span className="grid h-10 w-10 place-items-center rounded-full bg-[#db3237]/15 text-[#b71422]">
-            <span className="material-symbols-outlined text-[20px]">admin_panel_settings</span>
+            <span className="material-symbols-outlined text-[20px]">storefront</span>
           </span>
           <div className="min-w-0">
-            <p className="truncate text-sm font-semibold">{adminName}</p>
-            <p className="mt-1 text-xs text-[#6e6a66]">Administrator</p>
+            <p className="truncate text-sm font-semibold">{ownerName}</p>
+            <p className="mt-1 truncate text-xs text-[#6e6a66]">{ownerContact}</p>
           </div>
         </div>
 
@@ -85,4 +85,4 @@ function AdminSidebar({ adminName = 'Quản trị viên' }) {
   );
 }
 
-export default AdminSidebar;
+export default OwnerSidebar;

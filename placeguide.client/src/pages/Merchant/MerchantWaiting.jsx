@@ -45,7 +45,7 @@ const MerchantWaiting = () => {
               {/* NÚT QUAY LẠI TRANG CHỦ ĐÃ ĐƯỢC GẮN NAVIGATE */}
               <button 
                 type="button" 
-                onClick={() => navigate('/merchant/register')}
+                onClick={() => navigate('/merchant')}
                 className="bg-[#af101a] text-white text-[14px] leading-[20px] font-medium px-8 py-3 rounded-full shadow-lg hover:opacity-90 active:scale-95 transition-all flex items-center gap-2"
               >
                 <span className="material-symbols-outlined">home</span>

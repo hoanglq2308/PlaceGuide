@@ -427,9 +427,11 @@ function MapView() {
         () =>
             mappedRestaurants.find(
                 (restaurant) => restaurant.id === selectedRestaurantId
-            ) || mappedRestaurants[0],
+            ) || null,
         [mappedRestaurants, selectedRestaurantId]
     );
+
+    const defaultRestaurant = mappedRestaurants[0] || null;
 
     const mapCenter = useMemo(() => {
         if (selectedRestaurant) {
@@ -440,8 +442,12 @@ function MapView() {
             return [userLocation.latitude, userLocation.longitude];
         }
 
+        if (defaultRestaurant) {
+            return [defaultRestaurant.latitude, defaultRestaurant.longitude];
+        }
+
         return DEFAULT_CENTER;
-    }, [selectedRestaurant, userLocation]);
+    }, [defaultRestaurant, selectedRestaurant, userLocation]);
 
     const openDirections = (restaurant) => {
         const url = `https://www.google.com/maps/dir/?api=1&destination=${restaurant.latitude},${restaurant.longitude}`;
@@ -472,6 +478,7 @@ function MapView() {
                     latitude,
                     longitude,
                 });
+                setSelectedRestaurantId(null);
                 setIsGettingLocation(false);
                 setToast({
                     message: 'Đã cập nhật vị trí của bạn trên bản đồ.',

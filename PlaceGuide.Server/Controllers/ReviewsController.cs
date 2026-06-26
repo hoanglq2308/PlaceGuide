@@ -43,7 +43,8 @@ namespace PlaceGuide.Server.Controllers
             var restaurantExists = await _context.Restaurants
                 .AnyAsync(restaurant =>
                     restaurant.Id == restaurantId &&
-                    restaurant.IsPublished);
+                    restaurant.IsPublished &&
+                    !restaurant.IsBanned);
 
             if (!restaurantExists)
             {
@@ -78,7 +79,10 @@ namespace PlaceGuide.Server.Controllers
             }
 
             var restaurantExists = await _context.Restaurants
-                .AnyAsync(restaurant => restaurant.Id == restaurantId);
+                .AnyAsync(restaurant =>
+                    restaurant.Id == restaurantId &&
+                    restaurant.IsPublished &&
+                    !restaurant.IsBanned);
 
             if (!restaurantExists)
             {

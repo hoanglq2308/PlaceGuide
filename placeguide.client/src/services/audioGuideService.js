@@ -1,3 +1,10 @@
+import {
+    clearActiveAudioPassCheckout,
+    getActiveAudioPassCheckout,
+    getAudioPassCheckoutStatus,
+    saveActiveAudioPassCheckout,
+} from './audioPassCheckoutService';
+
 const API_URL = import.meta.env.VITE_API_URL?.replace (/\/$/, '');
 const AUDIO_PASS_REQUIRED_EVENT = 'placeguide:audio-pass-required';
 const AUDIO_PASS_TOKEN_KEY = 'placeGuideAudioPassToken';
@@ -16,6 +23,11 @@ export function saveAudioPassToken(token){
         return;
     localStorage.setItem(AUDIO_PASS_TOKEN_KEY,token);
 }
+
+function clearAudioPassToken(){
+    localStorage.removeItem(AUDIO_PASS_TOKEN_KEY);
+}
+
 function getAuthHeaders(){
     const headers = {};
     const audioPassToken = getStoreAudioPassToken();
@@ -97,12 +109,51 @@ async function requestPremiumAudio(path) {
     return handleResponse(response);
 }
 
+async function restoreAudioPassFromPaidCheckout() {
+    const activeCheckout = getActiveAudioPassCheckout();
+
+    if (!activeCheckout) {
+        return false;
+    }
+
+    try {
+        const checkoutStatus = await getAudioPassCheckoutStatus(
+            activeCheckout.orderCode,
+            activeCheckout.checkoutAccessToken
+        );
+
+        const updatedCheckout = {
+            ...activeCheckout,
+            ...checkoutStatus,
+        };
+
+        saveActiveAudioPassCheckout(updatedCheckout);
+
+        if (updatedCheckout.audioPassToken) {
+            saveAudioPassToken(updatedCheckout.audioPassToken);
+            return true;
+        }
+    } catch (error) {
+        if (error.code === 'CHECKOUT_NOT_FOUND') {
+            clearActiveAudioPassCheckout();
+        }
+    }
+
+    return false;
+}
+
 async function withGuestAudioPass(fetchAudio) {
   try {
     return await fetchAudio();
   } catch (error) {
     if (!isAudioPassRequiredError(error)) {
       throw error;
+    }
+
+    clearAudioPassToken();
+
+    if (await restoreAudioPassFromPaidCheckout()) {
+      return fetchAudio();
     }
 
     await requestAudioPassPurchasePrompt(error.message);

@@ -7,7 +7,7 @@ import { registerUser } from '../services/authService';
 function Register() {
     const navigate = useNavigate();
     const [fullName, setFullName] = useState('');
-    const [email, setEmail] = useState('');
+    const [account, setAccount] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [toast, setToast] = useState({
@@ -31,7 +31,7 @@ function Register() {
         try{
             await registerUser({
                 fullName,
-                email,
+                account: account.trim(),
                 password,
             });
             setToast({
@@ -99,10 +99,10 @@ function Register() {
 
                     <div className="text-center mb-10">
                         <h1 className="text-[28px] md:text-[32px] font-bold text-black mb-1">
-                            Tạo tài khoản
+                            Tạo tài khoản chủ quán
                         </h1>
                         <p className="text-base text-gray-600">
-                            Bắt đầu hành trình ẩm thực của bạn cùng VinaFood.
+                            Dùng tài khoản này để đăng ký quán và quản lý hồ sơ đối tác.
                         </p>
                     </div>
 
@@ -136,31 +136,31 @@ function Register() {
                             </div>
                         </div>
 
-                        {/* Email */}
+                        {/* Account */}
                         <div className="flex flex-col gap-1">
                             <label
                                 className="text-sm font-semibold text-black"
-                                htmlFor="email"
+                                htmlFor="account"
                             >
-                                Địa chỉ Email
+                                Email hoặc số điện thoại
                             </label>
 
                             <div className="relative">
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-500">
                                     <span className="material-symbols-outlined text-[20px]">
-                                        mail
+                                        alternate_email
                                     </span>
                                 </div>
 
                                 <input
                                     className="w-full pl-10 pr-3 py-3 bg-white border border-gray-300 rounded-lg text-base text-black placeholder:text-gray-400 focus:border-red-700 focus:ring-2 focus:ring-red-700/20 transition-all outline-none"
-                                    id="email"
-                                    name="email"
-                                    placeholder="email@example.com"
+                                    id="account"
+                                    name="account"
+                                    placeholder="email@example.com hoặc 09xx xxx xxx"
                                     required
-                                    type="email"
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
+                                    type="text"
+                                    value={account}
+                                    onChange={(e) => setAccount(e.target.value)}
                                 />
                             </div>
                         </div>

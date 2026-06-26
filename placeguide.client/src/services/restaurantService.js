@@ -81,7 +81,7 @@ export async function getRestaurants() {
         throw new Error('Dữ liệu quán ăn từ server không hợp lệ!');
     }
 
-    return restaurants;
+    return restaurants.filter((restaurant) => !restaurant?.isBanned);
 }
 
 export async function getRestaurantById(id) {

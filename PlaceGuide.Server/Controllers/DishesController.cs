@@ -27,7 +27,8 @@ namespace PlaceGuide.Server.Controllers
                 .FirstOrDefaultAsync(item =>
                     item.Id == id &&
                     item.Restaurant != null &&
-                    item.Restaurant.IsPublished);
+                    item.Restaurant.IsPublished &&
+                    !item.Restaurant.IsBanned);
 
             if (dish == null)
             {

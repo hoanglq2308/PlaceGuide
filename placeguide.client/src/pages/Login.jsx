@@ -4,7 +4,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import ToastMessage from '../components/ToastMessage';
 import { loginUser } from '../services/authService';
 function Login() {
-    const [email, setEmail] = useState('');
+    const [account, setAccount] = useState('');
     const [password, setPassword] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [toast, setToast] = useState({
@@ -14,11 +14,23 @@ function Login() {
     const navigate = useNavigate();
     const location = useLocation();
 
-    const getRedirectPath = () => {
+    const getDefaultRedirectPath = (roles = []) => {
+        if (roles.includes('Admin')) {
+            return '/admin';
+        }
+
+        if (roles.includes('Owner')) {
+            return '/merchart';
+        }
+
+        return '/home';
+    };
+
+    const getRedirectPath = (roles = []) => {
         const from = location.state?.from;
 
         if (typeof from?.pathname !== 'string' || !from.pathname.startsWith('/')) {
-            return '/home';
+            return getDefaultRedirectPath(roles);
         }
 
         return `${from.pathname}${from.search || ''}${from.hash || ''}`;
@@ -33,7 +45,7 @@ function Login() {
 
         try {
             const result = await loginUser({
-                email: email.trim(),
+                account: account.trim(),
                 password,
             });
 
@@ -46,7 +58,7 @@ function Login() {
             setToast({ message: 'Đăng nhập thành công!', type: 'success' });
 
             setTimeout(() => {
-                navigate(getRedirectPath(), { replace: true });
+                navigate(getRedirectPath(result.user?.roles || []), { replace: true });
             }, 1000);
         } catch (error) {
             setToast({ message: error.message, type: 'error' });
@@ -85,19 +97,19 @@ function Login() {
 
                     <form className="w-full flex flex-col gap-5" onSubmit={handleSubmit}>
                         <div className="flex flex-col gap-1">
-                            <label className="text-sm font-semibold text-black text-center" htmlFor="email">Địa chỉ Email</label>
+                            <label className="text-sm font-semibold text-black text-center" htmlFor="account">Email hoặc số điện thoại</label>
                             <div className="relative">
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <span className="material-symbols-outlined text-gray-500">mail</span>
+                                    <span className="material-symbols-outlined text-gray-500">alternate_email</span>
                                 </div>
                                 <input
                                     className="w-full bg-white border border-gray-600 rounded-full py-3 pl-10 pr-4 text-base text-gray-500 focus:outline-none focus:ring-2 focus:ring-red-700/20 focus:border-red-700 transition-all"
-                                    id="email"
-                                    name="email"
-                                    placeholder="Nhập email của bạn"
-                                    type="email"
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
+                                    id="account"
+                                    name="account"
+                                    placeholder="Nhập email hoặc số điện thoại"
+                                    type="text"
+                                    value={account}
+                                    onChange={(e) => setAccount(e.target.value)}
                                     required
                                 />
                             </div>
