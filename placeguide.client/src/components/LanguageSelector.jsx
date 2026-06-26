@@ -6,16 +6,16 @@ function LanguageSelector({ className = '' }) {
 
   return (
     <label
-      className={`inline-flex items-center gap-2 rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-sm font-semibold text-gray-700 transition-colors hover:border-red-200 hover:text-red-700 ${className}`}
+      className={`inline-flex min-w-0 max-w-full items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2 py-1.5 text-xs font-semibold text-gray-700 transition-colors hover:border-red-200 hover:text-red-700 sm:gap-2 sm:px-2.5 sm:text-sm ${className}`}
     >
-      <span className="material-symbols-outlined text-[18px]" aria-hidden="true">
+      <span className="material-symbols-outlined shrink-0 text-[18px]" aria-hidden="true">
         language
       </span>
       <select
         value={language}
         onChange={(event) => setLanguage(event.target.value)}
         aria-label="Choose language"
-        className="max-w-32 bg-transparent outline-none"
+        className="min-w-0 max-w-[7rem] bg-transparent outline-none sm:max-w-32"
       >
         {LANGUAGE_OPTIONS.map((option) => (
           <option key={option.code} value={option.code}>

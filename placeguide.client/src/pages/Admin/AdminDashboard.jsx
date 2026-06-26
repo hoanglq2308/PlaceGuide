@@ -179,7 +179,7 @@ function AdminDashboard() {
       <AdminSidebar adminName={adminName} />
 
       <main className="min-w-0 flex-1">
-        <header className="flex flex-wrap items-center justify-between gap-4 border-b border-[#e5e1da] bg-white/85 px-5 py-4 backdrop-blur lg:px-8">
+        <header className="flex flex-wrap items-center justify-between gap-4 border-b border-[#e5e1da] bg-white/85 px-4 py-4 backdrop-blur sm:px-5 lg:px-8">
           <div>
             <h1 className="text-xl font-extrabold text-[#af101a]">Tổng quan hệ thống</h1>
             <p className="mt-1 text-sm text-[#6e6a66]">Theo dõi hoạt động du khách theo thời gian thực.</p>
@@ -189,7 +189,7 @@ function AdminDashboard() {
           </Link>
         </header>
 
-        <div className="mx-auto w-full max-w-6xl space-y-6 p-5 lg:p-8">
+        <div className="mx-auto w-full max-w-6xl space-y-6 p-4 sm:p-5 lg:p-8">
           <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
             <div className="border border-[#e5e1da] bg-white p-6 shadow-sm">
               <p className="text-sm font-medium text-[#5b403d]">Tổng số du khách</p>
@@ -273,7 +273,7 @@ function AdminDashboard() {
           )}
 
           <section className="border border-[#e5e1da] bg-white p-5 shadow-sm lg:p-6">
-            <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="flex flex-col items-start justify-between gap-4 sm:flex-row">
               <div>
                 <p className="text-sm font-bold uppercase text-[#af101a]">Lưu lượng du khách</p>
                 <h2 className="mt-1 text-xl font-extrabold">Du khách hoạt động theo giờ</h2>
@@ -282,7 +282,7 @@ function AdminDashboard() {
                 </p>
               </div>
 
-              <label className="grid gap-1 text-sm font-semibold text-[#5b403d]">
+              <label className="grid w-full gap-1 text-sm font-semibold text-[#5b403d] sm:w-auto">
                 Ngày xem báo cáo
                 <input
                   type="date"
@@ -291,7 +291,7 @@ function AdminDashboard() {
                     setSelectedDate(event.target.value);
                     setShowAllDistricts(false);
                   }}
-                  className="h-10 border border-[#d9d1ce] bg-white px-3 text-sm font-medium text-[#1a1c1a] outline-none transition-colors focus:border-[#af101a]"
+                  className="h-10 w-full border border-[#d9d1ce] bg-white px-3 text-sm font-medium text-[#1a1c1a] outline-none transition-colors focus:border-[#af101a]"
                 />
               </label>
             </div>
@@ -399,7 +399,7 @@ function AdminDashboard() {
                   return (
                     <div key={districtName}>
                       <div className="mb-1 flex items-center justify-between gap-4 text-sm">
-                        <span className="font-medium text-[#1a1c1a]">{districtName}</span>
+                        <span className="min-w-0 break-words font-medium text-[#1a1c1a]">{districtName}</span>
                         <span className="shrink-0 tabular-nums text-[#6e6a66]">
                           {percentage}% ({visitorCount})
                         </span>

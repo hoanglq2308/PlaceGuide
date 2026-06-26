@@ -129,31 +129,31 @@ function Bookmarks() {
             />
 
             <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-lg border-b border-red-100 shadow-sm">
-                <div className="max-w-7xl mx-auto px-5 md:px-16 py-4 flex justify-between items-center">
-                    <div className="flex items-center gap-4">
+                <div className="max-w-7xl mx-auto flex items-center justify-between gap-3 px-4 py-3 sm:px-5 md:px-16 md:py-4">
+                    <div className="flex min-w-0 items-center gap-2 sm:gap-4">
                         <button
                             type="button"
                             onClick={() => navigate('/home')}
-                            className="flex items-center gap-1 text-gray-600 hover:text-red-700 transition-colors text-sm font-semibold"
+                            className="flex shrink-0 items-center gap-1 text-sm font-semibold text-gray-600 transition-colors hover:text-red-700"
                         >
                             <span className="material-symbols-outlined">
                                 arrow_back
                             </span>
-                            <span>Quay lại Home</span>
+                            <span className="hidden sm:inline">Quay lại Home</span>
                         </button>
 
                         <div className="hidden md:block h-6 w-[1px] bg-gray-200"></div>
 
-                        <span className="text-2xl font-extrabold text-red-700 tracking-tight">
+                        <span className="truncate text-xl font-extrabold tracking-tight text-red-700 sm:text-2xl">
                             VinaFood
                         </span>
                     </div>
 
-                    <LanguageSelector />
+                    <LanguageSelector className="shrink-0" />
                 </div>
             </header>
 
-            <main className="max-w-7xl mx-auto px-5 md:px-16 py-10 space-y-8 pb-24">
+            <main className="max-w-7xl mx-auto px-4 sm:px-5 md:px-16 py-8 md:py-10 space-y-8 pb-24">
                 <section className="space-y-3">
                     <span className="inline-flex items-center gap-2 bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
                         <span className="material-symbols-outlined text-[16px]">
@@ -164,7 +164,7 @@ function Bookmarks() {
 
                     <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
                         <div>
-                            <h1 className="text-3xl md:text-4xl font-extrabold text-stone-900">
+                            <h1 className="text-2xl md:text-4xl font-extrabold text-stone-900">
                                 Quán đã lưu
                             </h1>
                             <p className="text-base text-gray-600 mt-2">
@@ -186,7 +186,7 @@ function Bookmarks() {
                 </section>
 
                 {isLoading && (
-                    <section className="bg-white rounded-xl border border-red-100 shadow-[0_4px_20px_rgba(183,20,34,0.08)] p-8 text-center">
+                    <section className="bg-white rounded-xl border border-red-100 shadow-[0_4px_20px_rgba(183,20,34,0.08)] p-6 md:p-8 text-center">
                         <span className="material-symbols-outlined text-red-700 text-[40px] animate-pulse">
                             restaurant
                         </span>
@@ -197,7 +197,7 @@ function Bookmarks() {
                 )}
 
                 {!isLoading && error && (
-                    <section className="bg-white rounded-xl border border-red-100 shadow-[0_4px_20px_rgba(183,20,34,0.08)] p-8 text-center space-y-4">
+                    <section className="bg-white rounded-xl border border-red-100 shadow-[0_4px_20px_rgba(183,20,34,0.08)] p-6 md:p-8 text-center space-y-4">
                         <span className="material-symbols-outlined text-red-700 text-[44px]">
                             error
                         </span>
@@ -213,7 +213,7 @@ function Bookmarks() {
                 )}
 
                 {!isLoading && !error && favoriteRestaurants.length === 0 && (
-                    <section className="bg-white rounded-xl border border-red-100 shadow-[0_4px_20px_rgba(183,20,34,0.08)] p-10 text-center space-y-4">
+                    <section className="bg-white rounded-xl border border-red-100 shadow-[0_4px_20px_rgba(183,20,34,0.08)] p-6 md:p-10 text-center space-y-4">
                         <div className="w-16 h-16 mx-auto rounded-full bg-red-100 text-red-700 flex items-center justify-center">
                             <span className="material-symbols-outlined text-[34px]">
                                 bookmark

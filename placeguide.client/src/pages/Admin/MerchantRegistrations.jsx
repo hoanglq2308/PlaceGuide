@@ -281,11 +281,11 @@ function MerchantRegistrations() {
       <AdminSidebar adminName={adminName} />
 
       <main className="min-w-0 flex-1 lg:h-screen lg:overflow-y-auto">
-        <header className="sticky top-0 z-30 border-b border-[#e5e1da] bg-[#faf9f6]/95 px-5 py-4 backdrop-blur lg:px-8">
+        <header className="sticky top-0 z-30 border-b border-[#e5e1da] bg-[#faf9f6]/95 px-4 py-4 backdrop-blur sm:px-5 lg:px-8">
           <div className="mx-auto flex w-full max-w-[1440px] flex-wrap items-center justify-between gap-4">
             <div className="flex min-w-0 flex-1 flex-wrap items-center gap-4 lg:gap-8">
-              <h1 className="text-xl font-extrabold text-[#b71422] lg:text-2xl">Quản lý Đăng ký Đối tác</h1>
-              <label className="relative min-w-[220px] flex-1 lg:max-w-md">
+              <h1 className="min-w-0 text-xl font-extrabold text-[#b71422] lg:text-2xl">Quản lý Đăng ký Đối tác</h1>
+              <label className="relative w-full min-w-0 flex-1 sm:min-w-[220px] lg:max-w-md">
                 <span className="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[20px] text-[#5b403e]">search</span>
                 <input
                   value={searchText}
@@ -307,7 +307,7 @@ function MerchantRegistrations() {
           </div>
         </header>
 
-        <div className="mx-auto w-full max-w-[1440px] space-y-6 p-5 lg:p-8">
+        <div className="mx-auto w-full max-w-[1440px] space-y-6 p-4 sm:p-5 lg:p-8">
           <section className="flex flex-wrap items-end justify-between gap-4">
             <div>
               <h2 className="text-lg font-bold text-[#1a1a1a]">Danh sách đơn đăng ký</h2>
@@ -318,7 +318,7 @@ function MerchantRegistrations() {
               </p>
             </div>
 
-            <div className="flex flex-wrap items-end gap-2">
+            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:items-end">
               <label className="grid gap-1 text-xs font-bold uppercase tracking-wide text-[#5b403e]">
                 Trạng thái
                 <span className="relative">
@@ -326,7 +326,7 @@ function MerchantRegistrations() {
                   <select
                     value={statusFilter}
                     onChange={(event) => setStatusFilter(event.target.value)}
-                    className="h-10 min-w-[158px] appearance-none rounded-lg border border-[#e5e1da] bg-white py-2 pl-9 pr-8 text-sm font-semibold text-[#1a1c1a] outline-none focus:border-[#b71422]"
+                    className="h-10 w-full appearance-none rounded-lg border border-[#e5e1da] bg-white py-2 pl-9 pr-8 text-sm font-semibold text-[#1a1c1a] outline-none focus:border-[#b71422] sm:min-w-[158px]"
                   >
                     <option value="">Tất cả trạng thái</option>
                     {STATUS_OPTIONS.map((option) => (
@@ -340,7 +340,7 @@ function MerchantRegistrations() {
                 type="button"
                 onClick={() => void loadRegistrations()}
                 disabled={isLoading}
-                className="inline-flex h-10 items-center gap-2 rounded-lg border border-[#e5e1da] bg-white px-4 text-sm font-semibold text-[#1a1c1a] transition-colors hover:bg-[#efeeeb] disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-[#e5e1da] bg-white px-4 text-sm font-semibold text-[#1a1c1a] transition-colors hover:bg-[#efeeeb] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <span className="material-symbols-outlined text-[19px]">refresh</span>
                 Làm mới
@@ -443,9 +443,9 @@ function MerchantRegistrations() {
       <div className={`fixed inset-0 z-[60] transition ${isPanelOpen ? 'pointer-events-auto bg-black/20 opacity-100' : 'pointer-events-none bg-transparent opacity-0'}`}>
         <button type="button" aria-label="Đóng panel" onClick={closePanel} className="absolute inset-0 h-full w-full cursor-default" />
         <aside className={`absolute right-0 top-0 flex h-full w-full max-w-[500px] flex-col border-l border-[#e5e1da] bg-[#faf9f6] shadow-2xl transition-transform duration-300 ${isPanelOpen ? 'translate-x-0' : 'translate-x-full'}`}>
-          <header className="flex items-center justify-between gap-4 border-b border-[#e5e1da] bg-[#f4f3f1] px-5 py-5 lg:px-8">
+          <header className="flex items-center justify-between gap-3 border-b border-[#e5e1da] bg-[#f4f3f1] px-4 py-4 sm:px-5 sm:py-5 lg:px-8">
             <div>
-              <h2 className="text-xl font-bold text-[#1a1a1a]">Chi tiết đăng ký</h2>
+              <h2 className="text-lg font-bold text-[#1a1a1a] sm:text-xl">Chi tiết đăng ký</h2>
               {selectedRegistration && <div className="mt-2"><StatusBadge status={selectedRegistration.status} /></div>}
             </div>
             <button type="button" onClick={closePanel} title="Đóng" className="grid h-10 w-10 place-items-center rounded-full text-[#5b403e] transition-colors hover:bg-[#e9e8e5]" aria-label="Đóng">
@@ -458,7 +458,7 @@ function MerchantRegistrations() {
           ) : detailError ? (
             <div className="m-5 rounded-lg border border-[#fecaca] bg-[#fff5f5] p-4 text-sm text-[#991b1b] lg:m-8">{detailError}</div>
           ) : selectedRegistration && (
-            <div className="flex-1 space-y-8 overflow-y-auto p-5 lg:p-8">
+            <div className="flex-1 space-y-8 overflow-y-auto p-4 sm:p-5 lg:p-8">
               {actionError && <div className="rounded-lg border border-[#fecaca] bg-[#fff5f5] p-4 text-sm text-[#991b1b]">{actionError}</div>}
 
               <section>
@@ -500,7 +500,7 @@ function MerchantRegistrations() {
           )}
 
           {selectedRegistration?.status === 'Pending' && (
-            <footer className="grid grid-cols-2 gap-3 border-t border-[#e5e1da] bg-[#f4f3f1] p-5 lg:p-6">
+            <footer className="grid grid-cols-1 gap-3 border-t border-[#e5e1da] bg-[#f4f3f1] p-4 sm:grid-cols-2 sm:p-5 lg:p-6">
               <button type="button" onClick={() => setIsRejectModalOpen(true)} disabled={isActionLoading} className="rounded-lg border border-[#ff4d4d] bg-white px-3 py-3 text-sm font-bold text-[#b42318] transition-colors hover:bg-[#fff5f5] disabled:cursor-not-allowed disabled:opacity-60">Từ chối đơn</button>
               <button type="button" onClick={() => void handleApprove()} disabled={isActionLoading} className="rounded-lg bg-[#006e2f] px-3 py-3 text-sm font-bold text-white shadow-sm transition-colors hover:bg-[#005321] disabled:cursor-not-allowed disabled:opacity-60">{isActionLoading ? 'Đang xử lý...' : 'Duyệt đơn này'}</button>
             </footer>
@@ -510,11 +510,11 @@ function MerchantRegistrations() {
 
       {isRejectModalOpen && selectedRegistration && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/45 p-5">
-          <form onSubmit={handleReject} className="w-full max-w-md rounded-lg border border-[#e5e1da] bg-white p-5 shadow-xl">
+          <form onSubmit={handleReject} className="w-full max-w-md rounded-lg border border-[#e5e1da] bg-white p-4 shadow-xl sm:p-5">
             <h2 className="text-lg font-bold">Từ chối đơn đăng ký</h2>
             <p className="mt-2 text-sm leading-6 text-[#6e6a66]">Nhập lý do để chủ quán có thể bổ sung hồ sơ.</p>
             <textarea value={rejectionReason} onChange={(event) => setRejectionReason(event.target.value)} required maxLength="1000" className="mt-4 min-h-32 w-full rounded-lg border border-[#d9d1ce] p-3 text-sm outline-none focus:border-[#b71422] focus:ring-1 focus:ring-[#b71422]" placeholder="Ví dụ: Giấy phép kinh doanh chưa hiển thị rõ thông tin..." />
-            <div className="mt-4 flex justify-end gap-3">
+            <div className="mt-4 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
               <button type="button" onClick={() => setIsRejectModalOpen(false)} disabled={isActionLoading} className="rounded-lg border border-[#d9d1ce] px-4 py-2 text-sm font-semibold text-[#5b403e]">Hủy</button>
               <button type="submit" disabled={isActionLoading || !rejectionReason.trim()} className="rounded-lg bg-[#b42318] px-4 py-2 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-60">{isActionLoading ? 'Đang xử lý...' : 'Xác nhận từ chối'}</button>
             </div>

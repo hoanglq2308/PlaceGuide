@@ -55,12 +55,12 @@ const MenuManagement = () => {
   return (
     <div className="bg-[#fcf9f8] text-[#1b1c1c] min-h-screen font-['Be_Vietnam_Pro']">
       {/* TopAppBar */}
-      <header className="bg-white shadow-sm fixed top-0 w-full z-50 h-16 flex items-center px-4 md:px-20 justify-between">
-        <div className="flex items-center gap-4">
+      <header className="bg-white shadow-sm fixed top-0 w-full z-50 h-16 flex items-center px-3 sm:px-4 md:px-20 justify-between">
+        <div className="flex min-w-0 items-center gap-2 sm:gap-4">
           <span className="material-symbols-outlined text-[#af101a] font-bold cursor-pointer">arrow_back</span>
-          <h1 className="text-[20px] leading-[28px] font-semibold font-bold text-[#af101a]">Quản lý Thực đơn</h1>
+          <h1 className="truncate text-[18px] leading-[26px] font-bold text-[#af101a] sm:text-[20px] sm:leading-[28px]">Quản lý Thực đơn</h1>
         </div>
-        <div className="flex items-center gap-6">
+        <div className="flex shrink-0 items-center gap-3 md:gap-6">
           <div className="hidden md:flex gap-4">
             <button type="button" className="text-[#af101a] font-bold text-[14px] leading-[20px] font-medium px-4 py-2 hover:bg-[#eae7e7] transition-colors rounded-full">Trang chủ</button>
             <button type="button" className="text-[#5b403d] text-[14px] leading-[20px] font-medium px-4 py-2 hover:bg-[#eae7e7] transition-colors rounded-full">Đơn hàng</button>
@@ -71,10 +71,10 @@ const MenuManagement = () => {
       </header>
 
       {/* Main Container */}
-      <main className="pt-24 pb-20 px-4 md:px-20 max-w-[1280px] mx-auto">
+      <main className="pt-24 pb-28 px-4 md:px-20 max-w-[1280px] mx-auto">
         {/* Action Bar: Search & Filters */}
         <section className="mb-10 space-y-4 md:space-y-0 md:flex md:items-center md:justify-between gap-[24px]">
-          <div className="flex-1 max-w-xl">
+          <div className="w-full flex-1 md:max-w-xl">
             <div className="relative group">
               <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-[#8f6f6c]">search</span>
               <input 
@@ -86,7 +86,7 @@ const MenuManagement = () => {
           </div>
           
           {/* Bộ lọc Chips phân loại */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0">
+          <div className="flex w-full items-center gap-2 overflow-x-auto pb-2 md:w-auto md:pb-0">
             {['Tất cả', 'Món chính', 'Khai vị', 'Đồ uống', 'Tráng miệng'].map((tab) => (
               <button
                 key={tab}
@@ -138,9 +138,9 @@ const MenuManagement = () => {
               </div>
 
               <div className="p-4 flex flex-col flex-1">
-                <div className="flex justify-between items-start mb-2">
+                <div className="mb-2 flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
                   <h3 className="text-[20px] leading-[28px] font-semibold text-[#1b1c1c]">{item.name}</h3>
-                  <span className="font-bold text-[#af101a]">{item.price}</span>
+                  <span className="shrink-0 font-bold text-[#af101a]">{item.price}</span>
                 </div>
                 <p className="text-[#5b403d] text-[16px] leading-[24px] font-normal line-clamp-2 mb-4 flex-1">
                   {item.description}
@@ -170,14 +170,14 @@ const MenuManagement = () => {
       </main>
 
       {/* Mobile Floating Action Button */}
-      <div className="md:hidden fixed bottom-6 right-6 z-50">
+      <div className="md:hidden fixed bottom-20 right-5 z-50">
         <button type="button" className="w-16 h-16 bg-[#af101a] text-white rounded-full shadow-2xl flex items-center justify-center active:scale-90 transition-transform">
           <span className="material-symbols-outlined !text-[32px]">add</span>
         </button>
       </div>
 
       {/* BottomNavBar (Mobile Only) */}
-      <nav className="md:hidden fixed bottom-0 left-0 w-full z-40 bg-white border-t border-[#e4beba] px-4 py-3 flex justify-around items-center">
+      <nav className="md:hidden fixed bottom-0 left-0 w-full z-40 bg-white border-t border-[#e4beba] px-2 py-3 flex justify-around items-center">
         <button type="button" className="flex flex-col items-center gap-1 text-[#5b403d]">
           <span className="material-symbols-outlined">dashboard</span>
           <span className="text-[12px] leading-[16px] tracking-[0.05em] font-semibold">Tổng quan</span>

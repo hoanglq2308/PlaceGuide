@@ -258,9 +258,9 @@ function OwnerRestaurantProfile() {
       />
 
       <main className="min-w-0 flex-1 lg:h-screen lg:overflow-y-auto">
-        <header className="sticky top-0 z-30 border-b border-[#e5e1da] bg-[#faf9f6]/95 px-5 py-4 backdrop-blur lg:px-8">
+        <header className="sticky top-0 z-30 border-b border-[#e5e1da] bg-[#faf9f6]/95 px-4 py-4 backdrop-blur sm:px-5 lg:px-8">
           <div className="mx-auto flex w-full max-w-[1440px] flex-wrap items-center justify-between gap-4">
-            <div>
+            <div className="min-w-0 flex-1">
               <h1 className="text-xl font-extrabold text-[#b71422] lg:text-2xl">
                 Quản lý thông tin quán
               </h1>
@@ -270,7 +270,7 @@ function OwnerRestaurantProfile() {
             </div>
 
             {restaurant && (
-              <div className="flex flex-wrap items-center gap-3">
+              <div className="flex w-full flex-wrap items-center gap-3 sm:w-auto">
                 <span className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-bold ${statusPresentation.className}`}>
                   <span className="material-symbols-outlined text-[18px]">{statusPresentation.icon}</span>
                   {statusPresentation.label}
@@ -280,7 +280,7 @@ function OwnerRestaurantProfile() {
                   onClick={() => window.open(`/restaurants/${restaurant.id}`, '_blank', 'noopener,noreferrer')}
                   disabled={!canOpenPublicPage}
                   title={canOpenPublicPage ? 'Xem trang khách' : 'Quán chưa công khai hoặc đang bị khóa'}
-                  className="inline-flex items-center gap-2 rounded-lg border border-[#b71422] bg-white px-4 py-2 text-sm font-bold text-[#b71422] transition-colors hover:bg-[#fff5f4] disabled:cursor-not-allowed disabled:border-[#d9d1ce] disabled:text-[#8f6f6d]"
+                  className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg border border-[#b71422] bg-white px-4 py-2 text-sm font-bold text-[#b71422] transition-colors hover:bg-[#fff5f4] disabled:cursor-not-allowed disabled:border-[#d9d1ce] disabled:text-[#8f6f6d] sm:flex-none"
                 >
                   <span className="material-symbols-outlined text-[18px]">visibility</span>
                   Xem trang khách
@@ -290,7 +290,7 @@ function OwnerRestaurantProfile() {
           </div>
         </header>
 
-        <div className="mx-auto w-full max-w-[1440px] p-5 lg:p-8">
+        <div className="mx-auto w-full max-w-[1440px] p-4 sm:p-5 lg:p-8">
           {isLoading ? (
             <section className="rounded-xl border border-[#e5e1da] bg-[#fdfcfb] p-10 text-center shadow-sm">
               <span className="material-symbols-outlined animate-pulse text-[44px] text-[#b71422]">
@@ -390,7 +390,7 @@ function OwnerRestaurantProfile() {
                   </div>
                 </section>
 
-                <section className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+                <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                   <StatCard
                     label="Trạng thái"
                     value={restaurant.isPublished ? 'Công khai' : 'Chưa công khai'}
@@ -410,7 +410,7 @@ function OwnerRestaurantProfile() {
                 </section>
 
                 <form onSubmit={handleSave} className="rounded-xl border border-[#e5e1da] bg-[#fdfcfb] p-5 shadow-sm">
-                  <div className="mb-5 flex items-center justify-between border-b border-[#e5e1da] pb-4">
+                  <div className="mb-5 flex flex-col gap-3 border-b border-[#e5e1da] pb-4 sm:flex-row sm:items-center sm:justify-between">
                     <h2 className="text-xl font-extrabold text-[#1a1c1a]">Thông tin cơ bản</h2>
                     <button
                       type="submit"
@@ -613,8 +613,8 @@ function OwnerRestaurantProfile() {
               <aside className="space-y-6 lg:col-span-4">
                 <section className="rounded-xl border border-[#e5e1da] bg-[#fdfcfb] p-5 shadow-sm">
                   <h2 className="mb-4 text-xl font-extrabold text-[#1a1c1a]">Trạng thái hoạt động</h2>
-                  <div className="flex items-center justify-between rounded-lg border border-[#e5e1da] bg-[#f4f3f1] p-4">
-                    <div>
+                  <div className="flex items-center justify-between gap-4 rounded-lg border border-[#e5e1da] bg-[#f4f3f1] p-4">
+                    <div className="min-w-0">
                       <p className="text-sm font-bold text-[#1a1c1a]">Đang mở cửa</p>
                       <p className="mt-1 text-xs text-[#6e6a66]">
                         Owner chỉ được bật/tắt mở cửa, không tự công khai quán.

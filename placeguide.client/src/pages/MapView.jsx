@@ -496,7 +496,7 @@ function MapView() {
     };
 
     return (
-        <div className="h-screen overflow-hidden bg-[#fcf9f8] text-stone-900 font-sans">
+        <div className="min-h-[100dvh] overflow-x-hidden bg-[#fcf9f8] text-stone-900 font-sans md:h-screen md:overflow-hidden">
             <style>
                 {`
                     @keyframes pg-map-pulse {
@@ -525,8 +525,8 @@ function MapView() {
                 }
             />
 
-            <header className="fixed top-0 z-[1000] flex h-16 w-full items-center justify-between bg-[#fcf9f8]/85 px-5 shadow-sm backdrop-blur-xl md:px-16">
-                <div className="flex items-center gap-4">
+            <header className="fixed top-0 z-[1000] flex h-16 w-full items-center justify-between gap-3 bg-[#fcf9f8]/85 px-4 shadow-sm backdrop-blur-xl md:px-16">
+                <div className="flex min-w-0 items-center gap-2 sm:gap-4">
                     <button
                         type="button"
                         onClick={() => navigate('/home')}
@@ -541,8 +541,8 @@ function MapView() {
                         </span>
                     </button>
 
-                    <div>
-                        <h1 className="text-xl font-bold text-[#b71422] md:text-2xl">
+                    <div className="min-w-0">
+                        <h1 className="truncate text-lg font-bold text-[#b71422] sm:text-xl md:text-2xl">
                             Bản đồ ẩm thực
                         </h1>
                         <p className="hidden text-xs font-medium text-[#5b403e] md:block">
@@ -573,15 +573,15 @@ function MapView() {
                 </div>
             </header>
 
-            <main className="flex h-screen flex-col bg-[#fcf9f8] pt-16 md:flex-row">
-                <section className="relative h-[58vh] min-h-[430px] flex-1 p-4 md:h-full md:min-h-[600px] md:p-6">
-                    <div className="relative h-full w-full overflow-hidden rounded-3xl border border-[#e4beba]/30 bg-[#e5e7eb] shadow-[0_4px_20px_rgba(255,77,77,0.08)]">
+            <main className="flex min-h-[100dvh] flex-col bg-[#fcf9f8] pt-16 md:h-screen md:flex-row">
+                <section className="relative h-[56dvh] min-h-[340px] flex-none p-3 sm:h-[58dvh] sm:min-h-[390px] sm:p-4 md:h-full md:min-h-[600px] md:flex-1 md:p-6">
+                    <div className="relative h-full w-full overflow-hidden rounded-2xl border border-[#e4beba]/30 bg-[#e5e7eb] shadow-[0_4px_20px_rgba(255,77,77,0.08)] md:rounded-3xl">
                         <MapContainer
                             center={mapCenter}
                             zoom={DEFAULT_ZOOM}
                             zoomControl={false}
                             scrollWheelZoom
-                            className="h-full min-h-[430px] w-full md:min-h-[600px]"
+                            className="h-full min-h-[340px] w-full sm:min-h-[390px] md:min-h-[600px]"
                         >
                             <InvalidateMapSize />
                             <MapRecenter center={mapCenter} zoom={DEFAULT_ZOOM} />
@@ -643,12 +643,12 @@ function MapView() {
                         <button
                             type="button"
                             onClick={handleGetLocation}
-                            className="absolute bottom-6 left-5 z-[500] inline-flex items-center gap-2 rounded-full bg-[#b71422] px-5 py-3 text-sm font-bold text-white shadow-lg active:scale-95 hover:bg-red-800 transition-all"
+                            className="absolute bottom-4 left-4 z-[500] inline-flex max-w-[calc(100%-2rem)] items-center gap-2 rounded-full bg-[#b71422] px-4 py-3 text-sm font-bold text-white shadow-lg active:scale-95 hover:bg-red-800 transition-all md:bottom-6 md:left-5 md:px-5"
                         >
                             <span className="material-symbols-outlined text-[20px]">
                                 near_me
                             </span>
-                            <span>
+                            <span className="truncate">
                                 {isGettingLocation
                                     ? 'Đang lấy vị trí...'
                                     : 'Dùng vị trí của tôi'}
@@ -713,7 +713,7 @@ function MapView() {
                     </div>
                 </aside>
 
-                <section className="relative z-20 -mt-20 flex-1 bg-gradient-to-t from-[#fcf9f8] via-[#fcf9f8]/95 to-transparent pt-6 md:hidden">
+                <section className="relative z-20 -mt-14 flex-1 bg-gradient-to-t from-[#fcf9f8] via-[#fcf9f8]/95 to-transparent pt-6 md:hidden">
                     <div className="mb-2 flex items-center justify-between px-5">
                         <div>
                             <h2 className="text-lg font-semibold text-stone-900">
@@ -734,14 +734,14 @@ function MapView() {
 
                     <div className="flex gap-4 overflow-x-auto px-5 pb-24 [scrollbar-width:none]">
                         {isLoading ? (
-                            <div className="min-w-[280px] rounded-xl border border-[#e4e2e1] bg-white p-5 font-bold text-[#b71422] shadow-[0_4px_20px_rgba(255,77,77,0.08)]">
+                            <div className="min-w-[260px] rounded-xl border border-[#e4e2e1] bg-white p-5 font-bold text-[#b71422] shadow-[0_4px_20px_rgba(255,77,77,0.08)]">
                                 Đang tải danh sách quán...
                             </div>
                         ) : mappedRestaurants.length ? (
                             mappedRestaurants.map((restaurant) => (
                                 <div
                                     key={restaurant.id}
-                                    className="min-w-[280px]"
+                                    className="min-w-[260px] max-w-[82vw]"
                                 >
                                     <RestaurantListCard
                                         restaurant={restaurant}
@@ -764,7 +764,7 @@ function MapView() {
                                 </div>
                             ))
                         ) : (
-                            <div className="min-w-[280px] rounded-xl border border-[#e4e2e1] bg-white p-5 text-sm font-semibold text-[#5b403e] shadow-[0_4px_20px_rgba(255,77,77,0.08)]">
+                            <div className="min-w-[260px] rounded-xl border border-[#e4e2e1] bg-white p-5 text-sm font-semibold text-[#5b403e] shadow-[0_4px_20px_rgba(255,77,77,0.08)]">
                                 Chưa có quán nào có tọa độ hợp lệ.
                             </div>
                         )}
@@ -772,7 +772,7 @@ function MapView() {
                 </section>
             </main>
 
-            <nav className="fixed bottom-0 left-0 z-50 flex h-20 w-full items-center justify-around bg-[#fcf9f8]/90 px-4 shadow-[0_-4px_20px_rgba(255,77,77,0.08)] backdrop-blur-lg md:hidden">
+            <nav className="fixed bottom-0 left-0 z-50 flex min-h-20 w-full items-center justify-around bg-[#fcf9f8]/90 px-3 pb-[env(safe-area-inset-bottom)] shadow-[0_-4px_20px_rgba(255,77,77,0.08)] backdrop-blur-lg md:hidden">
                 <button
                     type="button"
                     className="flex flex-col items-center justify-center rounded-full bg-[#db3237] px-4 py-1 text-white active:scale-90 transition-transform"

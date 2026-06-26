@@ -73,7 +73,7 @@ function Register() {
             </div>
 
             {/* Header */}
-            <header className="relative z-10 w-full px-5 md:px-16 py-6 flex justify-between items-center">
+            <header className="relative z-10 flex w-full items-center justify-between px-4 py-5 md:px-16 md:py-6">
                 <div className="flex items-center gap-2 text-white text-2xl font-bold tracking-tight drop-shadow-md">
                     <span className="material-symbols-outlined text-red-200">
                         restaurant
@@ -93,12 +93,12 @@ function Register() {
             </header>
 
             {/* Main Content */}
-            <main className="relative z-10 flex-grow flex items-center justify-center p-5 md:p-16">
-                <div className="w-full max-w-md bg-white/90 backdrop-blur-xl border border-red-100/40 rounded-2xl shadow-[0_12px_40px_rgba(0,0,0,0.12)] p-10 overflow-hidden relative">
+            <main className="relative z-10 flex flex-grow items-center justify-center p-4 md:p-16">
+                <div className="relative w-full max-w-md overflow-hidden rounded-2xl border border-red-100/40 bg-white/90 p-6 shadow-[0_12px_40px_rgba(0,0,0,0.12)] backdrop-blur-xl sm:p-10">
                     <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-red-700 via-red-500 to-green-600"></div>
 
                     <div className="text-center mb-10">
-                        <h1 className="text-[28px] md:text-[32px] font-bold text-black mb-1">
+                        <h1 className="text-[26px] md:text-[32px] font-bold text-black mb-1">
                             Tạo tài khoản chủ quán
                         </h1>
                         <p className="text-base text-gray-600">

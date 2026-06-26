@@ -248,7 +248,7 @@ namespace PlaceGuide.Server.Data
                 entity.HasOne(review => review.User)
                     .WithMany()
                     .HasForeignKey(review => review.UserId)
-                    .OnDelete(DeleteBehavior.Cascade);
+                    .OnDelete(DeleteBehavior.SetNull);
 
                 entity.HasMany(review => review.MediaItems)
                     .WithOne(media => media.Review)

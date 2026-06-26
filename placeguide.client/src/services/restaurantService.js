@@ -59,21 +59,8 @@ async function handleResponse(response) {
     return result;
 }
 
-function getAuthHeaders() {
-    const token = localStorage.getItem('token');
-    const headers = {};
-
-    if (token) {
-        headers.Authorization = `Bearer ${token}`;
-    }
-
-    return headers;
-}
-
 export async function getRestaurants() {
-    const response = await fetch(getApiUrl('/restaurants'), {
-        headers: getAuthHeaders(),
-    });
+    const response = await fetch(getApiUrl('/restaurants'));
 
     const restaurants = await handleResponse(response);
 
@@ -90,10 +77,7 @@ export async function getRestaurantById(id) {
     }
 
     const response = await fetch(
-        getApiUrl(`/restaurants/${encodeURIComponent(id)}`),
-        {
-            headers: getAuthHeaders(),
-        }
+        getApiUrl(`/restaurants/${encodeURIComponent(id)}`)
     );
 
     const restaurant = await handleResponse(response);

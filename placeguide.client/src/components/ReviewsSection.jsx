@@ -19,7 +19,7 @@ const ALLOWED_MEDIA_TYPES = [
   "video/quicktime",
 ];
 
-function StarSelector({ value, onChange, size = "text-[44px]" }) {
+function StarSelector({ value, onChange, size = "text-[36px] sm:text-[44px]" }) {
   return (
     <div className="flex gap-1">
       {[1, 2, 3, 4, 5].map((star) => (
@@ -123,7 +123,6 @@ export default function ReviewsSection({
   const [comment, setComment] = useState("");
   const [existingMedia, setExistingMedia] = useState([]);
   const [selectedMedia, setSelectedMedia] = useState([]);
-  const canWriteReview = Boolean(localStorage.getItem("token"));
 
   const myReview = useMemo(
     () => reviews.find((review) => review.isMine),
@@ -324,7 +323,11 @@ export default function ReviewsSection({
       });
 
       clearSelectedMedia();
-      setExistingMedia(getMediaItems(savedReview));
+      setExistingMedia(myReview ? getMediaItems(savedReview) : []);
+      if (!myReview) {
+        setRating(4);
+        setComment("");
+      }
       setToast({
         message: myReview ? "Đã cập nhật đánh giá." : "Đã gửi đánh giá.",
         type: "success",
@@ -445,7 +448,7 @@ export default function ReviewsSection({
       />
 
       <div className="mb-6">
-        <nav className="flex items-center gap-2 text-sm text-[#5b403e] mb-2">
+        <nav className="flex flex-wrap items-center gap-2 text-sm text-[#5b403e] mb-2">
           <span>Đánh giá</span>
           <span className="material-symbols-outlined text-[14px]">
             chevron_right
@@ -495,16 +498,15 @@ export default function ReviewsSection({
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 flex flex-col gap-8">
-          {canWriteReview ? (
             <form
               onSubmit={handleSubmit}
-              className="bg-[#f6f3f2] p-6 rounded-xl border border-[#e4beba] shadow-sm"
+              className="bg-[#f6f3f2] p-5 md:p-6 rounded-xl border border-[#e4beba] shadow-sm"
             >
               <h3 className="text-xl md:text-2xl font-semibold mb-6">
                 Trải nghiệm của bạn thế nào?
               </h3>
 
-            <div className="flex flex-col gap-8">
+            <div className="flex flex-col gap-6 md:gap-8">
               <div className="flex flex-col items-center gap-3 py-4 bg-white rounded-lg border border-[#e4beba]/60">
                 <p className="text-sm font-semibold text-[#5b403e]">
                   Đánh giá chung
@@ -517,7 +519,7 @@ export default function ReviewsSection({
                   Viết nhận xét của bạn
                 </label>
                 <textarea
-                  className="w-full p-6 border border-[#e4beba] rounded-lg focus:ring-2 focus:ring-[#b71422]/20 focus:border-[#b71422] outline-none transition-all min-h-[160px] bg-white placeholder:text-[#5b403e]/50"
+                  className="w-full p-4 md:p-6 border border-[#e4beba] rounded-lg focus:ring-2 focus:ring-[#b71422]/20 focus:border-[#b71422] outline-none transition-all min-h-[150px] md:min-h-[160px] bg-white placeholder:text-[#5b403e]/50"
                   placeholder="Chia sẻ cảm nhận về món ăn, không gian và phục vụ để giúp người khác lựa chọn tốt hơn..."
                   value={comment}
                   onChange={(event) => setComment(event.target.value)}
@@ -525,7 +527,7 @@ export default function ReviewsSection({
               </div>
             </div>
 
-            <div className="mt-6 bg-[#f0eded] p-5 rounded-xl border border-[#e4beba]">
+            <div className="mt-6 bg-[#f0eded] p-4 md:p-5 rounded-xl border border-[#e4beba]">
               <div className="flex justify-between items-center mb-4">
                 <h4 className="text-lg font-semibold">Hình ảnh & Video</h4>
                 <span className="text-xs text-[#5b403e]">
@@ -542,7 +544,7 @@ export default function ReviewsSection({
                 onChange={handleMediaFilesChange}
               />
 
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-sm">
+              <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
                 <button
                   type="button"
                   onClick={handleChooseMedia}
@@ -571,13 +573,13 @@ export default function ReviewsSection({
               <p className="mt-4 text-sm text-red-600">{errorMessage}</p>
             )}
 
-            <div className="flex flex-wrap justify-end gap-3 pt-6">
+            <div className="flex flex-col justify-end gap-3 pt-6 sm:flex-row sm:flex-wrap">
               {myReview && (
                 <button
                   type="button"
                   onClick={handleDeleteReview}
                   disabled={submitting}
-                  className="px-6 py-3 rounded-full border border-[#b71422] text-[#b71422] font-bold active:scale-95 transition-transform disabled:opacity-60"
+                  className="w-full px-6 py-3 rounded-full border border-[#b71422] text-[#b71422] font-bold active:scale-95 transition-transform disabled:opacity-60 sm:w-auto"
                 >
                   Xóa đánh giá
                 </button>
@@ -586,7 +588,7 @@ export default function ReviewsSection({
               <button
                 type="submit"
                 disabled={submitting}
-                className="bg-[#b71422] text-white px-8 py-3 rounded-full font-bold active:scale-95 transition-transform shadow-lg hover:brightness-110 flex items-center gap-2 disabled:opacity-60"
+                className="flex w-full items-center justify-center gap-2 bg-[#b71422] text-white px-8 py-3 rounded-full font-bold active:scale-95 transition-transform shadow-lg hover:brightness-110 disabled:opacity-60 sm:w-auto"
               >
                 {submitting
                   ? "Đang gửi..."
@@ -597,25 +599,6 @@ export default function ReviewsSection({
               </button>
             </div>
             </form>
-          ) : (
-            <section className="bg-[#f6f3f2] p-6 rounded-xl border border-[#e4beba] shadow-sm">
-              <div className="flex items-start gap-3">
-                <span className="material-symbols-outlined text-[#b71422]">
-                  rate_review
-                </span>
-                <div>
-                  <h3 className="text-xl font-semibold">
-                    Đánh giá đang tạm khóa cho khách
-                  </h3>
-                  <p className="text-sm text-[#5b403e] mt-2">
-                    Bạn vẫn có thể xem đánh giá của người khác. Chức năng viết
-                    đánh giá sẽ được mở lại khi PlaceGuide hoàn thiện luồng tài
-                    khoản hoặc thanh toán phù hợp cho khách.
-                  </p>
-                </div>
-              </div>
-            </section>
-          )}
 
           <div className="bg-white p-6 rounded-xl border border-[#e4beba] shadow-sm">
             <h3 className="text-xl font-semibold mb-4">Đánh giá gần đây</h3>

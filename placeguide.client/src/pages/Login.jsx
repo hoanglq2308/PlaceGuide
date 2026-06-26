@@ -68,7 +68,7 @@ function Login() {
 
 
     return (
-        <div className="bg-orange-50 text-stone-900 font-sans h-screen w-full flex items-center justify-center overflow-hidden relative">
+        <div className="relative flex min-h-screen w-full items-center justify-center overflow-y-auto bg-orange-50 px-4 py-8 font-sans text-stone-900">
                 <ToastMessage message={toast.message} type={toast.type} onClose={() => setToast({ message: '', type: 'success' })} />
             <div className="absolute inset-0 z-0">
                 <img
@@ -78,7 +78,7 @@ function Login() {
                 />
             </div>
 
-            <div className="absolute top-5 right-5 md:top-10 md:right-10 z-20">
+            <div className="absolute right-4 top-4 z-20 md:right-10 md:top-10">
                 <button className="flex items-center gap-1 text-white bg-black/50 backdrop-blur-md px-3 py-1.5 rounded-full hover:bg-black/70 transition-colors">
                     <span className="material-symbols-outlined text-[18px]">language</span>
                     <span className="text-sm font-semibold">VN | EN</span>
@@ -86,13 +86,13 @@ function Login() {
             </div>
 
             <div className="relative z-10 w-full max-w-md px-5 md:px-0">
-                <div className="bg-white/90 backdrop-blur-md shadow-[0_12px_40px_rgba(0,0,0,0.12)] rounded-xl p-10 flex flex-col items-center">
+                <div className="flex flex-col items-center rounded-xl bg-white/90 p-6 shadow-[0_12px_40px_rgba(0,0,0,0.12)] backdrop-blur-md sm:p-10">
                     <div className="flex items-center justify-center gap-3 mb-3">
                         <span className="text-[32px]">🌍</span>
                         <h1 className="text-2xl font-semibold text-black tracking-tight">VinaFood</h1>
                     </div>
 
-                    <h2 className="text-[28px] md:text-[32px] font-bold text-black mb-1 text-center">Đăng nhập VinaFood</h2>
+                    <h2 className="text-[26px] md:text-[32px] font-bold text-black mb-1 text-center">Đăng nhập VinaFood</h2>
                     <p className="text-base text-black mb-8 text-center">Khám phá hương vị Việt cùng VinaFood.</p>
 
                     <form className="w-full flex flex-col gap-5" onSubmit={handleSubmit}>

@@ -23,18 +23,18 @@ function MerchantHome() {
 
   return (
     <div className="min-h-screen bg-[#faf9f6] font-['Be_Vietnam_Pro'] text-[#1a1c1a]">
-      <header className="sticky top-0 z-40 border-b border-[#e5e1da] bg-[#faf9f6]/95 px-5 py-4 backdrop-blur md:px-16">
+      <header className="sticky top-0 z-40 border-b border-[#e5e1da] bg-[#faf9f6]/95 px-4 py-4 backdrop-blur sm:px-5 md:px-16">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4">
           <button
             type="button"
             onClick={() => navigate('/home')}
-            className="flex items-center gap-2 text-2xl font-extrabold text-[#b71422]"
+            className="flex min-w-0 items-center gap-2 text-xl font-extrabold text-[#b71422] sm:text-2xl"
           >
             <span className="material-symbols-outlined text-[28px]">restaurant</span>
-            VinaFood
+            <span className="truncate">VinaFood</span>
           </button>
 
-          <div className="flex items-center gap-3">
+          <div className="flex shrink-0 items-center gap-3">
             <div className="hidden text-right sm:block">
               <p className="text-sm font-bold">{ownerName}</p>
               <p className="text-xs text-[#6e6a66]">{ownerContact}</p>
@@ -50,7 +50,7 @@ function MerchantHome() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-7xl px-5 py-10 md:px-16 md:py-14">
+      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-5 md:px-16 md:py-14">
         <section className="grid grid-cols-1 gap-8 lg:grid-cols-[1.15fr_0.85fr] lg:items-center">
           <div className="space-y-7">
             <span className="inline-flex items-center gap-2 rounded-full border border-[#ffdda3] bg-[#fff8eb] px-3 py-1 text-xs font-bold uppercase tracking-wide text-[#7a4b00]">
@@ -59,7 +59,7 @@ function MerchantHome() {
             </span>
 
             <div className="space-y-4">
-              <h1 className="max-w-3xl text-4xl font-extrabold leading-tight text-[#1a1c1a] md:text-5xl">
+              <h1 className="max-w-3xl text-3xl font-extrabold leading-tight text-[#1a1c1a] sm:text-4xl md:text-5xl">
                 Bắt đầu đưa quán của bạn lên VinaFood.
               </h1>
               <p className="max-w-2xl text-base leading-7 text-[#5b403e] md:text-lg">
@@ -88,7 +88,7 @@ function MerchantHome() {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-[#e5e1da] bg-[#fdfcfb] p-6 shadow-sm">
+          <div className="rounded-2xl border border-[#e5e1da] bg-[#fdfcfb] p-5 shadow-sm sm:p-6">
             <h2 className="text-xl font-extrabold text-[#b71422]">Quy trình đăng ký</h2>
             <div className="mt-6 space-y-5">
               {[

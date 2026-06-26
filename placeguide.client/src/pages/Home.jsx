@@ -258,11 +258,11 @@ function Home() {
 
             {/* Top Navigation */}
             <header className="bg-white/80 backdrop-blur-lg border-b border-red-100 shadow-sm sticky top-0 z-50">
-                <div className="flex justify-between items-center w-full px-5 md:px-16 py-4 max-w-7xl mx-auto">
-                    <div className="flex items-center gap-8">
+                <div className="flex w-full max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-5 md:px-16 md:py-4 mx-auto">
+                    <div className="flex min-w-0 items-center gap-4 md:gap-8">
                         <button
                             type="button"
-                            className="text-2xl font-extrabold text-red-700 tracking-tight"
+                            className="truncate text-xl font-extrabold tracking-tight text-red-700 sm:text-2xl"
                         >
                             VinaFood
                         </button>
@@ -291,10 +291,10 @@ function Home() {
                         </nav>
                     </div>
 
-                    <div className="flex items-center gap-4">
+                    <div className="flex shrink-0 items-center gap-2 sm:gap-4">
                         <LanguageSelector className="border-0 px-0 py-0" />
 
-                        <div className="h-6 w-[1px] bg-gray-300 mx-2"></div>
+                        <div className="hidden h-6 w-[1px] bg-gray-300 sm:block"></div>
 
                         <button
                             type="button"
@@ -312,10 +312,10 @@ function Home() {
                 </div>
             </header>
 
-            <main className="max-w-7xl mx-auto px-5 md:px-16 py-12 space-y-12 pb-32">
+            <main className="max-w-7xl mx-auto px-4 sm:px-5 md:px-16 py-6 md:py-12 space-y-8 md:space-y-12 pb-32">
                 {/* Hero Section */}
                 <section
-                    className="relative rounded-xl overflow-hidden min-h-[400px] flex items-end p-8 shadow-[0_4px_20px_rgba(183,20,34,0.08)] bg-cover bg-center"
+                    className="relative rounded-xl overflow-hidden min-h-[320px] md:min-h-[400px] flex items-end p-5 md:p-8 shadow-[0_4px_20px_rgba(183,20,34,0.08)] bg-cover bg-center"
                     style={{
                         backgroundImage:
                             "linear-gradient(to top, rgba(0,0,0,0.8), transparent), url('https://lh3.googleusercontent.com/aida-public/AB6AXuByjIfEYdslsm-OiE_ozY8C_2zqY0_1oRkcNkir91gy8A9a-sMyYDKG-br3yx1JXHpXglt1wSlt6hf6q1zORbecsNQVHiDK_Dwf2W5MquXIZkxmB5aL7QaDO5xWE7kmBjCWzXmhJxmwBp59ykLCSS8YdAeklNw_uso-roW_eJdS_G1yT7_H2zXBuNcmsWKQolKvMkZR5Jwmb4kXjp2GvFUkKfIBfIUhPlHoCJGUvAj-xib_XVwfQxa1wSTuD58dbrLhgGm2X0kMxtGq')",
@@ -323,25 +323,25 @@ function Home() {
                 >
                     <div className="w-full max-w-2xl space-y-6">
                         <div className="space-y-3">
-                            <h1 className="text-4xl md:text-5xl font-extrabold text-white">
+                            <h1 className="text-3xl md:text-5xl font-extrabold leading-tight text-white">
                                 {t('title')}{' '}
                                 <span className="text-red-300">
                                     {t('titleHighlight')}
                                 </span>
                             </h1>
 
-                            <p className="text-lg text-white/90">
+                            <p className="text-base md:text-lg text-white/90">
                                 {t('subtitle')}
                             </p>
                         </div>
 
-                        <div className="bg-white p-4 rounded-xl flex flex-col md:flex-row items-center gap-4 shadow-lg">
-                            <div className="flex items-center gap-3 flex-1">
+                        <div className="bg-white p-3 md:p-4 rounded-xl flex flex-col md:flex-row items-stretch md:items-center gap-3 md:gap-4 shadow-lg">
+                            <div className="flex min-w-0 flex-1 items-start gap-3 md:items-center">
                                 <span className="material-symbols-outlined text-red-700">
                                     location_on
                                 </span>
 
-                                <p className="text-base font-semibold">
+                                <p className="min-w-0 break-words text-sm font-semibold md:text-base">
                                     {t('currentLocation')}{' '}
                                     <span className="text-red-700">
                                         {locationText}
@@ -369,7 +369,7 @@ function Home() {
                 </section>
 
                 {/* Search & Filter */}
-                <section className="sticky top-[72px] z-40 bg-[#fcf9f8]/90 backdrop-blur-md py-4 space-y-4">
+                <section className="sticky top-[60px] z-40 bg-[#fcf9f8]/90 backdrop-blur-md py-3 md:top-[72px] md:py-4 space-y-3 md:space-y-4">
                     <div className="flex flex-col md:flex-row gap-4">
                         <div className="relative flex-1 group">
                             <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-red-700 transition-colors">
@@ -377,7 +377,7 @@ function Home() {
                             </span>
 
                             <input
-                                className="w-full pl-12 pr-4 py-4 rounded-full border border-gray-200 focus:ring-2 focus:ring-red-700/20 focus:border-red-700 outline-none text-base shadow-[0_4px_20px_rgba(183,20,34,0.08)] bg-white transition-all"
+                                className="w-full pl-12 pr-4 py-3 md:py-4 rounded-full border border-gray-200 focus:ring-2 focus:ring-red-700/20 focus:border-red-700 outline-none text-base shadow-[0_4px_20px_rgba(183,20,34,0.08)] bg-white transition-all"
                                 placeholder={t('search')}
                                 type="text"
                                 value={searchText}
@@ -478,7 +478,7 @@ function Home() {
 
                 {/* Nearby Restaurants */}
                 <section className="space-y-6">
-                    <div className="flex justify-between items-end">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
                         <h2 className="text-2xl font-bold text-stone-900">
                             {t('nearby')}
                         </h2>
@@ -488,7 +488,7 @@ function Home() {
                         </button>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-5 lg:grid-cols-3">
                         {paginatedRestaurants.map((restaurant) => (
                             <RestaurantCard
                                 key={restaurant.id}
@@ -540,14 +540,14 @@ function Home() {
                 </section>
 
                 {/* Story & Culture */}
-                <section className="grid grid-cols-1 md:grid-cols-3 gap-5 mt-12">
-                    <div className="md:col-span-2 bg-green-700 rounded-xl p-8 text-white relative overflow-hidden shadow-[0_4px_20px_rgba(183,20,34,0.08)]">
+                <section className="grid grid-cols-1 md:grid-cols-3 gap-5 mt-8 md:mt-12">
+                    <div className="md:col-span-2 bg-green-700 rounded-xl p-5 md:p-8 text-white relative overflow-hidden shadow-[0_4px_20px_rgba(183,20,34,0.08)]">
                         <div className="relative z-10 space-y-4">
                             <span className="bg-white/20 px-3 py-1 rounded-full text-xs uppercase tracking-widest font-bold">
                                 Podcast Ẩm Thực
                             </span>
 
-                            <h3 className="text-3xl font-bold">
+                            <h3 className="text-2xl md:text-3xl font-bold">
                                 Chuyện Cũ Hà Nội:
                                 <br />
                                 Hương Phở Qua Từng Thế Hệ
@@ -586,7 +586,7 @@ function Home() {
                         </span>
                     </div>
 
-                    <div className="bg-white rounded-xl p-8 flex flex-col justify-center items-center text-center space-y-4 border border-gray-200 shadow-[0_4px_20px_rgba(183,20,34,0.08)]">
+                    <div className="bg-white rounded-xl p-5 md:p-8 flex flex-col justify-center items-center text-center space-y-4 border border-gray-200 shadow-[0_4px_20px_rgba(183,20,34,0.08)]">
                         <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center">
                             <span className="material-symbols-outlined text-red-700 text-[32px]">
                                 map
@@ -622,7 +622,7 @@ function Home() {
             </button>
 
             {/* Mobile Bottom Navigation */}
-            <nav className="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pb-4 pt-2 bg-white shadow-lg md:hidden rounded-t-xl">
+            <nav className="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pt-2 bg-white shadow-lg md:hidden rounded-t-xl">
                 <button className="flex flex-col items-center justify-center bg-red-100 text-red-700 rounded-xl px-4 py-1 scale-90">
                     <span className="material-symbols-outlined">explore</span>
                     <span className="text-xs font-semibold">Explore</span>

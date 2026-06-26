@@ -374,12 +374,12 @@ function RestaurantDetail() {
             />
 
             <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-lg border-b border-red-100 shadow-sm">
-                <div className="max-w-7xl mx-auto px-5 md:px-16 py-4 flex justify-between items-center">
-                    <div className="flex items-center gap-4">
+                <div className="max-w-7xl mx-auto flex items-center justify-between gap-3 px-4 py-3 sm:px-5 md:px-16 md:py-4">
+                    <div className="flex min-w-0 items-center gap-2 sm:gap-4">
                         <button
                             type="button"
                             onClick={handleGoBack}
-                            className="flex items-center gap-1 text-gray-600 hover:text-red-700 transition-colors text-sm font-semibold"
+                            className="flex shrink-0 items-center gap-1 text-sm font-semibold text-gray-600 transition-colors hover:text-red-700"
                         >
                             <span className="material-symbols-outlined">
                                 arrow_back
@@ -392,13 +392,13 @@ function RestaurantDetail() {
                         <button
                             type="button"
                             onClick={() => navigate('/home')}
-                            className="text-2xl font-extrabold text-red-700 tracking-tight"
+                            className="hidden truncate text-2xl font-extrabold tracking-tight text-red-700 sm:block"
                         >
                             VinaFood
                         </button>
                     </div>
 
-                    <div className="flex items-center gap-3">
+                    <div className="flex shrink-0 items-center gap-2 sm:gap-3">
                         <LanguageSelector />
 
                         <span className="material-symbols-outlined hidden md:inline text-gray-500 text-[28px]">
@@ -408,15 +408,15 @@ function RestaurantDetail() {
                 </div>
             </header>
 
-            <main className="max-w-7xl mx-auto px-5 md:px-16 py-4 md:py-8">
-                <section className="relative w-full h-[400px] md:h-[520px] rounded-xl overflow-hidden mb-8 shadow-[0_4px_20px_rgba(183,20,34,0.08)]">
+            <main className="max-w-7xl mx-auto px-4 sm:px-5 md:px-16 py-4 md:py-8">
+                <section className="relative w-full h-[340px] sm:h-[400px] md:h-[520px] rounded-xl overflow-hidden mb-6 md:mb-8 shadow-[0_4px_20px_rgba(183,20,34,0.08)]">
                     <img
                         className="w-full h-full object-cover"
                         src={displayRestaurant.image}
                         alt={displayRestaurant.name}
                     />
 
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent flex flex-col justify-end p-6 md:p-10">
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent flex flex-col justify-end p-5 md:p-10">
                         <div className="flex flex-wrap gap-3 mb-4">
                             <span
                                 className={`px-3 py-1 rounded-full text-sm font-semibold flex items-center gap-2 ${
@@ -454,11 +454,11 @@ function RestaurantDetail() {
                             </span>
                         </div>
 
-                        <h1 className="text-white text-4xl md:text-5xl font-extrabold mb-4">
+                        <h1 className="mb-3 break-words text-3xl font-extrabold leading-tight text-white sm:text-4xl md:mb-4 md:text-5xl">
                             {displayRestaurant.name}
                         </h1>
 
-                        <div className="flex flex-wrap items-center gap-5 text-white/90 text-sm font-semibold">
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm font-semibold text-white/90 md:gap-5">
                             <span className="flex items-center gap-1">
                                 <span className="material-symbols-outlined text-red-300">
                                     star
@@ -491,13 +491,13 @@ function RestaurantDetail() {
                     </div>
                 </section>
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8 mb-20">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8 mb-12 md:mb-20">
                     <div className="lg:col-span-2 space-y-6">
-                        <div className="grid grid-cols-3 gap-3">
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                             <button
                                 type="button"
                                 onClick={handleSpeak}
-                                className="flex flex-col items-center justify-center p-5 bg-red-100 text-red-950 rounded-xl shadow-[0_4px_20px_rgba(183,20,34,0.08)] hover:scale-[0.98] transition-transform"
+                                className="flex flex-row items-center justify-center gap-2 rounded-xl bg-red-100 p-4 text-red-950 shadow-[0_4px_20px_rgba(183,20,34,0.08)] transition-transform hover:scale-[0.98] sm:flex-col sm:gap-0 sm:p-5"
                             >
                                 <span className="material-symbols-outlined mb-1">
                                     volume_up
@@ -511,7 +511,7 @@ function RestaurantDetail() {
                                 type="button"
                                 onClick={handleDirections}
                                 disabled={!hasCoordinates(displayRestaurant)}
-                                className="flex flex-col items-center justify-center p-5 bg-white border border-gray-200 text-stone-900 rounded-xl hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
+                                className="flex flex-row items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white p-4 text-stone-900 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 sm:flex-col sm:gap-0 sm:p-5"
                             >
                                 <span className="material-symbols-outlined mb-1">
                                     directions
@@ -525,7 +525,7 @@ function RestaurantDetail() {
                                 type="button"
                                 onClick={handleSave}
                                 disabled={isSavingFavorite}
-                                className={`flex flex-col items-center justify-center p-5 rounded-xl border transition-colors ${
+                                className={`flex flex-row items-center justify-center gap-2 rounded-xl border p-4 transition-colors sm:flex-col sm:gap-0 sm:p-5 ${
                                     isFavorite
                                         ? 'bg-green-50 border-green-100 text-green-800'
                                         : 'bg-white border-gray-200 text-stone-900 hover:bg-gray-50'
@@ -544,7 +544,7 @@ function RestaurantDetail() {
                             </button>
                         </div>
 
-                        <section className="bg-white p-6 md:p-8 rounded-xl shadow-[0_4px_20px_rgba(183,20,34,0.08)] border border-red-100/60">
+                        <section className="bg-white p-5 md:p-8 rounded-xl shadow-[0_4px_20px_rgba(183,20,34,0.08)] border border-red-100/60">
                             <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
                                 <span className="material-symbols-outlined text-red-700">
                                     info
@@ -603,7 +603,7 @@ function RestaurantDetail() {
                             </div>
                         </section>
 
-                        <section className="bg-red-50 p-6 md:p-8 rounded-xl border border-red-100 relative overflow-hidden">
+                        <section className="bg-red-50 p-5 md:p-8 rounded-xl border border-red-100 relative overflow-hidden">
                             <div className="absolute top-0 left-0 w-1.5 h-full bg-red-700"></div>
 
                             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
@@ -703,11 +703,11 @@ function RestaurantDetail() {
 
                                                     <div className="p-4 space-y-4">
                                                         <div>
-                                                            <div className="flex items-start justify-between gap-3">
+                                                            <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
                                                                 <h3 className="text-lg font-bold text-stone-900 leading-tight">
                                                                     {dish.name}
                                                                 </h3>
-                                                                <span className="text-sm font-extrabold text-red-700 whitespace-nowrap">
+                                                                <span className="text-sm font-extrabold text-red-700 sm:whitespace-nowrap">
                                                                     {formatDishPrice(
                                                                         dish.price,
                                                                         language,
@@ -771,7 +771,7 @@ function RestaurantDetail() {
                     </div>
 
                     <aside className="space-y-6">
-                        <section className="bg-green-50 p-6 rounded-xl border border-green-100">
+                        <section className="bg-green-50 p-5 md:p-6 rounded-xl border border-green-100">
                             <div className="flex items-center gap-2 mb-3 text-green-800">
                                 <span className="material-symbols-outlined">
                                     menu_book
@@ -796,7 +796,7 @@ function RestaurantDetail() {
                             </div>
                         </section>
 
-                        <section className="bg-red-700 p-6 rounded-xl text-white">
+                        <section className="bg-red-700 p-5 md:p-6 rounded-xl text-white">
                             <span className="text-[10px] font-bold uppercase tracking-widest bg-white/20 px-2 py-1 rounded mb-3 inline-block">
                                 {t('localTip')}
                             </span>
@@ -817,7 +817,7 @@ function RestaurantDetail() {
                             </div>
                         </section>
 
-                        <section className="bg-white p-6 rounded-xl shadow-[0_4px_20px_rgba(183,20,34,0.08)] border border-red-100/60">
+                        <section className="bg-white p-5 md:p-6 rounded-xl shadow-[0_4px_20px_rgba(183,20,34,0.08)] border border-red-100/60">
                             <h3 className="text-lg font-bold mb-3">
                                 {t('restaurantLocation')}
                             </h3>

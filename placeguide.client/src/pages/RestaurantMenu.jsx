@@ -174,17 +174,17 @@ function RestaurantMenu() {
             />
 
             <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-lg border-b border-red-100 shadow-sm">
-                <div className="max-w-7xl mx-auto px-5 md:px-16 py-4 flex justify-between items-center">
-                    <div className="flex items-center gap-4">
+                <div className="max-w-7xl mx-auto flex items-center justify-between gap-3 px-4 py-3 sm:px-5 md:px-16 md:py-4">
+                    <div className="flex min-w-0 items-center gap-2 sm:gap-4">
                         <button
                             type="button"
                             onClick={() => navigate(`/restaurants/${id}`)}
-                            className="flex items-center gap-1 text-gray-600 hover:text-red-700 transition-colors text-sm font-semibold"
+                            className="flex shrink-0 items-center gap-1 text-sm font-semibold text-gray-600 transition-colors hover:text-red-700"
                         >
                             <span className="material-symbols-outlined">
                                 arrow_back
                             </span>
-                            <span>Chi tiết quán</span>
+                            <span className="hidden sm:inline">Chi tiết quán</span>
                         </button>
 
                         <div className="hidden md:block h-6 w-[1px] bg-gray-200"></div>
@@ -192,19 +192,19 @@ function RestaurantMenu() {
                         <button
                             type="button"
                             onClick={() => navigate('/home')}
-                            className="text-2xl font-extrabold text-red-700 tracking-tight"
+                            className="truncate text-xl font-extrabold tracking-tight text-red-700 sm:text-2xl"
                         >
                             VinaFood
                         </button>
                     </div>
 
-                    <LanguageSelector />
+                    <LanguageSelector className="shrink-0" />
                 </div>
             </header>
 
-            <main className="max-w-7xl mx-auto px-5 md:px-16 py-8 pb-24 space-y-8">
+            <main className="max-w-7xl mx-auto px-4 sm:px-5 md:px-16 py-6 md:py-8 pb-24 space-y-8">
                 {isLoading && (
-                    <section className="bg-white rounded-xl border border-red-100 shadow-[0_4px_20px_rgba(183,20,34,0.08)] p-8 text-center">
+                    <section className="bg-white rounded-xl border border-red-100 shadow-[0_4px_20px_rgba(183,20,34,0.08)] p-6 md:p-8 text-center">
                         <span className="material-symbols-outlined text-red-700 text-[40px] animate-pulse">
                             restaurant_menu
                         </span>
@@ -215,7 +215,7 @@ function RestaurantMenu() {
                 )}
 
                 {!isLoading && error && (
-                    <section className="bg-white rounded-xl border border-red-100 shadow-[0_4px_20px_rgba(183,20,34,0.08)] p-8 text-center space-y-4">
+                    <section className="bg-white rounded-xl border border-red-100 shadow-[0_4px_20px_rgba(183,20,34,0.08)] p-6 md:p-8 text-center space-y-4">
                         <span className="material-symbols-outlined text-red-700 text-[44px]">
                             error
                         </span>
@@ -233,13 +233,13 @@ function RestaurantMenu() {
                 {!isLoading && !error && (
                     <>
                         <section className="bg-white rounded-xl overflow-hidden border border-red-100 shadow-[0_4px_20px_rgba(183,20,34,0.08)]">
-                            <div className="h-64 md:h-80 relative">
+                            <div className="h-56 md:h-80 relative">
                                 <img
                                     className="w-full h-full object-cover"
                                     src={displayRestaurant.image}
                                     alt={displayRestaurant.name}
                                 />
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex items-end p-6 md:p-8">
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex items-end p-5 md:p-8">
                                     <div className="text-white space-y-2">
                                         <span className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
                                             <span className="material-symbols-outlined text-[16px]">
@@ -247,7 +247,7 @@ function RestaurantMenu() {
                                             </span>
                                             Menu
                                         </span>
-                                        <h1 className="text-3xl md:text-5xl font-extrabold">
+                                        <h1 className="break-words text-2xl font-extrabold leading-tight md:text-5xl">
                                             {displayRestaurant.name}
                                         </h1>
                                         <p className="text-sm md:text-base text-white/85">
@@ -269,7 +269,7 @@ function RestaurantMenu() {
                         </section>
 
                         {dishes.length === 0 ? (
-                            <section className="bg-white rounded-xl border border-red-100 shadow-[0_4px_20px_rgba(183,20,34,0.08)] p-10 text-center">
+                            <section className="bg-white rounded-xl border border-red-100 shadow-[0_4px_20px_rgba(183,20,34,0.08)] p-6 md:p-10 text-center">
                                 <span className="material-symbols-outlined text-red-700 text-[44px]">
                                     menu_book
                                 </span>
@@ -305,11 +305,11 @@ function RestaurantMenu() {
 
                                             <div className="p-5 space-y-4">
                                                 <div>
-                                                    <div className="flex items-start justify-between gap-3">
+                                                    <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
                                                         <h2 className="text-xl font-bold text-stone-900 leading-tight">
                                                             {dish.name}
                                                         </h2>
-                                                        <span className="text-sm font-extrabold text-red-700 whitespace-nowrap">
+                                                        <span className="text-sm font-extrabold text-red-700 sm:whitespace-nowrap">
                                                             {formatDishPrice(
                                                                 dish.price
                                                             )}

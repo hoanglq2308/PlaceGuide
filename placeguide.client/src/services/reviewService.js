@@ -8,26 +8,6 @@ function getApiUrl(path) {
   return `${API_URL}${path}`;
 }
 
-function getAuthToken() {
-  return (
-    localStorage.getItem("token") ||
-    localStorage.getItem("authToken") ||
-    localStorage.getItem("accessToken")
-  );
-}
-
-function getAuthHeaders() {
-  const token = getAuthToken();
-
-  if (!token) {
-    return {};
-  }
-
-  return {
-    Authorization: `Bearer ${token}`,
-  };
-}
-
 function buildReviewFormData(reviewData) {
   const formData = new FormData();
 
@@ -69,9 +49,6 @@ async function handleResponse(response) {
 export async function getReviews(restaurantId) {
   const response = await fetch(getApiUrl(`/restaurants/${restaurantId}/reviews`), {
     method: "GET",
-    headers: {
-      ...getAuthHeaders(),
-    },
   });
 
   return handleResponse(response);
@@ -80,9 +57,6 @@ export async function getReviews(restaurantId) {
 export async function createReview(restaurantId, reviewData) {
   const response = await fetch(getApiUrl(`/restaurants/${restaurantId}/reviews`), {
     method: "POST",
-    headers: {
-      ...getAuthHeaders(),
-    },
     body: buildReviewFormData(reviewData),
   });
 
@@ -94,9 +68,6 @@ export async function updateReview(restaurantId, reviewId, reviewData) {
     getApiUrl(`/restaurants/${restaurantId}/reviews/${reviewId}`),
     {
       method: "PUT",
-      headers: {
-        ...getAuthHeaders(),
-      },
       body: buildReviewFormData(reviewData),
     }
   );
@@ -109,9 +80,6 @@ export async function deleteReview(restaurantId, reviewId) {
     getApiUrl(`/restaurants/${restaurantId}/reviews/${reviewId}`),
     {
       method: "DELETE",
-      headers: {
-        ...getAuthHeaders(),
-      },
     }
   );
 

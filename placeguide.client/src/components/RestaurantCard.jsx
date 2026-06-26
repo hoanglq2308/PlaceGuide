@@ -16,7 +16,7 @@ function RestaurantCard({ restaurant, language, onSpeak }) {
 
     return (
         <article className="group bg-white rounded-xl overflow-hidden border border-gray-200 shadow-[0_4px_20px_rgba(183,20,34,0.08)] transition-transform hover:-translate-y-1">
-            <div className="relative h-56 overflow-hidden">
+            <div className="relative h-48 overflow-hidden sm:h-56">
                 <img
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                     src={restaurant.image}
@@ -25,21 +25,21 @@ function RestaurantCard({ restaurant, language, onSpeak }) {
                     decoding="async"
                 />
 
-                <div className="absolute top-4 right-4 bg-green-700 text-white px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1 shadow-lg">
+                <div className="absolute right-3 top-3 flex max-w-[calc(100%-1.5rem)] items-center gap-1 rounded-full bg-green-700 px-3 py-1 text-xs font-semibold text-white shadow-lg">
                     <span className="material-symbols-outlined text-[14px]">
                         bolt
                     </span>
-                    {restaurant.badge}
+                    <span className="truncate">{restaurant.badge}</span>
                 </div>
             </div>
 
-            <div className="p-5 space-y-4">
+            <div className="p-4 space-y-4 sm:p-5">
                 <div className="space-y-1">
-                    <h3 className="text-2xl font-bold text-stone-900">
+                    <h3 className="break-words text-xl font-bold leading-tight text-stone-900 sm:text-2xl">
                         {restaurant.name}
                     </h3>
 
-                    <div className="flex flex-wrap items-center gap-4 text-gray-600 text-xs font-medium">
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-gray-600 text-xs font-medium">
                         <span className="flex items-center gap-1">
                             <span className="material-symbols-outlined text-[16px]">
                                 distance
@@ -75,7 +75,7 @@ function RestaurantCard({ restaurant, language, onSpeak }) {
                 </div>
 
                 <div className="space-y-2">
-                    <p className="text-base text-gray-600 line-clamp-1">
+                    <p className="text-sm text-gray-600 line-clamp-2 sm:text-base">
                         <span className="font-bold text-stone-900">
                             {t('highlights')}
                         </span>{' '}
@@ -98,18 +98,18 @@ function RestaurantCard({ restaurant, language, onSpeak }) {
                     <button
                         type="button"
                         onClick={() => onSpeak(restaurant)}
-                        className="flex-1 bg-red-700 text-white py-3 rounded-lg font-bold flex items-center justify-center gap-2 hover:bg-red-800 transition-all text-sm"
+                        className="flex min-w-0 flex-1 items-center justify-center gap-2 rounded-lg bg-red-700 py-3 text-sm font-bold text-white transition-all hover:bg-red-800"
                     >
                         <span className="material-symbols-outlined text-[20px]">
                             volume_up
                         </span>
-                        {t('listen')}
+                        <span className="truncate">{t('listen')}</span>
                     </button>
 
                     <button
                         type="button"
                         onClick={handleViewDetails}
-                        className="px-4 border border-gray-300 text-gray-600 rounded-lg hover:bg-gray-100 transition-all"
+                        className="flex shrink-0 items-center justify-center rounded-lg border border-gray-300 px-4 text-gray-600 transition-all hover:bg-gray-100"
                     >
                         <span className="material-symbols-outlined">
                             visibility

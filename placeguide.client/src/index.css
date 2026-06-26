@@ -1,5 +1,27 @@
 @import "tailwindcss";
 
+html,
+body,
+#root {
+    min-width: 0;
+    max-width: 100%;
+}
+
+body {
+    overflow-x: hidden;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+img,
+video,
+canvas,
+svg {
+    max-width: 100%;
+}
+
 /* CẤU HÌNH HỆ MÀU CUSTOM CHO TAILWIND V4 NẰM Ở ĐÂY */
 @theme {
   --color-primary: #af101a;

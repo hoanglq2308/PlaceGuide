@@ -31,12 +31,9 @@ function clearAudioPassToken(){
 function getAuthHeaders(){
     const headers = {};
     const audioPassToken = getStoreAudioPassToken();
-    const authToken = localStorage.getItem('token');
     if(audioPassToken){
         headers['X-Premium-Pass']= audioPassToken;
     }
-    if(authToken){
-        headers.Authorization = `Bearer ${authToken}`;}
     return headers;
 }
 function getErrorMessage(result) {

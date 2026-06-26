@@ -8,17 +8,6 @@ function getApiUrl(path) {
     return `${API_URL}${path}`;
 }
 
-function getAuthHeaders() {
-    const token = localStorage.getItem('token');
-    const headers = {};
-
-    if (token) {
-        headers.Authorization = `Bearer ${token}`;
-    }
-
-    return headers;
-}
-
 function flattenValidationErrors(errors) {
     if (!errors) return [];
 
@@ -76,10 +65,7 @@ export async function getDishesByRestaurantId(restaurantId) {
     }
 
     const response = await fetch(
-        getApiUrl(`/restaurants/${encodeURIComponent(restaurantId)}/dishes`),
-        {
-            headers: getAuthHeaders(),
-        }
+        getApiUrl(`/restaurants/${encodeURIComponent(restaurantId)}/dishes`)
     );
 
     const dishes = await handleResponse(response);

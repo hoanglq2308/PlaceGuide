@@ -422,8 +422,8 @@ function AdminRestaurants() {
           </div>
         </header>
 
-        <div className="mx-auto w-full max-w-[1440px] space-y-6 p-5 lg:p-8">
-          <section className="grid grid-cols-2 gap-4 lg:grid-cols-5">
+        <div className="mx-auto w-full max-w-[1440px] space-y-6 p-4 sm:p-5 lg:p-8">
+          <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
             <StatCard
               icon="storefront"
               label="Tổng nhà hàng"
@@ -456,10 +456,10 @@ function AdminRestaurants() {
           </section>
 
           <section className="flex flex-col gap-4 rounded-lg border border-[#e5e1da] bg-[#f4f3f1] p-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
               <button
                 type="button"
-                className="inline-flex items-center gap-2 rounded-lg border border-[#e5e1da] bg-white px-4 py-2 text-sm font-bold text-[#1a1c1a]"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-[#e5e1da] bg-white px-4 py-2 text-sm font-bold text-[#1a1c1a] sm:w-auto"
               >
                 <span className="material-symbols-outlined text-[18px]">filter_list</span>
                 Lọc
@@ -468,7 +468,7 @@ function AdminRestaurants() {
               <select
                 value={statusFilter}
                 onChange={(event) => setStatusFilter(event.target.value)}
-                className="h-10 rounded-lg border border-[#e5e1da] bg-white px-3 text-sm font-medium outline-none focus:border-[#b71422]"
+                className="h-10 w-full rounded-lg border border-[#e5e1da] bg-white px-3 text-sm font-medium outline-none focus:border-[#b71422] sm:w-auto"
               >
                 {STATUS_OPTIONS.map((option) => (
                   <option key={option.value} value={option.value}>
@@ -480,7 +480,7 @@ function AdminRestaurants() {
               <select
                 value={districtFilter}
                 onChange={(event) => setDistrictFilter(event.target.value)}
-                className="h-10 rounded-lg border border-[#e5e1da] bg-white px-3 text-sm font-medium outline-none focus:border-[#b71422]"
+                className="h-10 w-full rounded-lg border border-[#e5e1da] bg-white px-3 text-sm font-medium outline-none focus:border-[#b71422] sm:w-auto"
               >
                 <option value="all">Khu vực: Tất cả</option>
                 {(restaurantsData.districts || []).map((district) => (
@@ -496,7 +496,7 @@ function AdminRestaurants() {
                 type="button"
                 disabled
                 title="Xuất báo cáo sẽ được bổ sung sau"
-                className="inline-flex items-center gap-2 rounded-lg border border-[#e5e1da] bg-white px-4 py-2 text-sm font-bold text-[#8f6f6d] disabled:cursor-not-allowed disabled:opacity-70"
+                className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg border border-[#e5e1da] bg-white px-4 py-2 text-sm font-bold text-[#8f6f6d] disabled:cursor-not-allowed disabled:opacity-70 sm:flex-none"
               >
                 <span className="material-symbols-outlined text-[18px]">download</span>
                 Xuất báo cáo
@@ -712,16 +712,16 @@ function AdminRestaurants() {
       <div className={`fixed inset-0 z-[60] transition ${isPanelOpen ? 'pointer-events-auto bg-black/20 opacity-100' : 'pointer-events-none bg-transparent opacity-0'}`}>
         <button type="button" aria-label="Đóng panel" onClick={closePanel} className="absolute inset-0 h-full w-full cursor-default" />
         <aside className={`absolute right-0 top-0 flex h-full w-full max-w-[500px] flex-col border-l border-[#e5e1da] bg-[#faf9f6] shadow-2xl transition-transform duration-300 ${isPanelOpen ? 'translate-x-0' : 'translate-x-full'}`}>
-          <header className="flex items-start justify-between gap-4 border-b border-[#e5e1da] bg-[#fdfcfb] p-5">
+          <header className="flex items-start justify-between gap-3 border-b border-[#e5e1da] bg-[#fdfcfb] p-4 sm:gap-4 sm:p-5">
             {selectedRestaurant ? (
-              <div className="flex min-w-0 items-start gap-4">
+              <div className="flex min-w-0 items-start gap-3 sm:gap-4">
                 <img
                   src={selectedRestaurant.imageUrl || FALLBACK_IMAGE}
                   alt={selectedRestaurant.name}
-                  className="h-16 w-16 rounded-lg border border-[#e4beba] object-cover"
+                  className="h-14 w-14 shrink-0 rounded-lg border border-[#e4beba] object-cover sm:h-16 sm:w-16"
                 />
                 <div className="min-w-0">
-                  <h2 className="text-lg font-bold text-[#1a1a1a]">{selectedRestaurant.name}</h2>
+                  <h2 className="break-words text-base font-bold text-[#1a1a1a] sm:text-lg">{selectedRestaurant.name}</h2>
                   <div className="mt-2 flex flex-wrap gap-2">
                     <StatusBadge presentation={getProfilePresentation(selectedRestaurant)} />
                     <StatusBadge presentation={getOpenPresentation(selectedRestaurant.isOpen)} />
@@ -741,7 +741,7 @@ function AdminRestaurants() {
             </button>
           </header>
 
-          <div className="flex-1 overflow-y-auto p-5">
+          <div className="flex-1 overflow-y-auto p-4 sm:p-5">
             {isDetailLoading ? (
               <div className="space-y-5">
                 <div className="h-5 animate-pulse rounded bg-[#efeeeb]" />
@@ -772,17 +772,17 @@ function AdminRestaurants() {
                     Thông tin chung
                   </h3>
                   <div className="mt-4 space-y-3 text-sm">
-                    <p className="flex gap-2">
+                    <p className="flex min-w-0 gap-2">
                       <span className="material-symbols-outlined text-[18px] text-[#6e6a66]">location_on</span>
-                      <span>{selectedRestaurant.address || 'Chưa có địa chỉ'}</span>
+                      <span className="min-w-0 break-words">{selectedRestaurant.address || 'Chưa có địa chỉ'}</span>
                     </p>
-                    <p className="flex gap-2">
+                    <p className="flex min-w-0 gap-2">
                       <span className="material-symbols-outlined text-[18px] text-[#6e6a66]">person</span>
-                      <span>{selectedRestaurant.ownerName} {selectedRestaurant.phoneNumber ? `(${selectedRestaurant.phoneNumber})` : ''}</span>
+                      <span className="min-w-0 break-words">{selectedRestaurant.ownerName} {selectedRestaurant.phoneNumber ? `(${selectedRestaurant.phoneNumber})` : ''}</span>
                     </p>
-                    <p className="flex gap-2">
+                    <p className="flex min-w-0 gap-2">
                       <span className="material-symbols-outlined text-[18px] text-[#6e6a66]">mail</span>
-                      <span>{selectedRestaurant.ownerEmail || 'Chưa có email'}</span>
+                      <span className="min-w-0 break-all">{selectedRestaurant.ownerEmail || 'Chưa có email'}</span>
                     </p>
                     <p className="flex gap-2">
                       <span className="material-symbols-outlined text-[18px] text-[#6e6a66]">calendar_today</span>

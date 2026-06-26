@@ -38,8 +38,6 @@ namespace PlaceGuide.Server.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<ReviewsResponseDto>>> GetReviews(Guid restaurantId)
         {
-            var currentUserId = GetCurrentUserIdOrNull();
-
             var restaurantExists = await _context.Restaurants
                 .AnyAsync(restaurant =>
                     restaurant.Id == restaurantId &&
@@ -59,17 +57,15 @@ namespace PlaceGuide.Server.Controllers
                 .OrderByDescending(review => review.CreatedAt)
                 .ToListAsync();
 
-            return Ok(reviews.Select(review => ToResponse(review, currentUserId)));
+            return Ok(reviews.Select(review => ToResponse(review)));
         }
 
         [HttpPost]
-        [Authorize]
         [Consumes("multipart/form-data")]
         public async Task<ActionResult<ReviewsResponseDto>> CreateReview(
             Guid restaurantId,
             [FromForm] CreateReviewDto model)
         {
-            var userId = GetCurrentUserId();
             var mediaFiles = model.MediaFiles ?? new List<IFormFile>();
             var validationError = ValidateMediaFiles(mediaFiles, 0);
 
@@ -89,20 +85,10 @@ namespace PlaceGuide.Server.Controllers
                 return NotFound(new { Message = "Không tìm thấy quán ăn!" });
             }
 
-            var existingReview = await _context.Reviews
-                .FirstOrDefaultAsync(review =>
-                    review.RestaurantId == restaurantId &&
-                    review.UserId == userId);
-
-            if (existingReview != null)
-            {
-                return BadRequest(new { Message = "Bạn đã đánh giá quán này rồi. Hãy sửa đánh giá hiện có." });
-            }
-
             var review = new Review
             {
                 RestaurantId = restaurantId,
-                UserId = userId,
+                UserId = null,
                 Rating = model.Rating,
                 Comment = model.Comment.Trim(),
                 CreatedAt = DateTime.UtcNow,
@@ -122,7 +108,7 @@ namespace PlaceGuide.Server.Controllers
                 .Include(item => item.MediaItems)
                 .FirstAsync(item => item.Id == review.Id);
 
-            return Ok(ToResponse(createdReview, userId));
+            return Ok(ToResponse(createdReview));
         }
 
         [HttpPut("{reviewId:guid}")]
@@ -184,7 +170,7 @@ namespace PlaceGuide.Server.Controllers
                 .Include(item => item.MediaItems)
                 .FirstAsync(item => item.Id == review.Id);
 
-            return Ok(ToResponse(updatedReview, userId));
+            return Ok(ToResponse(updatedReview));
         }
 
         [HttpDelete("{reviewId:guid}")]
@@ -318,28 +304,19 @@ namespace PlaceGuide.Server.Controllers
             return userId;
         }
 
-        private long? GetCurrentUserIdOrNull()
-        {
-            var userIdValue = User.FindFirstValue(ClaimTypes.NameIdentifier);
-
-            return long.TryParse(userIdValue, out var userId)
-                ? userId
-                : null;
-        }
-
-        private ReviewsResponseDto ToResponse(Review review, long? currentUserId)
+        private ReviewsResponseDto ToResponse(Review review)
         {
             return new ReviewsResponseDto
             {
                 Id = review.Id,
                 RestaurantId = review.RestaurantId,
-                UserId = review.UserId,
-                UserFullName = review.User?.FullName ?? "Người dùng",
+                UserId = null,
+                UserFullName = "Du khách",
                 Rating = review.Rating,
                 Comment = review.Comment,
                 CreatedAt = review.CreatedAt,
                 UpdatedAt = review.UpdatedAt,
-                IsMine = currentUserId.HasValue && review.UserId == currentUserId.Value,
+                IsMine = false,
                 MediaItems = review.MediaItems
                     .OrderBy(media => media.CreatedAt)
                     .Select(media => new ReviewMediaDto

@@ -11,8 +11,7 @@ namespace PlaceGuide.Server.Models
 
         public Restaurant? Restaurant { get; set; }
 
-        [Required]
-        public long UserId { get; set; }
+        public long? UserId { get; set; }
 
         public ApplicationUser? User { get; set; }
 

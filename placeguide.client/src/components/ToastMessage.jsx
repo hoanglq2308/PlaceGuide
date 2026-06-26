@@ -33,9 +33,9 @@ function ToastMessage({
     };
 
     return (
-        <div className="fixed top-6 right-6 z-[9999]">
+        <div className="fixed right-4 top-4 z-[9999] max-w-[calc(100vw-2rem)] sm:right-6 sm:top-6">
             <div
-                className={`min-w-[280px] max-w-sm border rounded-lg px-4 py-3 shadow-lg flex items-center gap-3 animate-slide-in ${toastStyles[type] || toastStyles.info
+                className={`w-full min-w-0 max-w-sm border rounded-lg px-4 py-3 shadow-lg flex items-center gap-3 animate-slide-in sm:min-w-[280px] ${toastStyles[type] || toastStyles.info
                     }`}
             >
                 <span className="material-symbols-outlined text-[22px]">

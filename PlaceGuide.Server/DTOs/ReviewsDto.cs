@@ -21,7 +21,7 @@ namespace PlaceGuide.Server.DTOs
 
         public Guid RestaurantId { get; set; }
 
-        public long UserId { get; set; }
+        public long? UserId { get; set; }
 
         public string UserFullName { get; set; } = string.Empty;
 
