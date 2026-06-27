@@ -171,7 +171,7 @@ export async function getRestaurantAudioWithPass(restaurantId) {
     );
 }
 
-export async function getDishAudioWithPass(restaurantId, dishId) {
+export async function getDishAudioWithPass(restaurantId, dishId, languageCode = 'vi') {
     if (!restaurantId || !dishId) {
         throw new Error('Thiếu mã quán ăn hoặc món ăn!');
     }
@@ -180,7 +180,9 @@ export async function getDishAudioWithPass(restaurantId, dishId) {
         requestPremiumAudio(
             `/restaurants/${encodeURIComponent(
                 restaurantId
-            )}/dishes/${encodeURIComponent(dishId)}/audio`
+            )}/dishes/${encodeURIComponent(
+                dishId
+            )}/audio?languageCode=${encodeURIComponent(languageCode)}`
         )
     );
 }

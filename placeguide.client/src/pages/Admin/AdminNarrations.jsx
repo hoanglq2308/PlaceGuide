@@ -362,12 +362,19 @@ export default function AdminNarrations() {
       setDetail(refreshedDetail);
       await loadNarrations({ keepLoading: true });
       setIsAutoTranslateOpen(false);
+      const providerSuffix =
+        result.providerName && result.providerName !== 'NotConfigured'
+          ? ` Provider: ${result.providerName}.`
+          : '';
 
       setToast({
         message:
-          result.failedCount > 0
-            ? `Đã dịch ${result.successCount}/${result.totalTargets} ngôn ngữ. Một số ngôn ngữ dịch thất bại.`
-            : `Đã dịch thành công ${result.successCount}/${result.totalTargets} ngôn ngữ.`,
+          `${
+            result.message ||
+            (result.failedCount > 0
+              ? `Đã dịch ${result.successCount}/${result.totalTargets} ngôn ngữ. Một số ngôn ngữ dịch thất bại.`
+              : `Đã dịch thành công ${result.successCount}/${result.totalTargets} ngôn ngữ.`)
+          }${providerSuffix}`,
         type: result.failedCount > 0 ? 'warning' : 'success'
       });
     } catch (requestError) {
@@ -904,45 +911,33 @@ export default function AdminNarrations() {
 
                 <label className="block">
                   <span className="text-sm font-bold text-[#5b403e]">
-                    {detail.contentType === 'restaurant'
-                      ? 'Tên theo ngôn ngữ'
-                      : 'Mô tả món ăn'}
+                    Tên theo ngôn ngữ
                   </span>
-                  {detail.contentType === 'restaurant' ? (
-                    <input
-                      value={draft.name}
-                      onChange={(event) =>
-                        updateDraftField('name', event.target.value)
-                      }
-                      className="mt-2 h-11 w-full rounded-lg border border-[#e5e1da] bg-white px-3 text-sm outline-none focus:border-[#b71422]"
-                    />
-                  ) : (
-                    <textarea
-                      value={draft.description}
-                      onChange={(event) =>
-                        updateDraftField('description', event.target.value)
-                      }
-                      rows={4}
-                      className="mt-2 w-full rounded-lg border border-[#e5e1da] bg-white px-3 py-2 text-sm outline-none focus:border-[#b71422]"
-                    />
-                  )}
+                  <input
+                    value={draft.name}
+                    onChange={(event) =>
+                      updateDraftField('name', event.target.value)
+                    }
+                    className="mt-2 h-11 w-full rounded-lg border border-[#e5e1da] bg-white px-3 text-sm outline-none focus:border-[#b71422]"
+                  />
+                </label>
+
+                <label className="block">
+                  <span className="text-sm font-bold text-[#5b403e]">
+                    Mô tả
+                  </span>
+                  <textarea
+                    value={draft.description}
+                    onChange={(event) =>
+                      updateDraftField('description', event.target.value)
+                    }
+                    rows={4}
+                    className="mt-2 w-full rounded-lg border border-[#e5e1da] bg-white px-3 py-2 text-sm outline-none focus:border-[#b71422]"
+                  />
                 </label>
 
                 {detail.contentType === 'restaurant' && (
                   <>
-                    <label className="block">
-                      <span className="text-sm font-bold text-[#5b403e]">
-                        Mô tả
-                      </span>
-                      <textarea
-                        value={draft.description}
-                        onChange={(event) =>
-                          updateDraftField('description', event.target.value)
-                        }
-                        rows={4}
-                        className="mt-2 w-full rounded-lg border border-[#e5e1da] bg-white px-3 py-2 text-sm outline-none focus:border-[#b71422]"
-                      />
-                    </label>
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                       <label className="block">
                         <span className="text-sm font-bold text-[#5b403e]">

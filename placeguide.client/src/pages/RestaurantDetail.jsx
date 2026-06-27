@@ -251,7 +251,11 @@ function RestaurantDetail() {
         }
 
         try {
-            const audio = await getDishAudioWithPass(displayRestaurant.id, dish.id);
+            const audio = await getDishAudioWithPass(
+                displayRestaurant.id,
+                dish.id,
+                language
+            );
             const text = getLocalizedText(audio?.narration, language);
 
             if (audio.passCreated) {

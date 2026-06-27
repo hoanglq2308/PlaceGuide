@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using PlaceGuide.Server.Data;
 using PlaceGuide.Server.DTOs;
 using PlaceGuide.Server.Models;
+using PlaceGuide.Server.Services;
 
 namespace PlaceGuide.Server.Controllers
 {
@@ -57,18 +58,12 @@ namespace PlaceGuide.Server.Controllers
 
         private static DishDescriptionDto ToDescriptionResponse(Dish dish)
         {
-            var description = new DishDescriptionDto
-            {
-                ["vi"] = dish.DescriptionVi,
-                ["en"] = dish.DescriptionEn
-            };
+            var description = new DishDescriptionDto();
 
-            foreach (var translation in dish.Translations)
+            foreach (var item in
+                DishLocalizationService.BuildDescriptionDictionary(dish))
             {
-                if (!string.IsNullOrWhiteSpace(translation.Description))
-                {
-                    description[translation.LanguageCode] = translation.Description;
-                }
+                description[item.Key] = item.Value;
             }
 
             return description;

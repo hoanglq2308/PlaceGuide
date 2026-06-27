@@ -230,8 +230,14 @@ namespace PlaceGuide.Server.Data
                 entity.Property(translation => translation.IsAutoTranslated)
                     .HasDefaultValue(false);
 
+                entity.Property(translation => translation.Name)
+                    .HasMaxLength(200);
+
                 entity.Property(translation => translation.AutoTranslatedFrom)
                     .HasMaxLength(20);
+
+                entity.Property(translation => translation.CreatedAt)
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
                 entity.Property(translation => translation.UpdatedAt)
                     .HasDefaultValueSql("CURRENT_TIMESTAMP");

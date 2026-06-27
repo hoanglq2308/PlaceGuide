@@ -12,6 +12,7 @@ namespace PlaceGuide.Server.Services
 
         private readonly HttpClient _httpClient;
         private readonly TranslationOptions _options;
+        private IReadOnlySet<string>? _libreTranslateSupportedLanguages;
 
         public HttpTranslationProvider(
             HttpClient httpClient,
@@ -43,6 +44,17 @@ namespace PlaceGuide.Server.Services
                 StringComparison.OrdinalIgnoreCase))
             {
                 return await TranslateWithAzureAsync(
+                    sourceText,
+                    sourceLanguageCode,
+                    targetLanguageCode,
+                    cancellationToken);
+            }
+
+            if (_options.Provider.Equals(
+                "LibreTranslate",
+                StringComparison.OrdinalIgnoreCase))
+            {
+                return await TranslateWithLibreTranslateAsync(
                     sourceText,
                     sourceLanguageCode,
                     targetLanguageCode,
@@ -158,7 +170,241 @@ namespace PlaceGuide.Server.Services
                 sourceLanguageCode,
                 targetLanguageCode);
 
-            using var request = new HttpRequestMessage(
+            using var timeoutCancellation = CancellationTokenSource
+                .CreateLinkedTokenSource(cancellationToken);
+            timeoutCancellation.CancelAfter(
+                TimeSpan.FromSeconds(Math.Clamp(_options.TimeoutSeconds, 5, 180)));
+
+            try
+            {
+                const int maxAttempts = 3;
+
+                for (var attempt = 1; attempt <= maxAttempts; attempt++)
+                {
+                    using var request = CreateGeminiRequest(requestUrl, prompt);
+                    using var response = await _httpClient.SendAsync(
+                        request,
+                        HttpCompletionOption.ResponseHeadersRead,
+                        timeoutCancellation.Token);
+
+                    if ((int)response.StatusCode == 429)
+                    {
+                        var providerMessage = await ReadProviderErrorMessageAsync(
+                            response,
+                            timeoutCancellation.Token);
+
+                        if (attempt < maxAttempts)
+                        {
+                            await Task.Delay(
+                                GetRetryDelay(response, attempt),
+                                timeoutCancellation.Token);
+                            continue;
+                        }
+
+                        return Failure(
+                            targetLanguageCode,
+                            BuildProviderFailureMessage(
+                                "Gemini API quota/rate limit reached.",
+                                providerMessage));
+                    }
+
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        var providerMessage = await ReadProviderErrorMessageAsync(
+                            response,
+                            timeoutCancellation.Token);
+
+                        return Failure(
+                            targetLanguageCode,
+                            BuildProviderFailureMessage(
+                                $"Gemini API returned HTTP {(int)response.StatusCode}.",
+                                providerMessage));
+                    }
+
+                    await using var responseStream = await response.Content
+                        .ReadAsStreamAsync(timeoutCancellation.Token);
+                    using var document = await JsonDocument.ParseAsync(
+                        responseStream,
+                        cancellationToken: timeoutCancellation.Token);
+                    var translatedText =
+                        ReadGeminiTranslatedText(document.RootElement);
+
+                    return string.IsNullOrWhiteSpace(translatedText)
+                        ? Failure(
+                            targetLanguageCode,
+                            "Gemini API returned an empty translation.")
+                        : new TranslationResult(
+                            targetLanguageCode,
+                            translatedText.Trim(),
+                            true,
+                            null);
+                }
+
+                return Failure(
+                    targetLanguageCode,
+                    "Gemini API quota/rate limit reached.");
+            }
+            catch (OperationCanceledException)
+                when (!cancellationToken.IsCancellationRequested)
+            {
+                return Failure(targetLanguageCode, "Translation request timed out.");
+            }
+            catch (HttpRequestException)
+            {
+                return Failure(
+                    targetLanguageCode,
+                    "Could not connect to Gemini API.");
+            }
+            catch (JsonException)
+            {
+                return Failure(
+                    targetLanguageCode,
+                    "Gemini API returned an invalid response.");
+            }
+        }
+
+        private async Task<TranslationResult> TranslateWithLibreTranslateAsync(
+            string sourceText,
+            string sourceLanguageCode,
+            string targetLanguageCode,
+            CancellationToken cancellationToken)
+        {
+            if (string.IsNullOrWhiteSpace(sourceText))
+            {
+                return Failure(
+                    targetLanguageCode,
+                    "Không có nội dung nguồn để dịch.");
+            }
+
+            if (!TryGetLibreTranslateBaseUri(out var baseUri))
+            {
+                return Failure(
+                    targetLanguageCode,
+                    "LibreTranslate BaseUrl không hợp lệ.");
+            }
+
+            var sourceCode = ToLibreTranslateLanguageCode(sourceLanguageCode);
+            var targetCode = ToLibreTranslateLanguageCode(targetLanguageCode);
+
+            using var timeoutCancellation = CancellationTokenSource
+                .CreateLinkedTokenSource(cancellationToken);
+            timeoutCancellation.CancelAfter(TimeSpan.FromSeconds(Math.Clamp(
+                GetLibreTranslateTimeoutSeconds(),
+                5,
+                180)));
+
+            IReadOnlySet<string> supportedLanguages;
+            try
+            {
+                supportedLanguages = await GetLibreTranslateSupportedLanguagesAsync(
+                    baseUri,
+                    timeoutCancellation.Token);
+            }
+            catch (OperationCanceledException)
+                when (!cancellationToken.IsCancellationRequested)
+            {
+                return Failure(
+                    targetLanguageCode,
+                    "LibreTranslate phản hồi quá lâu.");
+            }
+            catch (HttpRequestException)
+            {
+                return Failure(
+                    targetLanguageCode,
+                    $"Không kết nối được LibreTranslate tại {baseUri.AbsoluteUri.TrimEnd('/')}");
+            }
+            catch (JsonException)
+            {
+                return Failure(
+                    targetLanguageCode,
+                    "LibreTranslate trả về danh sách ngôn ngữ không hợp lệ.");
+            }
+
+            if (!supportedLanguages.Contains(sourceCode))
+            {
+                return Failure(
+                    targetLanguageCode,
+                    $"LibreTranslate không hỗ trợ ngôn ngữ nguồn {sourceLanguageCode} trên server hiện tại.");
+            }
+
+            if (!supportedLanguages.Contains(targetCode))
+            {
+                return Failure(
+                    targetLanguageCode,
+                    $"LibreTranslate không hỗ trợ ngôn ngữ {targetLanguageCode} trên server hiện tại.");
+            }
+
+            var requestUrl = BuildLibreTranslateUrl(baseUri, "translate");
+            using var request = CreateLibreTranslateRequest(
+                requestUrl,
+                sourceText,
+                sourceCode,
+                targetCode);
+
+            try
+            {
+                using var response = await _httpClient.SendAsync(
+                    request,
+                    HttpCompletionOption.ResponseHeadersRead,
+                    timeoutCancellation.Token);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    var providerMessage =
+                        await ReadLibreTranslateErrorMessageAsync(
+                            response,
+                            timeoutCancellation.Token);
+
+                    return Failure(
+                        targetLanguageCode,
+                        string.IsNullOrWhiteSpace(providerMessage)
+                            ? $"LibreTranslate trả lỗi HTTP {(int)response.StatusCode}."
+                            : $"LibreTranslate trả lỗi: {providerMessage}");
+                }
+
+                await using var responseStream = await response.Content
+                    .ReadAsStreamAsync(timeoutCancellation.Token);
+                using var document = await JsonDocument.ParseAsync(
+                    responseStream,
+                    cancellationToken: timeoutCancellation.Token);
+                var translatedText = ReadTranslatedText(document.RootElement);
+
+                return string.IsNullOrWhiteSpace(translatedText)
+                    ? Failure(
+                        targetLanguageCode,
+                        "LibreTranslate không trả về nội dung dịch.")
+                    : new TranslationResult(
+                        targetLanguageCode,
+                        translatedText.Trim(),
+                        true,
+                        null);
+            }
+            catch (OperationCanceledException)
+                when (!cancellationToken.IsCancellationRequested)
+            {
+                return Failure(
+                    targetLanguageCode,
+                    "LibreTranslate phản hồi quá lâu.");
+            }
+            catch (HttpRequestException)
+            {
+                return Failure(
+                    targetLanguageCode,
+                    $"Không kết nối được LibreTranslate tại {baseUri.AbsoluteUri.TrimEnd('/')}");
+            }
+            catch (JsonException)
+            {
+                return Failure(
+                    targetLanguageCode,
+                    "LibreTranslate trả về response không hợp lệ.");
+            }
+        }
+
+        private HttpRequestMessage CreateGeminiRequest(
+            string requestUrl,
+            string prompt)
+        {
+            var request = new HttpRequestMessage(
                 HttpMethod.Post,
                 requestUrl)
             {
@@ -187,60 +433,234 @@ namespace PlaceGuide.Server.Services
                 "x-goog-api-key",
                 _options.ApiKey);
 
-            using var timeoutCancellation = CancellationTokenSource
-                .CreateLinkedTokenSource(cancellationToken);
-            timeoutCancellation.CancelAfter(
-                TimeSpan.FromSeconds(Math.Clamp(_options.TimeoutSeconds, 5, 180)));
+            return request;
+        }
+
+        private static TimeSpan GetRetryDelay(
+            HttpResponseMessage response,
+            int attempt)
+        {
+            var retryAfter = response.Headers.RetryAfter?.Delta;
+            if (retryAfter is not null &&
+                retryAfter.Value > TimeSpan.Zero &&
+                retryAfter.Value <= TimeSpan.FromSeconds(30))
+            {
+                return retryAfter.Value;
+            }
+
+            return TimeSpan.FromSeconds(Math.Min(attempt * 2, 8));
+        }
+
+        private static async Task<string?> ReadProviderErrorMessageAsync(
+            HttpResponseMessage response,
+            CancellationToken cancellationToken)
+        {
+            var content = await response.Content.ReadAsStringAsync(
+                cancellationToken);
+
+            if (string.IsNullOrWhiteSpace(content))
+            {
+                return null;
+            }
 
             try
             {
-                using var response = await _httpClient.SendAsync(
-                    request,
-                    HttpCompletionOption.ResponseHeadersRead,
-                    timeoutCancellation.Token);
-
-                if (!response.IsSuccessStatusCode)
+                using var document = JsonDocument.Parse(content);
+                if (document.RootElement.TryGetProperty(
+                        "error",
+                        out var error))
                 {
-                    return Failure(
-                        targetLanguageCode,
-                        $"Gemini API returned HTTP {(int)response.StatusCode}.");
+                    var parts = new List<string>();
+                    if (TryReadString(error, "status", out var status) &&
+                        !string.IsNullOrWhiteSpace(status))
+                    {
+                        parts.Add(status);
+                    }
+
+                    if (TryReadString(error, "message", out var message) &&
+                        !string.IsNullOrWhiteSpace(message))
+                    {
+                        parts.Add(message);
+                    }
+
+                    if (parts.Count > 0)
+                    {
+                        return string.Join(": ", parts);
+                    }
                 }
-
-                await using var responseStream = await response.Content
-                    .ReadAsStreamAsync(timeoutCancellation.Token);
-                using var document = await JsonDocument.ParseAsync(
-                    responseStream,
-                    cancellationToken: timeoutCancellation.Token);
-                var translatedText =
-                    ReadGeminiTranslatedText(document.RootElement);
-
-                return string.IsNullOrWhiteSpace(translatedText)
-                    ? Failure(
-                        targetLanguageCode,
-                        "Gemini API returned an empty translation.")
-                    : new TranslationResult(
-                        targetLanguageCode,
-                        translatedText.Trim(),
-                        true,
-                        null);
-            }
-            catch (OperationCanceledException)
-                when (!cancellationToken.IsCancellationRequested)
-            {
-                return Failure(targetLanguageCode, "Translation request timed out.");
-            }
-            catch (HttpRequestException)
-            {
-                return Failure(
-                    targetLanguageCode,
-                    "Could not connect to Gemini API.");
             }
             catch (JsonException)
             {
-                return Failure(
-                    targetLanguageCode,
-                    "Gemini API returned an invalid response.");
+                // Fall back to the raw provider body below.
             }
+
+            return content.Length > 500
+                ? string.Concat(content.AsSpan(0, 500), "...")
+                : content;
+        }
+
+        private static string BuildProviderFailureMessage(
+            string prefix,
+            string? providerMessage)
+        {
+            return string.IsNullOrWhiteSpace(providerMessage)
+                ? prefix
+                : $"{prefix} {providerMessage}";
+        }
+
+        private bool TryGetLibreTranslateBaseUri(out Uri baseUri)
+        {
+            var baseUrl = _options.LibreTranslate.BaseUrl;
+            if (string.IsNullOrWhiteSpace(baseUrl))
+            {
+                baseUrl = string.IsNullOrWhiteSpace(_options.Endpoint)
+                    ? "http://localhost:5000"
+                    : _options.Endpoint;
+            }
+
+            if (Uri.TryCreate(baseUrl, UriKind.Absolute, out var parsedUri))
+            {
+                baseUri = parsedUri;
+                return true;
+            }
+
+            baseUri = new Uri("http://localhost:5000");
+            return false;
+        }
+
+        private int GetLibreTranslateTimeoutSeconds()
+        {
+            return _options.LibreTranslate.TimeoutSeconds > 0
+                ? _options.LibreTranslate.TimeoutSeconds
+                : _options.TimeoutSeconds;
+        }
+
+        private async Task<IReadOnlySet<string>>
+            GetLibreTranslateSupportedLanguagesAsync(
+                Uri baseUri,
+                CancellationToken cancellationToken)
+        {
+            if (_libreTranslateSupportedLanguages is not null)
+            {
+                return _libreTranslateSupportedLanguages;
+            }
+
+            var requestUrl = BuildLibreTranslateUrl(baseUri, "languages");
+            using var response = await _httpClient.GetAsync(
+                requestUrl,
+                HttpCompletionOption.ResponseHeadersRead,
+                cancellationToken);
+
+            response.EnsureSuccessStatusCode();
+
+            await using var responseStream = await response.Content
+                .ReadAsStreamAsync(cancellationToken);
+            using var document = await JsonDocument.ParseAsync(
+                responseStream,
+                cancellationToken: cancellationToken);
+
+            var languages = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            if (document.RootElement.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var language in document.RootElement.EnumerateArray())
+                {
+                    if (TryReadString(language, "code", out var code) &&
+                        !string.IsNullOrWhiteSpace(code))
+                    {
+                        languages.Add(code.Trim());
+                    }
+                }
+            }
+
+            _libreTranslateSupportedLanguages = languages;
+            return _libreTranslateSupportedLanguages;
+        }
+
+        private HttpRequestMessage CreateLibreTranslateRequest(
+            string requestUrl,
+            string sourceText,
+            string sourceLanguageCode,
+            string targetLanguageCode)
+        {
+            var payload = new Dictionary<string, string>
+            {
+                ["q"] = sourceText,
+                ["source"] = sourceLanguageCode,
+                ["target"] = targetLanguageCode,
+                ["format"] = "text"
+            };
+
+            if (!string.IsNullOrWhiteSpace(_options.LibreTranslate.ApiKey))
+            {
+                payload["api_key"] = _options.LibreTranslate.ApiKey;
+            }
+
+            return new HttpRequestMessage(HttpMethod.Post, requestUrl)
+            {
+                Content = JsonContent.Create(payload)
+            };
+        }
+
+        private static string BuildLibreTranslateUrl(
+            Uri baseUri,
+            string path)
+        {
+            var baseUrl = baseUri.AbsoluteUri.TrimEnd('/');
+            if (baseUrl.EndsWith("/translate", StringComparison.OrdinalIgnoreCase))
+            {
+                baseUrl = baseUrl[..^"/translate".Length];
+            }
+
+            return $"{baseUrl}/{path.TrimStart('/')}";
+        }
+
+        private static string ToLibreTranslateLanguageCode(string languageCode)
+        {
+            return languageCode switch
+            {
+                // LibreTranslate 1.9.x exposes its Chinese model as zh-Hans.
+                "zh-CN" => "zh-Hans",
+                "zh-TW" => "zh-Hans",
+                _ => languageCode
+            };
+        }
+
+        private static async Task<string?> ReadLibreTranslateErrorMessageAsync(
+            HttpResponseMessage response,
+            CancellationToken cancellationToken)
+        {
+            var content = await response.Content.ReadAsStringAsync(
+                cancellationToken);
+
+            if (string.IsNullOrWhiteSpace(content))
+            {
+                return null;
+            }
+
+            try
+            {
+                using var document = JsonDocument.Parse(content);
+                if (TryReadString(document.RootElement, "error", out var error) &&
+                    !string.IsNullOrWhiteSpace(error))
+                {
+                    return error;
+                }
+
+                if (TryReadString(document.RootElement, "message", out var message) &&
+                    !string.IsNullOrWhiteSpace(message))
+                {
+                    return message;
+                }
+            }
+            catch (JsonException)
+            {
+                // Fall back to the raw provider body below.
+            }
+
+            return content.Length > 500
+                ? string.Concat(content.AsSpan(0, 500), "...")
+                : content;
         }
 
         private async Task<TranslationResult> TranslateWithAzureAsync(

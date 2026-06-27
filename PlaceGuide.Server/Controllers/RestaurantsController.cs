@@ -119,7 +119,10 @@ namespace PlaceGuide.Server.Controllers
         }
 
         [HttpGet("{restaurantId:guid}/dishes/{dishId:guid}/audio")]
-        public async Task<IActionResult> GetDishAudio(Guid restaurantId, Guid dishId)
+        public async Task<IActionResult> GetDishAudio(
+            Guid restaurantId,
+            Guid dishId,
+            [FromQuery] string languageCode = "vi")
         {
             var dish = await _context.Dishes
                 .AsNoTracking()
@@ -149,7 +152,7 @@ namespace PlaceGuide.Server.Controllers
                 restaurantId,
                 dishId = dish.Id,
                 passExpiresAtUtc = access.PassExpiresAtUtc,
-                narration = ToNarrationResponse(dish)
+                narration = ToNarrationResponse(dish, languageCode)
             });
         }
 
@@ -231,36 +234,40 @@ namespace PlaceGuide.Server.Controllers
 
         private static DishDescriptionDto ToDescriptionResponse(Dish dish)
         {
-            var description = new DishDescriptionDto
-            {
-                ["vi"] = dish.DescriptionVi,
-                ["en"] = dish.DescriptionEn
-            };
+            var description = new DishDescriptionDto();
 
-            foreach (var translation in dish.Translations)
+            foreach (var item in
+                DishLocalizationService.BuildDescriptionDictionary(dish))
             {
-                if (!string.IsNullOrWhiteSpace(translation.Description))
-                {
-                    description[translation.LanguageCode] = translation.Description;
-                }
+                description[item.Key] = item.Value;
             }
 
             return description;
         }
 
-        private static DishNarrationDto ToNarrationResponse(Dish dish)
+        private static DishNarrationDto ToNarrationResponse(
+            Dish dish,
+            string languageCode)
         {
-            var narration = new DishNarrationDto
-            {
-                ["vi"] = dish.NarrationVi,
-                ["en"] = dish.NarrationEn
-            };
+            var narration = new DishNarrationDto();
 
-            foreach (var translation in dish.Translations)
+            foreach (var item in
+                DishLocalizationService.BuildDishNarrationDictionary(dish))
             {
-                if (!string.IsNullOrWhiteSpace(translation.Narration))
+                narration[item.Key] = item.Value;
+            }
+
+            if (!string.IsNullOrWhiteSpace(languageCode) &&
+                !narration.ContainsKey(languageCode))
+            {
+                var fallbackNarration =
+                    DishLocalizationService.ResolveDishNarration(
+                        dish,
+                        languageCode);
+
+                if (!string.IsNullOrWhiteSpace(fallbackNarration))
                 {
-                    narration[translation.LanguageCode] = translation.Narration;
+                    narration[languageCode] = fallbackNarration;
                 }
             }
 
