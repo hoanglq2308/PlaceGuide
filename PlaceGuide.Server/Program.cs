@@ -74,6 +74,10 @@ builder.Services.AddMemoryCache();
 
 builder.Services.AddScoped<IGuestAudioPassService, GuestAudioPassService>();
 builder.Services.AddSingleton<IVisitorPresenceService, VisitorPresenceService>();
+builder.Services.Configure<TranslationOptions>(
+    builder.Configuration.GetSection(TranslationOptions.SectionName));
+builder.Services.AddHttpClient<ITranslationProvider, HttpTranslationProvider>();
+builder.Services.AddScoped<IAutoTranslationService, AutoTranslationService>();
 
 builder.Services.Configure<AudioPassPaymentOptions>(
     builder.Configuration.GetSection(AudioPassPaymentOptions.SectionName));

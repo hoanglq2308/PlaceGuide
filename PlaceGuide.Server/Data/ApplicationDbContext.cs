@@ -193,6 +193,21 @@ namespace PlaceGuide.Server.Data
                     translation.LanguageCode
                 }).IsUnique();
 
+                entity.Property(translation => translation.NeedsUpdate)
+                    .HasDefaultValue(false);
+
+                entity.Property(translation => translation.IsAutoTranslated)
+                    .HasDefaultValue(false);
+
+                entity.Property(translation => translation.AutoTranslatedFrom)
+                    .HasMaxLength(20);
+
+                entity.HasIndex(translation => new
+                {
+                    translation.LanguageCode,
+                    translation.NeedsUpdate
+                });
+
                 entity.HasOne(translation => translation.Restaurant)
                     .WithMany(restaurant => restaurant.Translations)
                     .HasForeignKey(translation => translation.RestaurantId)
@@ -208,6 +223,24 @@ namespace PlaceGuide.Server.Data
                     translation.DishId,
                     translation.LanguageCode
                 }).IsUnique();
+
+                entity.Property(translation => translation.NeedsUpdate)
+                    .HasDefaultValue(false);
+
+                entity.Property(translation => translation.IsAutoTranslated)
+                    .HasDefaultValue(false);
+
+                entity.Property(translation => translation.AutoTranslatedFrom)
+                    .HasMaxLength(20);
+
+                entity.Property(translation => translation.UpdatedAt)
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                entity.HasIndex(translation => new
+                {
+                    translation.LanguageCode,
+                    translation.NeedsUpdate
+                });
 
                 entity.HasOne(translation => translation.Dish)
                     .WithMany(dish => dish.Translations)

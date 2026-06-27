@@ -18,6 +18,17 @@ namespace PlaceGuide.Server.Models
         [Required]
         public string Narration { get; set; } = string.Empty;
 
+        public bool NeedsUpdate { get; set; } = false;
+
+        public bool IsAutoTranslated { get; set; } = false;
+
+        public DateTime? AutoTranslatedAt { get; set; }
+
+        [MaxLength(20)]
+        public string? AutoTranslatedFrom { get; set; }
+
+        public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+
         public Dish? Dish { get; set; }
     }
 }

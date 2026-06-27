@@ -20,6 +20,7 @@ import AdminDashboard from './pages/Admin/AdminDashboard';
 import MerchantRegistrations from './pages/Admin/MerchantRegistrations';
 import AdminRestaurants from './pages/Admin/AdminRestaurants';
 import AdminReviews from './pages/Admin/AdminReviews';
+import AdminNarrations from './pages/Admin/AdminNarrations';
 import OwnerRestaurantProfile from './pages/Owner/OwnerRestaurantProfile';
 
 function App() {
@@ -117,6 +118,14 @@ function App() {
                         element={
                             <ProtectedRoute requiredRole="Admin">
                                 <AdminReviews />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="/admin/narrations"
+                        element={
+                            <ProtectedRoute requiredRole="Admin">
+                                <AdminNarrations />
                             </ProtectedRoute>
                         }
                     />

@@ -35,6 +35,7 @@ namespace PlaceGuide.Server.Controllers
                 .AsNoTracking()
                 .Where(restaurant => restaurant.IsPublished && !restaurant.IsBanned)
                 .Include(restaurant => restaurant.Reviews)
+                .Include(restaurant => restaurant.Translations)
                 .OrderBy(restaurant => restaurant.Name)
                 .ToListAsync();
 
@@ -47,6 +48,7 @@ namespace PlaceGuide.Server.Controllers
             var restaurant = await _context.Restaurants
                 .AsNoTracking()
                 .Include(item => item.Reviews)
+                .Include(item => item.Translations)
                 .FirstOrDefaultAsync(item =>
                     item.Id == id &&
                     item.IsPublished &&
@@ -213,18 +215,15 @@ namespace PlaceGuide.Server.Controllers
         private static RestaurantNarrationDto ToNarrationResponse(
             Restaurant restaurant)
         {
-            var narration = new RestaurantNarrationDto
-            {
-                ["vi"] = restaurant.NarrationVi,
-                ["en"] = restaurant.NarrationEn
-            };
+            // Use RestaurantLocalizationService to build the narration dictionary.
+            // Translation rows (including vi/en after migration) take priority over
+            // legacy restaurants.NarrationVi / NarrationEn fields.
+            var dict = RestaurantLocalizationService.BuildNarrationDictionary(restaurant);
+            var narration = new RestaurantNarrationDto();
 
-            foreach (var translation in restaurant.Translations)
+            foreach (var kvp in dict)
             {
-                if (!string.IsNullOrWhiteSpace(translation.Narration))
-                {
-                    narration[translation.LanguageCode] = translation.Narration;
-                }
+                narration[kvp.Key] = kvp.Value;
             }
 
             return narration;

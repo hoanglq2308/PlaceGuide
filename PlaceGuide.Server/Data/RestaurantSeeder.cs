@@ -136,8 +136,12 @@ namespace PlaceGuide.Server.Data
 
         private static void SeedLocalizedContent(ApplicationDbContext context)
         {
+            // Include vi and en so translation rows become the canonical source.
+            // The template generators create fallback text when legacy fields are empty.
             var languageCodes = new[]
             {
+                "vi",
+                "en",
                 "zh-CN",
                 "zh-TW",
                 "ko",
@@ -184,14 +188,31 @@ namespace PlaceGuide.Server.Data
                         continue;
                     }
 
+                    // For vi/en: prefer the existing legacy narration field;
+                    // fall back to a template only when the legacy field is empty.
+                    string narration;
+                    if (languageCode == "vi")
+                    {
+                        narration = !string.IsNullOrWhiteSpace(restaurant.NarrationVi)
+                            ? restaurant.NarrationVi
+                            : CreateRestaurantNarrationVi(restaurant.Name, highlights);
+                    }
+                    else if (languageCode == "en")
+                    {
+                        narration = !string.IsNullOrWhiteSpace(restaurant.NarrationEn)
+                            ? restaurant.NarrationEn
+                            : CreateRestaurantNarrationEn(restaurant.Name, highlights);
+                    }
+                    else
+                    {
+                        narration = CreateRestaurantNarration(languageCode, restaurant.Name, highlights);
+                    }
+
                     restaurantTranslations.Add(new RestaurantTranslation
                     {
                         RestaurantId = restaurant.Id,
                         LanguageCode = languageCode,
-                        Narration = CreateRestaurantNarration(
-                            languageCode,
-                            restaurant.Name,
-                            highlights)
+                        Narration = narration
                     });
                 }
             }
@@ -202,6 +223,12 @@ namespace PlaceGuide.Server.Data
             {
                 foreach (var languageCode in languageCodes)
                 {
+                    // Skip vi/en for dishes – DishTranslation is handled in a separate task.
+                    if (languageCode == "vi" || languageCode == "en")
+                    {
+                        continue;
+                    }
+
                     var key = $"{dish.Id:N}|{languageCode}";
 
                     if (dishTranslationKeys.Contains(key))
@@ -262,6 +289,26 @@ namespace PlaceGuide.Server.Data
                     $"{restaurantName} — хорошее место, чтобы познакомиться с местной вьетнамской кухней. Попробуйте {dishes} и почувствуйте атмосферу и гастрономические традиции этого места.",
                 _ => string.Empty
             };
+        }
+
+        private static string CreateRestaurantNarrationVi(
+            string restaurantName,
+            string highlights)
+        {
+            var dishes = string.IsNullOrWhiteSpace(highlights)
+                ? "các món đặc trưng"
+                : highlights;
+            return $"{restaurantName} là địa điểm ẩm thực địa phương đáng trải nghiệm. Bạn có thể thử {dishes} và cảm nhận không khí và văn hóa ẩm thực đặc trưng tại đây.";
+        }
+
+        private static string CreateRestaurantNarrationEn(
+            string restaurantName,
+            string highlights)
+        {
+            var dishes = string.IsNullOrWhiteSpace(highlights)
+                ? "signature dishes"
+                : highlights;
+            return $"{restaurantName} is a recommended local dining spot. You can try {dishes} and experience the unique atmosphere and culinary culture of the place.";
         }
 
         private static string CreateDishDescription(

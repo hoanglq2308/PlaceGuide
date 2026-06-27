@@ -4,7 +4,8 @@ const activeNavigationItems = [
   { label: 'Tổng quan', icon: 'dashboard', to: '/admin/dashboard' },
   { label: 'Nhà hàng', icon: 'storefront', to: '/admin/restaurants' },
   { label: 'Đăng ký đối tác', icon: 'assignment', to: '/admin/merchant-registrations' },
-  { label: 'Đánh giá', icon: 'reviews', to: '/admin/reviews' }
+  { label: 'Đánh giá', icon: 'reviews', to: '/admin/reviews' },
+  { label: 'Thuyết minh', icon: 'record_voice_over', to: '/admin/narrations' }
 ];
 
 const plannedNavigationItems = [

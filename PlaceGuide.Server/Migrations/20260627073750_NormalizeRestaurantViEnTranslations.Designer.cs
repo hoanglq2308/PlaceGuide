@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using PlaceGuide.Server.Data;
@@ -11,9 +12,11 @@ using PlaceGuide.Server.Data;
 namespace PlaceGuide.Server.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260627073750_NormalizeRestaurantViEnTranslations")]
+    partial class NormalizeRestaurantViEnTranslations
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -309,24 +312,12 @@ namespace PlaceGuide.Server.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<DateTime?>("AutoTranslatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("AutoTranslatedFrom")
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
-
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<Guid>("DishId")
                         .HasColumnType("uuid");
-
-                    b.Property<bool>("IsAutoTranslated")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
 
                     b.Property<string>("LanguageCode")
                         .IsRequired()
@@ -337,22 +328,10 @@ namespace PlaceGuide.Server.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<bool>("NeedsUpdate")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
-
                     b.HasKey("Id");
 
                     b.HasIndex("DishId", "LanguageCode")
                         .IsUnique();
-
-                    b.HasIndex("LanguageCode", "NeedsUpdate");
 
                     b.ToTable("dish_translations", (string)null);
                 });
@@ -672,13 +651,6 @@ namespace PlaceGuide.Server.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<DateTime?>("AutoTranslatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("AutoTranslatedFrom")
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -688,11 +660,6 @@ namespace PlaceGuide.Server.Migrations
 
                     b.Property<string>("HighlightDishes")
                         .HasColumnType("text");
-
-                    b.Property<bool>("IsAutoTranslated")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
 
                     b.Property<string>("LanguageCode")
                         .IsRequired()
@@ -706,11 +673,6 @@ namespace PlaceGuide.Server.Migrations
                     b.Property<string>("Narration")
                         .HasColumnType("text");
 
-                    b.Property<bool>("NeedsUpdate")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
                     b.Property<Guid>("RestaurantId")
                         .HasColumnType("uuid");
 
@@ -721,8 +683,6 @@ namespace PlaceGuide.Server.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("LanguageCode", "NeedsUpdate");
 
                     b.HasIndex("RestaurantId", "LanguageCode")
                         .IsUnique();

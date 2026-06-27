@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using PlaceGuide.Server.Data;
 using PlaceGuide.Server.DTOs;
 using PlaceGuide.Server.Models;
+using PlaceGuide.Server.Services;
 
 namespace PlaceGuide.Server.Controllers
 {
@@ -322,21 +323,8 @@ namespace PlaceGuide.Server.Controllers
 
         private static bool HasNarration(Restaurant restaurant, string languageCode)
         {
-            if (languageCode.Equals("vi", StringComparison.OrdinalIgnoreCase) &&
-                !string.IsNullOrWhiteSpace(restaurant.NarrationVi))
-            {
-                return true;
-            }
-
-            if (languageCode.Equals("en", StringComparison.OrdinalIgnoreCase) &&
-                !string.IsNullOrWhiteSpace(restaurant.NarrationEn))
-            {
-                return true;
-            }
-
-            return restaurant.Translations.Any(translation =>
-                translation.LanguageCode.Equals(languageCode, StringComparison.OrdinalIgnoreCase) &&
-                !string.IsNullOrWhiteSpace(translation.Narration));
+            // Delegate to shared service: translation rows take priority over legacy fields.
+            return RestaurantLocalizationService.HasNarration(restaurant, languageCode);
         }
 
         private static string? TrimToNull(string? value)
