@@ -37,6 +37,8 @@ namespace PlaceGuide.Server.Data
 
         public DbSet<DishTranslation> DishTranslations { get; set; }
 
+        public DbSet<AudioListeningEvent> AudioListeningEvents { get; set; }
+
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
@@ -339,6 +341,44 @@ namespace PlaceGuide.Server.Data
                     order.Status,
                     order.ExpiresAt
                 });
+            });
+
+            builder.Entity<AudioListeningEvent>(entity =>
+            {
+                entity.ToTable("audio_listening_events");
+
+                entity.Property(audioEvent => audioEvent.IsAdminListen)
+                    .HasDefaultValue(false);
+
+                entity.Property(audioEvent => audioEvent.CreatedAt)
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                entity.HasIndex(audioEvent => audioEvent.CreatedAt);
+                entity.HasIndex(audioEvent => audioEvent.RestaurantId);
+                entity.HasIndex(audioEvent => audioEvent.DishId);
+                entity.HasIndex(audioEvent => audioEvent.AudioType);
+                entity.HasIndex(audioEvent => audioEvent.LanguageCode);
+                entity.HasIndex(audioEvent => audioEvent.DistrictName);
+                entity.HasIndex(audioEvent => new
+                {
+                    audioEvent.CreatedAt,
+                    audioEvent.AudioType
+                });
+                entity.HasIndex(audioEvent => new
+                {
+                    audioEvent.CreatedAt,
+                    audioEvent.LanguageCode
+                });
+
+                entity.HasOne(audioEvent => audioEvent.Restaurant)
+                    .WithMany()
+                    .HasForeignKey(audioEvent => audioEvent.RestaurantId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(audioEvent => audioEvent.Dish)
+                    .WithMany()
+                    .HasForeignKey(audioEvent => audioEvent.DishId)
+                    .OnDelete(DeleteBehavior.SetNull);
             });
         }
     }

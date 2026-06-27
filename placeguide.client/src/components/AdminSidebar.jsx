@@ -5,12 +5,9 @@ const activeNavigationItems = [
   { label: 'Nhà hàng', icon: 'storefront', to: '/admin/restaurants' },
   { label: 'Đăng ký đối tác', icon: 'assignment', to: '/admin/merchant-registrations' },
   { label: 'Đánh giá', icon: 'reviews', to: '/admin/reviews' },
-  { label: 'Thuyết minh', icon: 'record_voice_over', to: '/admin/narrations' }
-];
-
-const plannedNavigationItems = [
-  { label: 'Phân tích', icon: 'analytics' },
-  { label: 'Cài đặt', icon: 'settings' }
+  { label: 'Thuyết minh', icon: 'record_voice_over', to: '/admin/narrations' },
+  { label: 'Phân tích', icon: 'analytics', to: '/admin/analytics' },
+  { label: 'Cài đặt', icon: 'settings', to: '/admin/settings' }
 ];
 
 
@@ -50,17 +47,6 @@ function AdminSidebar({ adminName = 'Quản trị viên' }) {
             </Link>
           );
         })}
-
-        {plannedNavigationItems.map((item) => (
-          <span
-            key={item.label}
-            className="flex shrink-0 items-center gap-2 px-3 py-2 text-sm text-[#8f6f6d]"
-            title="Chức năng đang được xây dựng"
-          >
-            <span className="material-symbols-outlined text-[19px]">{item.icon}</span>
-            {item.label}
-          </span>
-        ))}
       </nav>
 
       <div className="hidden border-t border-[#e4beba] p-5 lg:mt-auto lg:block">

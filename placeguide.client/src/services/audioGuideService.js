@@ -8,6 +8,7 @@ import {
 const API_URL = import.meta.env.VITE_API_URL?.replace (/\/$/, '');
 const AUDIO_PASS_REQUIRED_EVENT = 'placeguide:audio-pass-required';
 const AUDIO_PASS_TOKEN_KEY = 'placeGuideAudioPassToken';
+const VISITOR_DEVICE_KEY = 'placeGuideVisitorDeviceId';
 
 function getApiUrl(path){
     if(!API_URL)
@@ -31,8 +32,17 @@ function clearAudioPassToken(){
 function getAuthHeaders(){
     const headers = {};
     const audioPassToken = getStoreAudioPassToken();
+    const authToken = localStorage.getItem('token');
+    const visitorSession = localStorage.getItem(VISITOR_DEVICE_KEY);
+
     if(audioPassToken){
         headers['X-Premium-Pass']= audioPassToken;
+    }
+    if(authToken){
+        headers.Authorization = `Bearer ${authToken}`;
+    }
+    if(visitorSession){
+        headers['X-Visitor-Session'] = visitorSession;
     }
     return headers;
 }
@@ -159,14 +169,16 @@ async function withGuestAudioPass(fetchAudio) {
   }
 }
 
-export async function getRestaurantAudioWithPass(restaurantId) {
+export async function getRestaurantAudioWithPass(restaurantId, languageCode = 'vi') {
     if (!restaurantId) {
         throw new Error('Thiếu mã quán ăn!');
     }
 
     return withGuestAudioPass(() =>
         requestPremiumAudio(
-            `/restaurants/${encodeURIComponent(restaurantId)}/audio`
+            `/restaurants/${encodeURIComponent(
+                restaurantId
+            )}/audio?languageCode=${encodeURIComponent(languageCode)}`
         )
     );
 }

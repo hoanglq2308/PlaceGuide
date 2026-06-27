@@ -17,15 +17,19 @@ namespace PlaceGuide.Server.Controllers
         private readonly ApplicationDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IGuestAudioPassService _guestAudioPassService;
+        private readonly IAudioListeningAnalyticsService
+            _audioListeningAnalyticsService;
 
         public RestaurantsController(
             ApplicationDbContext context,
             UserManager<ApplicationUser> userManager,
-            IGuestAudioPassService guestAudioPassService)
+            IGuestAudioPassService guestAudioPassService,
+            IAudioListeningAnalyticsService audioListeningAnalyticsService)
         {
             _context = context;
             _userManager = userManager;
             _guestAudioPassService = guestAudioPassService;
+            _audioListeningAnalyticsService = audioListeningAnalyticsService;
         }
 
         [HttpGet]
@@ -88,7 +92,10 @@ namespace PlaceGuide.Server.Controllers
         }
 
         [HttpGet("{id:guid}/audio")]
-        public async Task<IActionResult> GetRestaurantAudio(Guid id)
+        public async Task<IActionResult> GetRestaurantAudio(
+            Guid id,
+            [FromQuery] string languageCode = "vi",
+            CancellationToken cancellationToken = default)
         {
             var restaurant = await _context.Restaurants
                 .AsNoTracking()
@@ -109,12 +116,35 @@ namespace PlaceGuide.Server.Controllers
                 return CreateAudioPassRequiredResponse();
             }
 
+            var normalizedLanguageCode = NormalizeLanguageCode(languageCode);
+            var narration = ToNarrationResponse(
+                restaurant,
+                normalizedLanguageCode);
+
+            if (!narration.Values.Any(value =>
+                    !string.IsNullOrWhiteSpace(value)))
+            {
+                return NotFound(new
+                {
+                    code = "AUDIO_NARRATION_NOT_FOUND",
+                    message = "Nhà hàng chưa có nội dung thuyết minh."
+                });
+            }
+
+            await _audioListeningAnalyticsService
+                .RecordRestaurantAudioListenAsync(
+                    restaurant,
+                    normalizedLanguageCode,
+                    access.IsAdminListen,
+                    GetVisitorSessionKey(),
+                    cancellationToken);
+
             return Ok(new
             {
                 status = "success",
                 restaurantId = restaurant.Id,
                 passExpiresAtUtc = access.PassExpiresAtUtc,
-                narration = ToNarrationResponse(restaurant)
+                narration
             });
         }
 
@@ -122,7 +152,8 @@ namespace PlaceGuide.Server.Controllers
         public async Task<IActionResult> GetDishAudio(
             Guid restaurantId,
             Guid dishId,
-            [FromQuery] string languageCode = "vi")
+            [FromQuery] string languageCode = "vi",
+            CancellationToken cancellationToken = default)
         {
             var dish = await _context.Dishes
                 .AsNoTracking()
@@ -146,13 +177,36 @@ namespace PlaceGuide.Server.Controllers
                 return CreateAudioPassRequiredResponse();
             }
 
+            var normalizedLanguageCode = NormalizeLanguageCode(languageCode);
+            var narration = ToNarrationResponse(
+                dish,
+                normalizedLanguageCode);
+
+            if (!narration.Values.Any(value =>
+                    !string.IsNullOrWhiteSpace(value)))
+            {
+                return NotFound(new
+                {
+                    code = "AUDIO_NARRATION_NOT_FOUND",
+                    message = "Món ăn chưa có nội dung thuyết minh."
+                });
+            }
+
+            await _audioListeningAnalyticsService.RecordDishAudioListenAsync(
+                dish.Restaurant!,
+                dish,
+                normalizedLanguageCode,
+                access.IsAdminListen,
+                GetVisitorSessionKey(),
+                cancellationToken);
+
             return Ok(new
             {
                 status = "success",
                 restaurantId,
                 dishId = dish.Id,
                 passExpiresAtUtc = access.PassExpiresAtUtc,
-                narration = ToNarrationResponse(dish, languageCode)
+                narration
             });
         }
 
@@ -216,7 +270,8 @@ namespace PlaceGuide.Server.Controllers
         }
 
         private static RestaurantNarrationDto ToNarrationResponse(
-            Restaurant restaurant)
+            Restaurant restaurant,
+            string languageCode)
         {
             // Use RestaurantLocalizationService to build the narration dictionary.
             // Translation rows (including vi/en after migration) take priority over
@@ -227,6 +282,19 @@ namespace PlaceGuide.Server.Controllers
             foreach (var kvp in dict)
             {
                 narration[kvp.Key] = kvp.Value;
+            }
+
+            if (!narration.ContainsKey(languageCode))
+            {
+                var fallbackNarration =
+                    RestaurantLocalizationService.ResolveNarration(
+                        restaurant,
+                        languageCode);
+
+                if (!string.IsNullOrWhiteSpace(fallbackNarration))
+                {
+                    narration[languageCode] = fallbackNarration;
+                }
             }
 
             return narration;
@@ -278,20 +346,23 @@ namespace PlaceGuide.Server.Controllers
         {
             if (TryGetGuestPass(out var guestPass))
             {
-                return new AudioAccessResult(true, guestPass.ExpiresAtUtc);
+                return new AudioAccessResult(
+                    true,
+                    guestPass.ExpiresAtUtc,
+                    false);
             }
 
             if (IsCurrentUserAdmin())
             {
-                return new AudioAccessResult(true, null);
+                return new AudioAccessResult(true, null, true);
             }
 
             if (await IsCurrentUserPremiumAsync())
             {
-                return new AudioAccessResult(true, null);
+                return new AudioAccessResult(true, null, false);
             }
 
-            return new AudioAccessResult(false, null);
+            return new AudioAccessResult(false, null, false);
         }
 
         private bool TryGetGuestPass(out GuestAudioPass guestPass)
@@ -336,7 +407,30 @@ namespace PlaceGuide.Server.Controllers
             });
         }
 
-        private sealed record AudioAccessResult(bool HasAccess, DateTimeOffset? PassExpiresAtUtc);
+        private string? GetVisitorSessionKey()
+        {
+            return Request.Headers.TryGetValue(
+                "X-Visitor-Session",
+                out var values)
+                ? values.FirstOrDefault()
+                : null;
+        }
+
+        private static string NormalizeLanguageCode(string? languageCode)
+        {
+            var normalized = string.IsNullOrWhiteSpace(languageCode)
+                ? "vi"
+                : languageCode.Trim();
+
+            return normalized.Length <= 20
+                ? normalized
+                : normalized[..20];
+        }
+
+        private sealed record AudioAccessResult(
+            bool HasAccess,
+            DateTimeOffset? PassExpiresAtUtc,
+            bool IsAdminListen);
 
     }
 }

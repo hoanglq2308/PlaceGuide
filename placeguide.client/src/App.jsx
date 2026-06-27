@@ -21,6 +21,8 @@ import MerchantRegistrations from './pages/Admin/MerchantRegistrations';
 import AdminRestaurants from './pages/Admin/AdminRestaurants';
 import AdminReviews from './pages/Admin/AdminReviews';
 import AdminNarrations from './pages/Admin/AdminNarrations';
+import AdminAnalytics from './pages/Admin/AdminAnalytics';
+import AdminSettings from './pages/Admin/AdminSettings';
 import OwnerRestaurantProfile from './pages/Owner/OwnerRestaurantProfile';
 
 function App() {
@@ -126,6 +128,22 @@ function App() {
                         element={
                             <ProtectedRoute requiredRole="Admin">
                                 <AdminNarrations />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="/admin/analytics"
+                        element={
+                            <ProtectedRoute requiredRole="Admin">
+                                <AdminAnalytics />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="/admin/settings"
+                        element={
+                            <ProtectedRoute requiredRole="Admin">
+                                <AdminSettings />
                             </ProtectedRoute>
                         }
                     />

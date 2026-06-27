@@ -73,6 +73,10 @@ builder.Services.AddControllers();
 builder.Services.AddMemoryCache();
 
 builder.Services.AddScoped<IGuestAudioPassService, GuestAudioPassService>();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<
+    IAudioListeningAnalyticsService,
+    AudioListeningAnalyticsService>();
 builder.Services.AddSingleton<IVisitorPresenceService, VisitorPresenceService>();
 builder.Services.Configure<TranslationOptions>(
     builder.Configuration.GetSection(TranslationOptions.SectionName));
@@ -163,7 +167,10 @@ using (var scope = app.Services.CreateScope())
 
             if (app.Environment.IsDevelopment())
             {
-                RestaurantSeeder.SeedDevelopmentRestaurants(context);
+                await DevelopmentDatabaseSeeder.SeedAsync(
+                    context,
+                    roleManager,
+                    userManager);
                 Console.WriteLine("✅ Development seed data đã sẵn sàng.");
             }
         }
