@@ -438,8 +438,6 @@ namespace PlaceGuide.Server.Controllers.Admin
                 PendingSetupRestaurants = pending,
                 BannedRestaurants = banned,
                 MissingNarrationRestaurants = await restaurants.CountAsync(item =>
-                    string.IsNullOrEmpty(item.NarrationVi) &&
-                    string.IsNullOrEmpty(item.NarrationEn) &&
                     !item.Translations.Any(translation =>
                         translation.Narration != null &&
                         translation.Narration != string.Empty)),

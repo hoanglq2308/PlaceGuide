@@ -5,8 +5,7 @@ namespace PlaceGuide.Server.Services
     public static class DishLocalizationService
     {
         /// <summary>
-        /// Resolves narration for playback. Requested language is preferred,
-        /// then VI, EN, and finally the legacy VI/EN fields.
+        /// Resolves narration for playback using requested, VI, then EN.
         /// </summary>
         public static string ResolveDishNarration(
             Dish dish,
@@ -30,14 +29,7 @@ namespace PlaceGuide.Server.Services
                 return english.Narration;
             }
 
-            if (!string.IsNullOrWhiteSpace(dish.NarrationVi))
-            {
-                return dish.NarrationVi;
-            }
-
-            return !string.IsNullOrWhiteSpace(dish.NarrationEn)
-                ? dish.NarrationEn
-                : string.Empty;
+            return string.Empty;
         }
 
         /// <summary>
@@ -55,12 +47,7 @@ namespace PlaceGuide.Server.Services
                 return translation.Narration;
             }
 
-            return languageCode switch
-            {
-                "vi" => dish.NarrationVi,
-                "en" => dish.NarrationEn,
-                _ => string.Empty
-            };
+            return string.Empty;
         }
 
         public static bool HasDishNarration(Dish dish, string languageCode)
@@ -74,16 +61,6 @@ namespace PlaceGuide.Server.Services
         {
             var result = new Dictionary<string, string>(
                 StringComparer.OrdinalIgnoreCase);
-
-            if (!string.IsNullOrWhiteSpace(dish.NarrationVi))
-            {
-                result["vi"] = dish.NarrationVi;
-            }
-
-            if (!string.IsNullOrWhiteSpace(dish.NarrationEn))
-            {
-                result["en"] = dish.NarrationEn;
-            }
 
             foreach (var translation in dish.Translations)
             {
@@ -102,16 +79,6 @@ namespace PlaceGuide.Server.Services
             var result = new Dictionary<string, string>(
                 StringComparer.OrdinalIgnoreCase);
 
-            if (!string.IsNullOrWhiteSpace(dish.DescriptionVi))
-            {
-                result["vi"] = dish.DescriptionVi;
-            }
-
-            if (!string.IsNullOrWhiteSpace(dish.DescriptionEn))
-            {
-                result["en"] = dish.DescriptionEn;
-            }
-
             foreach (var translation in dish.Translations)
             {
                 if (!string.IsNullOrWhiteSpace(translation.Description))
@@ -125,10 +92,22 @@ namespace PlaceGuide.Server.Services
 
         public static string ResolveDishName(Dish dish, string languageCode)
         {
-            var translation = FindTranslation(dish, languageCode);
-            return !string.IsNullOrWhiteSpace(translation?.Name)
-                ? translation.Name
-                : dish.Name;
+            var requested = FindTranslation(dish, languageCode);
+            if (!string.IsNullOrWhiteSpace(requested?.Name))
+            {
+                return requested.Name;
+            }
+
+            var vietnamese = FindTranslation(dish, "vi");
+            if (!string.IsNullOrWhiteSpace(vietnamese?.Name))
+            {
+                return vietnamese.Name;
+            }
+
+            var english = FindTranslation(dish, "en");
+            return !string.IsNullOrWhiteSpace(english?.Name)
+                ? english.Name
+                : string.Empty;
         }
 
         public static string? GetDishDescriptionForLanguage(
@@ -141,12 +120,7 @@ namespace PlaceGuide.Server.Services
                 return translation.Description;
             }
 
-            return languageCode switch
-            {
-                "vi" => dish.DescriptionVi,
-                "en" => dish.DescriptionEn,
-                _ => null
-            };
+            return null;
         }
 
         private static DishTranslation? FindTranslation(

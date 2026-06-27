@@ -20,16 +20,35 @@ function Login() {
         }
 
         if (roles.includes('Owner')) {
-            return '/merchart';
+            return '/merchant';
         }
 
         return '/home';
     };
 
+    const canAccessPath = (pathname, roles = []) => {
+        if (pathname.startsWith('/admin')) {
+            return roles.includes('Admin');
+        }
+
+        if (
+            pathname.startsWith('/merchant') ||
+            pathname.startsWith('/owner')
+        ) {
+            return roles.includes('Owner');
+        }
+
+        return true;
+    };
+
     const getRedirectPath = (roles = []) => {
         const from = location.state?.from;
 
-        if (typeof from?.pathname !== 'string' || !from.pathname.startsWith('/')) {
+        if (
+            typeof from?.pathname !== 'string' ||
+            !from.pathname.startsWith('/') ||
+            !canAccessPath(from.pathname, roles)
+        ) {
             return getDefaultRedirectPath(roles);
         }
 

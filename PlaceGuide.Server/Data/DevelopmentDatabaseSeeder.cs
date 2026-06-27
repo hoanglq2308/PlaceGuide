@@ -158,6 +158,7 @@ namespace PlaceGuide.Server.Data
             if (!moderationSample.IsBanned)
             {
                 moderationSample.IsBanned = true;
+                moderationSample.IsOpen = false;
                 moderationSample.IsPublished = false;
                 moderationSample.BanReason = "Du lieu mau de kiem tra luong khoa quan.";
                 moderationSample.BannedAt = DateTime.UtcNow.AddDays(-2);

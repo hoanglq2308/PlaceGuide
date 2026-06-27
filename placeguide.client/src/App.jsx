@@ -10,6 +10,7 @@ import AudioPassModalHost from './components/AudioPassModalHost';
 import AudioPassCheckout from './pages/AudioPassCheckout';
 import { LanguageProvider } from './context/LanguageContext';
 import ProtectedRoute from './routes/ProtectedRoute';
+import PublicRoute from './routes/PublicRoute';
 import VisitorPresenceTracker from './components/VisitorPresenceTracker';
 import VisitorActivityTracker from './components/analytics/VisitorActivityTracker';
 import MerchantHome from './pages/Merchant/MerchantHome';
@@ -33,15 +34,17 @@ function App() {
                 <VisitorPresenceTracker />
                 <VisitorActivityTracker />
                 <Routes>
-                    <Route path="/" element={<Home />} />
-                    <Route path="/login" element={<Login />} />
-                    <Route path="/register" element={<Register />} />
-                    <Route path="/home" element={<Home />} />
-                    <Route path="/restaurants/:id" element={<RestaurantDetail />} />
-                    <Route path="/restaurants/:id/menu" element={<RestaurantMenu />} />
-                    <Route path="/bookmarks" element={<Bookmarks />} />
-                    <Route path="/map" element={<MapView />} />
-                    <Route path="/audio-pass/checkout" element={<AudioPassCheckout />} />
+                    <Route element={<PublicRoute />}>
+                        <Route path="/" element={<Home />} />
+                        <Route path="/login" element={<Login />} />
+                        <Route path="/register" element={<Register />} />
+                        <Route path="/home" element={<Home />} />
+                        <Route path="/restaurants/:id" element={<RestaurantDetail />} />
+                        <Route path="/restaurants/:id/menu" element={<RestaurantMenu />} />
+                        <Route path="/bookmarks" element={<Bookmarks />} />
+                        <Route path="/map" element={<MapView />} />
+                        <Route path="/audio-pass/checkout" element={<AudioPassCheckout />} />
+                    </Route>
                     <Route path="/merchart" element={<Navigate to="/merchant" replace />} />
                     <Route
                         path="/merchant"

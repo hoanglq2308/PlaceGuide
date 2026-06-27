@@ -21,17 +21,9 @@ const FILTER_BUTTON_INACTIVE_CLASS =
     'border-gray-300 bg-white hover:border-red-700 hover:text-red-700';
 const FILTER_BUTTON_ACTIVE_CLASS = 'border-green-200 bg-green-100 text-green-800';
 
-function clearAuthSession() {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-}
-
 function Home() {
     const navigate = useNavigate();
 
-    const [authToken, setAuthToken] = useState(() =>
-        localStorage.getItem('token')
-    );
     const { language, t } = useLanguage();
     const [searchText, setSearchText] = useState('');
     const [locationText, setLocationText] = useState('Chưa lấy vị trí');
@@ -136,15 +128,9 @@ function Home() {
         `${FILTER_BUTTON_BASE_CLASS} ${
             isActive ? FILTER_BUTTON_ACTIVE_CLASS : FILTER_BUTTON_INACTIVE_CLASS
         }`;
-    const handleLogout = () => {
+    const handleLogin = () => {
         window.speechSynthesis?.cancel();
-        if (!authToken) {
-            navigate('/login');
-            return;
-        }
-
-        clearAuthSession();
-        setAuthToken(null);
+        navigate('/login');
     };
 
     const handleToggleDistanceSort = () => {
@@ -298,14 +284,14 @@ function Home() {
 
                         <button
                             type="button"
-                            onClick={handleLogout}
+                            onClick={handleLogin}
                             className="flex items-center gap-1 text-red-700 font-semibold hover:opacity-80 transition-all"
                         >
                             <span className="material-symbols-outlined text-[28px]">
-                                {authToken ? 'logout' : 'login'}
+                                login
                             </span>
                             <span className="hidden md:inline">
-                                {authToken ? t('logout') : t('login')}
+                                {t('login')}
                             </span>
                         </button>
                     </div>

@@ -1071,12 +1071,7 @@ namespace PlaceGuide.Server.Controllers.Admin
                 return translation.Narration;
             }
 
-            return languageCode switch
-            {
-                "vi" => restaurant.NarrationVi,
-                "en" => restaurant.NarrationEn,
-                _ => string.Empty
-            };
+            return string.Empty;
         }
 
         private static bool HasDishNarration(Dish dish, string languageCode)

@@ -304,15 +304,14 @@ namespace PlaceGuide.Server.Controllers.Admin
                         !restaurant.IsPublished ||
                         string.IsNullOrWhiteSpace(restaurant.ImageUrl) ||
                         !_dbContext.Dishes.Any(dish => dish.RestaurantId == restaurant.Id) ||
-                        // Check narration: translation rows take priority over legacy fields
-                        (
-                            !restaurant.Translations.Any(t => t.LanguageCode == "vi" && t.Narration != null && t.Narration != "") &&
-                            (restaurant.NarrationVi == null || restaurant.NarrationVi == "")
-                        ) ||
-                        (
-                            !restaurant.Translations.Any(t => t.LanguageCode == "en" && t.Narration != null && t.Narration != "") &&
-                            (restaurant.NarrationEn == null || restaurant.NarrationEn == "")
-                        ) ||
+                        !restaurant.Translations.Any(t =>
+                            t.LanguageCode == "vi" &&
+                            t.Narration != null &&
+                            t.Narration != "") ||
+                        !restaurant.Translations.Any(t =>
+                            t.LanguageCode == "en" &&
+                            t.Narration != null &&
+                            t.Narration != "") ||
                         (string.IsNullOrWhiteSpace(restaurant.HighlightDishes) &&
                             string.IsNullOrWhiteSpace(restaurant.Tags)) ||
                         restaurant.Latitude == 0 ||
@@ -378,7 +377,6 @@ namespace PlaceGuide.Server.Controllers.Admin
                 HasImage = HasImage(restaurant),
                 HasCoordinates = HasCoordinates(restaurant),
                 HasMenu = dishCount > 0,
-                // Check translation rows first, then fall back to legacy fields
                 HasVietnameseNarration = RestaurantLocalizationService.HasNarration(restaurant, "vi"),
                 HasEnglishNarration = RestaurantLocalizationService.HasNarration(restaurant, "en"),
                 ProfileCompletionCount = checklist.Count(item => item.IsComplete),
@@ -459,14 +457,12 @@ namespace PlaceGuide.Server.Controllers.Admin
                 {
                     Key = "narrationVi",
                     Label = "Thuyết minh tiếng Việt",
-                    // Check translation rows first, then fall back to legacy field
                     IsComplete = RestaurantLocalizationService.HasNarration(restaurant, "vi")
                 },
                 new()
                 {
                     Key = "narrationEn",
                     Label = "Thuyết minh tiếng Anh",
-                    // Check translation rows first, then fall back to legacy field
                     IsComplete = RestaurantLocalizationService.HasNarration(restaurant, "en")
                 },
                 new()

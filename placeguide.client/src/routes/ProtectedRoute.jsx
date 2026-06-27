@@ -55,31 +55,47 @@ function getTokenRoles(token) {
     );
 }
 
+function clearAuthSession() {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+}
+
+function createLoginState(location) {
+    return {
+        from: {
+            pathname: location.pathname,
+            search: location.search,
+            hash: location.hash
+        }
+    };
+}
+
 function ProtectedRoute({ children, requiredRole }) {
     const token = localStorage.getItem('token');
     const location = useLocation();
 
     if (!isTokenValid(token)) {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
+        clearAuthSession();
 
         return (
             <Navigate
                 to="/login"
                 replace
-                state={{
-                    from: {
-                        pathname: location.pathname,
-                        search: location.search,
-                        hash: location.hash
-                    }
-                }}
+                state={createLoginState(location)}
             />
         );
     }
 
     if (requiredRole && !getTokenRoles(token).includes(requiredRole)) {
-        return <Navigate to="/home" replace />;
+        clearAuthSession();
+
+        return (
+            <Navigate
+                to="/login"
+                replace
+                state={createLoginState(location)}
+            />
+        );
     }
 
     return children;

@@ -62,14 +62,6 @@ namespace PlaceGuide.Server.Models
         // Tạm thời lưu dạng chuỗi: "Local food,Family friendly"
         public string Tags { get; set; } = string.Empty;
 
-        // Legacy fallback fields – migrated to restaurant_translations (LanguageCode='vi').
-        // Do NOT remove until Step 2 (NormalizeRestaurantViEnTranslations drop-columns migration).
-        public string NarrationVi { get; set; } = string.Empty;
-
-        // Legacy fallback fields – migrated to restaurant_translations (LanguageCode='en').
-        // Do NOT remove until Step 2 (NormalizeRestaurantViEnTranslations drop-columns migration).
-        public string NarrationEn { get; set; } = string.Empty;
-
         public bool IsOpen { get; set; } = true;
 
         // Quán được tạo từ đơn duyệt sẽ ở trạng thái chưa public cho đến khi chủ quán hoàn thiện.

@@ -273,9 +273,6 @@ namespace PlaceGuide.Server.Controllers
             Restaurant restaurant,
             string languageCode)
         {
-            // Use RestaurantLocalizationService to build the narration dictionary.
-            // Translation rows (including vi/en after migration) take priority over
-            // legacy restaurants.NarrationVi / NarrationEn fields.
             var dict = RestaurantLocalizationService.BuildNarrationDictionary(restaurant);
             var narration = new RestaurantNarrationDto();
 
