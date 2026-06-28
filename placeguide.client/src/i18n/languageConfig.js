@@ -24,7 +24,13 @@ const UI_TEXT = {
     price: 'Giá:', all: 'Tất cả', cheap: 'Giá rẻ', medium: 'Trung bình', high: 'Cao',
     openNow: 'Đang mở cửa', vegetarian: 'Món chay', nonSpicy: 'Không cay', allergy: 'Dị ứng',
     nearby: 'Quán ăn nổi bật gần bạn', viewAll: 'Xem tất cả', show: 'Hiển thị', restaurants: 'quán',
-    previous: 'Trước', next: 'Sau', listen: 'Nghe thuyết minh', highlights: 'Món nổi bật:', noReviews: 'Chưa có đánh giá'
+    previous: 'Trước', next: 'Sau', listen: 'Nghe thuyết minh', highlights: 'Món nổi bật:', noReviews: 'Chưa có đánh giá',
+    errInsecureContext: 'Trình duyệt không cho phép lấy vị trí khi truy cập bằng HTTP qua IP nội bộ. Hãy mở web bằng HTTPS hoặc dùng tunnel HTTPS như ngrok/cloudflared để test trên điện thoại.',
+    errPermissionDenied: 'Bạn đã từ chối quyền vị trí. Hãy bật quyền vị trí cho trình duyệt rồi thử lại.',
+    errTimeout: 'Không lấy được vị trí trong thời gian cho phép. Vui lòng thử lại hoặc kiểm tra GPS.',
+    errPositionUnavailable: 'Thiết bị chưa cung cấp được vị trí hiện tại. Vui lòng bật GPS hoặc thử lại.',
+    errGeolocationUnsupported: 'Trình duyệt này không hỗ trợ lấy vị trí.',
+    locationUpdated: 'Đã cập nhật vị trí của bạn.'
   },
   en: {
     explore: 'Explore', map: 'Map', bookmarks: 'Saved', history: 'History',
@@ -35,7 +41,13 @@ const UI_TEXT = {
     price: 'Price:', all: 'All', cheap: 'Budget', medium: 'Mid-range', high: 'Premium',
     openNow: 'Open now', vegetarian: 'Vegetarian', nonSpicy: 'Not spicy', allergy: 'Allergy',
     nearby: 'Featured restaurants near you', viewAll: 'View all', show: 'Showing', restaurants: 'restaurants',
-    previous: 'Previous', next: 'Next', listen: 'Listen to guide', highlights: 'Highlights:', noReviews: 'No reviews yet'
+    previous: 'Previous', next: 'Next', listen: 'Listen to guide', highlights: 'Highlights:', noReviews: 'No reviews yet',
+    errInsecureContext: 'Geolocation is not allowed over HTTP via local IP. Please open using HTTPS or use an HTTPS tunnel like ngrok/cloudflared to test on mobile.',
+    errPermissionDenied: 'Location access denied. Please enable location permission in browser settings and try again.',
+    errTimeout: 'Location request timed out. Please try again or check your GPS.',
+    errPositionUnavailable: 'Location information is unavailable. Please enable GPS or try again.',
+    errGeolocationUnsupported: 'This browser does not support geolocation.',
+    locationUpdated: 'Your location has been updated.'
   },
   'zh-CN': {
     explore: '探索', map: '地图', bookmarks: '收藏', history: '历史记录', login: '登录', logout: '退出登录',

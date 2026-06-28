@@ -14,6 +14,7 @@ import markerShadow from 'leaflet/dist/images/marker-shadow.png';
 import ToastMessage from '../components/ToastMessage';
 import { getRestaurants } from '../services/restaurantService';
 import { addDistanceToRestaurants } from '../utils/distance';
+import { getCurrentUserLocation } from '../utils/geolocation';
 
 delete L.Icon.Default.prototype._getIconUrl;
 
@@ -459,40 +460,48 @@ function MapView() {
         navigate(`/restaurants/${restaurant.id}`);
     };
 
-    const handleGetLocation = () => {
-        if (!navigator.geolocation) {
-            setToast({
-                message: 'Trình duyệt không hỗ trợ lấy vị trí.',
-                type: 'warning',
-            });
-            return;
-        }
-
+    const handleGetLocation = async () => {
         setIsGettingLocation(true);
 
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                const { latitude, longitude } = position.coords;
+        try {
+            const location = await getCurrentUserLocation();
+            const { latitude, longitude } = location;
 
-                setUserLocation({
-                    latitude,
-                    longitude,
-                });
-                setSelectedRestaurantId(null);
-                setIsGettingLocation(false);
-                setToast({
-                    message: 'Đã cập nhật vị trí của bạn trên bản đồ.',
-                    type: 'success',
-                });
-            },
-            () => {
-                setIsGettingLocation(false);
-                setToast({
-                    message: 'Bạn chưa cấp quyền vị trí.',
-                    type: 'warning',
-                });
+            setUserLocation({
+                latitude,
+                longitude,
+            });
+            setSelectedRestaurantId(null);
+            setToast({
+                message: 'Đã cập nhật vị trí của bạn trên bản đồ.',
+                type: 'success',
+            });
+        } catch (error) {
+            let errorMsg = 'Bạn chưa cấp quyền vị trí.';
+            switch (error.code) {
+                case 'INSECURE_CONTEXT':
+                    errorMsg = 'Trình duyệt không cho phép lấy vị trí khi truy cập bằng HTTP qua IP nội bộ. Hãy mở web bằng HTTPS hoặc dùng tunnel HTTPS như ngrok/cloudflared để test trên điện thoại.';
+                    break;
+                case 'PERMISSION_DENIED':
+                    errorMsg = 'Bạn đã từ chối quyền vị trí. Hãy bật quyền vị trí cho trình duyệt rồi thử lại.';
+                    break;
+                case 'TIMEOUT':
+                    errorMsg = 'Không lấy được vị trí trong thời gian cho phép. Vui lòng thử lại hoặc kiểm tra GPS.';
+                    break;
+                case 'POSITION_UNAVAILABLE':
+                    errorMsg = 'Thiết bị chưa cung cấp được vị trí hiện tại. Vui lòng bật GPS hoặc thử lại.';
+                    break;
+                case 'GEOLOCATION_UNSUPPORTED':
+                    errorMsg = 'Trình duyệt này không hỗ trợ lấy vị trí.';
+                    break;
             }
-        );
+            setToast({
+                message: errorMsg,
+                type: 'warning',
+            });
+        } finally {
+            setIsGettingLocation(false);
+        }
     };
 
     return (

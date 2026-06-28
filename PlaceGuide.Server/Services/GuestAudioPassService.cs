@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.DataProtection;
 
@@ -27,14 +29,26 @@ namespace PlaceGuide.Server.Services
     public sealed class GuestAudioPassService : IGuestAudioPassService
     {
         private const string Purpose = "PlaceGuide.GuestAudioPass.v1";
+        private const string TokenVersion = "v2";
         private const string DayPassPlanCode = "audio_day_pass";
         private const string AllRestaurantsScope = "all_restaurants";
 
         private readonly IDataProtector _protector;
+        private readonly byte[] _signingKey;
 
-        public GuestAudioPassService(IDataProtectionProvider dataProtectionProvider)
+        public GuestAudioPassService(
+            IDataProtectionProvider dataProtectionProvider,
+            IConfiguration configuration)
         {
             _protector = dataProtectionProvider.CreateProtector(Purpose);
+            var signingKey = configuration["Jwt:Key"];
+            if (string.IsNullOrWhiteSpace(signingKey))
+            {
+                throw new InvalidOperationException(
+                    "Jwt:Key is required to sign AudioPass tokens.");
+            }
+
+            _signingKey = Encoding.UTF8.GetBytes(signingKey);
         }
 
         public IssuedGuestAudioPass IssueDayPass(
@@ -63,7 +77,7 @@ namespace PlaceGuide.Server.Services
 
             return new IssuedGuestAudioPass
             {
-                Token = _protector.Protect(payload),
+                Token = CreateSignedToken(payload),
                 Pass = pass
             };
         }
@@ -79,7 +93,16 @@ namespace PlaceGuide.Server.Services
 
             try
             {
-                var payload = _protector.Unprotect(token);
+                var payload = token.StartsWith(
+                    $"{TokenVersion}.",
+                    StringComparison.Ordinal)
+                        ? ValidateAndReadSignedToken(token)
+                        : _protector.Unprotect(token);
+                if (string.IsNullOrWhiteSpace(payload))
+                {
+                    return false;
+                }
+
                 var parsedPass = JsonSerializer.Deserialize<GuestAudioPass>(payload);
 
                 if (parsedPass == null ||
@@ -96,6 +119,73 @@ namespace PlaceGuide.Server.Services
             catch
             {
                 return false;
+            }
+        }
+
+        private string CreateSignedToken(string payload)
+        {
+            var payloadPart = Base64UrlEncode(Encoding.UTF8.GetBytes(payload));
+            var signedContent = $"{TokenVersion}.{payloadPart}";
+            var signature = HMACSHA256.HashData(
+                _signingKey,
+                Encoding.UTF8.GetBytes(signedContent));
+
+            return $"{signedContent}.{Base64UrlEncode(signature)}";
+        }
+
+        private string? ValidateAndReadSignedToken(string token)
+        {
+            var parts = token.Split('.');
+            if (parts.Length != 3 ||
+                !string.Equals(parts[0], TokenVersion, StringComparison.Ordinal))
+            {
+                return null;
+            }
+
+            var signedContent = $"{parts[0]}.{parts[1]}";
+            var expectedSignature = HMACSHA256.HashData(
+                _signingKey,
+                Encoding.UTF8.GetBytes(signedContent));
+            var suppliedSignature = Base64UrlDecode(parts[2]);
+
+            if (suppliedSignature is null ||
+                !CryptographicOperations.FixedTimeEquals(
+                    suppliedSignature,
+                    expectedSignature))
+            {
+                return null;
+            }
+
+            var payloadBytes = Base64UrlDecode(parts[1]);
+            return payloadBytes is null
+                ? null
+                : Encoding.UTF8.GetString(payloadBytes);
+        }
+
+        private static string Base64UrlEncode(byte[] value)
+        {
+            return Convert.ToBase64String(value)
+                .TrimEnd('=')
+                .Replace('+', '-')
+                .Replace('/', '_');
+        }
+
+        private static byte[]? Base64UrlDecode(string value)
+        {
+            try
+            {
+                var paddedValue = value
+                    .Replace('-', '+')
+                    .Replace('_', '/');
+                paddedValue += new string(
+                    '=',
+                    (4 - paddedValue.Length % 4) % 4);
+
+                return Convert.FromBase64String(paddedValue);
+            }
+            catch (FormatException)
+            {
+                return null;
             }
         }
     }
