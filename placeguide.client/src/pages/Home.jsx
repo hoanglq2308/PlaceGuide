@@ -125,8 +125,7 @@ function Home() {
         filteredRestaurants.length
     );
     const getFilterButtonClass = (isActive) =>
-        `${FILTER_BUTTON_BASE_CLASS} ${
-            isActive ? FILTER_BUTTON_ACTIVE_CLASS : FILTER_BUTTON_INACTIVE_CLASS
+        `${FILTER_BUTTON_BASE_CLASS} ${isActive ? FILTER_BUTTON_ACTIVE_CLASS : FILTER_BUTTON_INACTIVE_CLASS
         }`;
     const handleLogin = () => {
         window.speechSynthesis?.cancel();
@@ -396,11 +395,10 @@ function Home() {
                         </button>
 
                         <label
-                            className={`${FILTER_BUTTON_BASE_CLASS} ${
-                                priceFilter !== PRICE_FILTERS.ALL
+                            className={`${FILTER_BUTTON_BASE_CLASS} ${priceFilter !== PRICE_FILTERS.ALL
                                     ? FILTER_BUTTON_ACTIVE_CLASS
                                     : FILTER_BUTTON_INACTIVE_CLASS
-                            } flex items-center gap-2`}
+                                } flex items-center gap-2`}
                         >
                             <span>{t('price')}</span>
                             <select
