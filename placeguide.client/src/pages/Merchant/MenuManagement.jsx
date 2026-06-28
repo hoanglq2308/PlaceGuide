@@ -1,10 +1,11 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   fetchOwnerDishes,
   createNewDish,
   updateDishInfo,
-  removeDish
+  removeDish,
+  uploadDishImage
 } from '../../services/ownerDishService';
 
 const CATEGORIES = ['Món chính', 'Khai vị', 'Đồ uống', 'Tráng miệng'];
@@ -19,10 +20,15 @@ const EMPTY_FORM = {
 
 function DishFormModal({ open, initialData, onClose, onSubmit, isSubmitting }) {
   const [form, setForm] = useState(EMPTY_FORM);
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState('');
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     if (open) {
       setForm(initialData ? { ...EMPTY_FORM, ...initialData } : EMPTY_FORM);
+      setImageFile(null);
+      setImagePreview(initialData?.imageUrl || '');
     }
   }, [open, initialData]);
 
@@ -30,6 +36,13 @@ function DishFormModal({ open, initialData, onClose, onSubmit, isSubmitting }) {
 
   function updateField(field, value) {
     setForm((prev) => ({ ...prev, [field]: value }));
+  }
+
+  function handleFileChange(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImageFile(file);
+    setImagePreview(URL.createObjectURL(file));
   }
 
   function handleSubmit(event) {
@@ -42,10 +55,10 @@ function DishFormModal({ open, initialData, onClose, onSubmit, isSubmitting }) {
       Name: form.name.trim(),
       Price: Number(form.price),
       Category: form.category,
-      ImageUrl: form.imageUrl.trim(),
+      ImageUrl: form.imageUrl,
       DescriptionVi: form.descriptionVi.trim(),
       IsAvailable: form.isAvailable
-    });
+    }, imageFile);
   }
 
   return (
@@ -97,13 +110,43 @@ function DishFormModal({ open, initialData, onClose, onSubmit, isSubmitting }) {
             </div>
           </div>
 
+          {/* Upload ảnh */}
           <div>
-            <label className="text-sm font-bold text-[#5b403d]">Link hình ảnh</label>
+            <label className="text-sm font-bold text-[#5b403d]">Hình ảnh món ăn</label>
+            <div
+              onClick={() => fileInputRef.current?.click()}
+              className="mt-1 cursor-pointer rounded-lg border-2 border-dashed border-[#e4beba] hover:border-[#af101a] flex flex-col items-center justify-center overflow-hidden"
+              style={{ minHeight: '120px' }}
+            >
+              {imagePreview ? (
+                <img
+                  src={imagePreview}
+                  alt="preview"
+                  className="w-full h-40 object-cover"
+                />
+              ) : (
+                <div className="flex flex-col items-center py-6 text-[#5b403d]">
+                  <span className="material-symbols-outlined text-[36px] text-[#af101a]">add_photo_alternate</span>
+                  <p className="text-sm mt-1">Nhấn để chọn ảnh</p>
+                  <p className="text-xs text-[#9e7b78]">JPG, PNG, WEBP · Tối đa 5MB</p>
+                </div>
+              )}
+            </div>
+            {imagePreview && (
+              <button
+                type="button"
+                onClick={() => { setImageFile(null); setImagePreview(''); }}
+                className="mt-1 text-xs text-[#af101a] underline"
+              >
+                Xóa ảnh
+              </button>
+            )}
             <input
-              value={form.imageUrl}
-              onChange={(e) => updateField('imageUrl', e.target.value)}
-              className="mt-1 h-11 w-full rounded-lg border border-[#e4beba] px-3 text-sm outline-none focus:border-[#af101a]"
-              placeholder="https://..."
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              className="hidden"
+              onChange={handleFileChange}
             />
           </div>
 
@@ -200,16 +243,28 @@ const MenuManagement = () => {
     setIsModalOpen(true);
   }
 
-  async function handleSubmitForm(payload) {
+  async function handleSubmitForm(payload, imageFile) {
     setIsSubmitting(true);
     try {
+      let dish;
       if (editingDish) {
-        const updated = await updateDishInfo(editingDish.id, payload);
-        setMenuItems((prev) => prev.map((item) => (item.id === updated.id ? updated : item)));
+        dish = await updateDishInfo(editingDish.id, payload);
       } else {
-        const created = await createNewDish(payload);
-        setMenuItems((prev) => [created, ...prev]);
+        dish = await createNewDish(payload);
       }
+
+      // Upload ảnh nếu có file mới
+      if (imageFile) {
+        const { imageUrl } = await uploadDishImage(dish.id, imageFile);
+        dish = { ...dish, imageUrl };
+      }
+
+      if (editingDish) {
+        setMenuItems((prev) => prev.map((item) => (item.id === dish.id ? dish : item)));
+      } else {
+        setMenuItems((prev) => [dish, ...prev]);
+      }
+
       setIsModalOpen(false);
     } catch (err) {
       alert(err.message);
@@ -221,7 +276,6 @@ const MenuManagement = () => {
   async function handleDelete(dish) {
     const confirmed = window.confirm(`Bạn có chắc muốn xóa món "${dish.name}"?`);
     if (!confirmed) return;
-
     try {
       await removeDish(dish.id);
       setMenuItems((prev) => prev.filter((item) => item.id !== dish.id));
@@ -263,7 +317,6 @@ const MenuManagement = () => {
               </button>
             ))}
           </div>
-
           <button
             type="button"
             onClick={openCreateModal}
@@ -308,7 +361,6 @@ const MenuManagement = () => {
                     </div>
                   )}
                 </div>
-
                 <div className="p-4 flex flex-col flex-1">
                   <div className="mb-2 flex items-start justify-between gap-2">
                     <h3 className="text-[18px] font-semibold">{item.name}</h3>
@@ -316,10 +368,7 @@ const MenuManagement = () => {
                       {item.price.toLocaleString('vi-VN')}đ
                     </span>
                   </div>
-                  <p className="text-[#5b403d] text-[14px] line-clamp-2 mb-4 flex-1">
-                    {item.descriptionVi}
-                  </p>
-                  <div className="flex gap-2 pt-4 border-t border-[#eae7e7]">
+                  <div className="flex gap-2 pt-4 border-t border-[#eae7e7] mt-auto">
                     <button
                       type="button"
                       onClick={() => openEditModal(item)}
@@ -338,7 +387,6 @@ const MenuManagement = () => {
                 </div>
               </div>
             ))}
-
             <button
               type="button"
               onClick={openCreateModal}

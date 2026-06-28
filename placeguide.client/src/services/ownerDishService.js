@@ -65,3 +65,16 @@ export async function removeDish(dishId) {
 
   return dishId;
 }
+
+export async function uploadDishImage(dishId, imageFile) {
+  const formData = new FormData();
+  formData.append('image', imageFile);
+
+  const response = await fetch(`${API_URL}/owner/dishes/${dishId}/image`, {
+    method: 'POST',
+    headers: getAuthHeaders(), // KHÔNG thêm Content-Type, để browser tự set multipart
+    body: formData
+  });
+
+  return parseResponse(response, 'Không thể tải ảnh món ăn.');
+}

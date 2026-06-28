@@ -107,7 +107,7 @@ namespace PlaceGuide.Server.Services
             var english = FindTranslation(dish, "en");
             return !string.IsNullOrWhiteSpace(english?.Name)
                 ? english.Name
-                : string.Empty;
+                : dish.Name; 
         }
 
         public static string? GetDishDescriptionForLanguage(

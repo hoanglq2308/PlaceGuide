@@ -15,11 +15,13 @@ namespace PlaceGuide.Server.Controllers
     public sealed class OwnerDishesController : ControllerBase
     {
         private readonly ApplicationDbContext _dbContext;
+        private readonly IWebHostEnvironment _environment;
 
-        public OwnerDishesController(ApplicationDbContext dbContext)
-        {
-            _dbContext = dbContext;
-        }
+       public OwnerDishesController(ApplicationDbContext dbContext, IWebHostEnvironment environment)
+    {
+    _dbContext = dbContext;
+    _environment = environment;
+    }
 
         // GET /api/owner/dishes
         [HttpGet]
@@ -140,6 +142,53 @@ namespace PlaceGuide.Server.Controllers
 
             return NoContent();
         }
+
+        // POST /api/owner/dishes/{id}/image
+[HttpPost("{id:guid}/image")]
+[Consumes("multipart/form-data")]
+public async Task<ActionResult<object>> UploadDishImage(Guid id, [FromForm] IFormFile image)
+{
+    var restaurantId = await GetCurrentRestaurantIdAsync();
+    if (restaurantId is null)
+        return NotFound(new { message = "Tài khoản của bạn chưa có nhà hàng được duyệt." });
+
+    var dish = await _dbContext.Dishes
+        .FirstOrDefaultAsync(d => d.Id == id && d.RestaurantId == restaurantId && !d.IsDeleted);
+
+    if (dish is null)
+        return NotFound(new { message = "Không tìm thấy món ăn." });
+
+    if (image is null || image.Length <= 0)
+        return BadRequest(new { message = "File ảnh không hợp lệ." });
+
+    if (image.Length > 5 * 1024 * 1024)
+        return BadRequest(new { message = "Ảnh tối đa 5MB." });
+
+    var allowed = new[] { "image/jpeg", "image/png", "image/webp" };
+    if (!allowed.Contains(image.ContentType, StringComparer.OrdinalIgnoreCase))
+        return BadRequest(new { message = "Chỉ hỗ trợ JPG, PNG, WEBP." });
+
+    var webRoot = string.IsNullOrWhiteSpace(_environment.WebRootPath)
+        ? Path.Combine(_environment.ContentRootPath, "wwwroot")
+        : _environment.WebRootPath;
+
+    var dir = Path.Combine(webRoot, "Uploads", "Dishes", id.ToString());
+    Directory.CreateDirectory(dir);
+
+    var ext = Path.GetExtension(image.FileName);
+    var fileName = $"dish-{Guid.NewGuid():N}{ext}";
+    var filePath = Path.Combine(dir, fileName);
+
+    await using var stream = System.IO.File.Create(filePath);
+    await image.CopyToAsync(stream);
+
+    var imageUrl = $"/Uploads/Dishes/{id}/{fileName}";
+    dish.ImageUrl = imageUrl;
+    dish.UpdatedAt = DateTime.UtcNow;
+    await _dbContext.SaveChangesAsync();
+
+    return Ok(new { imageUrl });
+}
 
         private async Task<Guid?> GetCurrentRestaurantIdAsync()
         {
