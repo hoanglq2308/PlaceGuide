@@ -22,6 +22,10 @@ import AdminRestaurants from './pages/Admin/AdminRestaurants';
 import AdminReviews from './pages/Admin/AdminReviews';
 import AdminNarrations from './pages/Admin/AdminNarrations';
 import OwnerRestaurantProfile from './pages/Owner/OwnerRestaurantProfile';
+import Dashboard from './pages/Owner/Dashboard';
+import OwnerNarration from './pages/Owner/OwnerNarration';
+import OwnerReviews from './pages/Owner/OwnerReviews';
+import OwnerSettings from './pages/Owner/OwnerSettings';
 
 function App() {
     return (
@@ -97,6 +101,9 @@ function App() {
                             </ProtectedRoute>
                         }
                     />
+                    <Route path="/owner/narration" element={<ProtectedRoute requiredRole="Owner"><OwnerNarration /></ProtectedRoute>} />
+                    <Route path="/owner/reviews" element={<ProtectedRoute requiredRole="Owner"><OwnerReviews /></ProtectedRoute>} />
+                    <Route path="/owner/settings" element={<ProtectedRoute requiredRole="Owner"><OwnerSettings /></ProtectedRoute>} />
                     <Route
                         path="/admin/merchant-registrations"
                         element={
@@ -122,6 +129,14 @@ function App() {
                         }
                     />
                     <Route
+                  path="/owner/dashboard"
+                  element={
+                 <ProtectedRoute requiredRole="Owner">
+            <Dashboard />
+        </ProtectedRoute>
+    }
+/>
+                    <Route
                         path="/admin/narrations"
                         element={
                             <ProtectedRoute requiredRole="Admin">
@@ -130,6 +145,12 @@ function App() {
                         }
                     />
                 </Routes>
+               
+            
+           
+       
+    
+
             </LanguageProvider>
         </BrowserRouter>
     );

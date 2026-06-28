@@ -209,8 +209,8 @@ namespace PlaceGuide.Server.Controllers
         private async Task<OwnerRestaurantProfileDto> ToProfileDtoAsync(Restaurant restaurant)
         {
             var dishCount = await _dbContext.Dishes
-                .AsNoTracking()
-                .CountAsync(dish => dish.RestaurantId == restaurant.Id);
+        .AsNoTracking()
+        .CountAsync(dish => dish.RestaurantId == restaurant.Id && !dish.IsDeleted);
             var checklist = CreateChecklist(restaurant, dishCount);
             var reviewCount = restaurant.Reviews.Count;
             var rating = reviewCount > 0

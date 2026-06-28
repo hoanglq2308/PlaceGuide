@@ -1,16 +1,16 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 
 const activeNavigationItems = [
+  { label: 'Tổng quan', icon: 'dashboard', to: '/owner/dashboard' },
   { label: 'Thông tin quán', icon: 'storefront', to: '/owner/restaurant' },
-  { label: 'Menu món ăn', icon: 'restaurant_menu', to: '/merchant/menu' }
+  { label: 'Menu món ăn', icon: 'restaurant_menu', to: '/merchant/menu' },
+  { label: 'Thuyết minh', icon: 'record_voice_over', to: '/owner/narration' },
+  { label: 'Đánh giá', icon: 'reviews', to: '/owner/reviews' },
+  { label: 'Cài đặt', icon: 'settings', to: '/owner/settings' }
 ];
 
-const plannedNavigationItems = [
-  { label: 'Tổng quan', icon: 'dashboard' },
-  { label: 'Thuyết minh', icon: 'record_voice_over' },
-  { label: 'Đánh giá', icon: 'reviews' },
-  { label: 'Cài đặt', icon: 'settings' }
-];
+const plannedNavigationItems = [];
+
 
 function OwnerSidebar({ ownerName = 'Chủ quán', ownerContact = 'Owner Portal' }) {
   const { pathname } = useLocation();
