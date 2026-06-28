@@ -110,6 +110,7 @@ namespace PlaceGuide.Server.DTOs
     {
         public string ContentType { get; set; } = string.Empty;
         public Guid Id { get; set; }
+        public string ProviderName { get; set; } = string.Empty;
         public string SourceLanguageCode { get; set; } = "vi";
         public int TotalTargets { get; set; }
         public int SuccessCount { get; set; }

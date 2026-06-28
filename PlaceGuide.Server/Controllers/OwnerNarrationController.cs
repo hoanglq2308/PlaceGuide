@@ -55,7 +55,7 @@ namespace PlaceGuide.Server.Controllers
 
             var audioUrl = await SaveAudioFileAsync(restaurant.Id, audio, detectedExtension);
 
-            restaurant.NarrationAudioUrl = audioUrl;
+         
             restaurant.UpdatedAt = DateTime.UtcNow;
             await _dbContext.SaveChangesAsync();
 

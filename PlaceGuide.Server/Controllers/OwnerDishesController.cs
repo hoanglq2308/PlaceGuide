@@ -65,7 +65,7 @@ namespace PlaceGuide.Server.Controllers
                 Price = request.Price,
                 Category = request.Category?.Trim() ?? string.Empty,
                 ImageUrl = request.ImageUrl?.Trim() ?? string.Empty,
-                DescriptionVi = request.DescriptionVi?.Trim() ?? string.Empty,
+              
                 IsAvailable = request.IsAvailable,
                 IsDeleted = false,
                 CreatedAt = DateTime.UtcNow,
@@ -106,7 +106,7 @@ namespace PlaceGuide.Server.Controllers
             dish.Price = request.Price;
             dish.Category = request.Category?.Trim() ?? string.Empty;
             dish.ImageUrl = request.ImageUrl?.Trim() ?? dish.ImageUrl;
-            dish.DescriptionVi = request.DescriptionVi?.Trim() ?? string.Empty;
+           
             dish.IsAvailable = request.IsAvailable;
             dish.UpdatedAt = DateTime.UtcNow;
 
@@ -179,7 +179,7 @@ namespace PlaceGuide.Server.Controllers
             Price = dish.Price,
             Category = dish.Category,
             ImageUrl = dish.ImageUrl,
-            DescriptionVi = dish.DescriptionVi,
+           
             IsAvailable = dish.IsAvailable,
             UpdatedAt = dish.UpdatedAt
         };

@@ -141,7 +141,7 @@ function RestaurantMenu() {
         }
 
         try {
-            const audio = await getDishAudioWithPass(id, dish.id);
+            const audio = await getDishAudioWithPass(id, dish.id, language);
             const text = getLocalizedText(audio?.narration, language);
 
             if (audio.passCreated) {

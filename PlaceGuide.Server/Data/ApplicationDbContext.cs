@@ -37,6 +37,8 @@ namespace PlaceGuide.Server.Data
 
         public DbSet<DishTranslation> DishTranslations { get; set; }
 
+        public DbSet<AudioListeningEvent> AudioListeningEvents { get; set; }
+
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
@@ -51,7 +53,24 @@ namespace PlaceGuide.Server.Data
 
             builder.Entity<Restaurant>(entity =>
             {
-                entity.ToTable("restaurants");
+                entity.ToTable("restaurants", table =>
+                {
+                    table.HasCheckConstraint(
+                        "CK_restaurants_Rating_Range",
+                        "\"Rating\" BETWEEN 0 AND 5");
+                    table.HasCheckConstraint(
+                        "CK_restaurants_Latitude_Range",
+                        "\"Latitude\" BETWEEN -90 AND 90");
+                    table.HasCheckConstraint(
+                        "CK_restaurants_Longitude_Range",
+                        "\"Longitude\" BETWEEN -180 AND 180");
+                    table.HasCheckConstraint(
+                        "CK_restaurants_Banned_Not_Published",
+                        "NOT (\"IsBanned\" = TRUE AND \"IsPublished\" = TRUE)");
+                    table.HasCheckConstraint(
+                        "CK_restaurants_Banned_Not_Open",
+                        "NOT (\"IsBanned\" = TRUE AND \"IsOpen\" = TRUE)");
+                });
 
                 entity.Property(restaurant => restaurant.IsPublished)
                     .HasDefaultValue(true);
@@ -112,7 +131,12 @@ namespace PlaceGuide.Server.Data
 
             builder.Entity<VisitorHourlyActivity>(entity =>
             {
-                entity.ToTable("visitor_hourly_activities");
+                entity.ToTable("visitor_hourly_activities", table =>
+                {
+                    table.HasCheckConstraint(
+                        "CK_visitor_hourly_activities_EventCount",
+                        "\"EventCount\" >= 1");
+                });
 
                 entity.HasIndex(activity => new
                 {
@@ -125,7 +149,15 @@ namespace PlaceGuide.Server.Data
 
             builder.Entity<VisitorDistrictActivity>(entity =>
             {
-                entity.ToTable("visitor_district_activities");
+                entity.ToTable("visitor_district_activities", table =>
+                {
+                    table.HasCheckConstraint(
+                        "CK_visitor_district_activities_SourceType",
+                        "\"SourceType\" IN ('RestaurantView', 'GeoLocation')");
+                    table.HasCheckConstraint(
+                        "CK_visitor_district_activities_EventCount",
+                        "\"EventCount\" >= 1");
+                });
 
                 entity.HasIndex(activity => new
                 {
@@ -143,7 +175,12 @@ namespace PlaceGuide.Server.Data
             // BƯỚC 1: Cấu hình bảng RestaurantRegistration đồng bộ với chuẩn PostgreSQL của project
             builder.Entity<RestaurantRegistration>(entity =>
             {
-                entity.ToTable("restaurant_registrations");
+                entity.ToTable("restaurant_registrations", table =>
+                {
+                    table.HasCheckConstraint(
+                        "CK_restaurant_registrations_Status",
+                        "\"Status\" IN ('Pending', 'Approved', 'Rejected')");
+                });
 
                 // Cấu hình rõ ràng Khóa ngoại nối với bảng Users
                 entity.HasOne(registration => registration.User)
@@ -170,7 +207,12 @@ namespace PlaceGuide.Server.Data
 
             builder.Entity<Dish>(entity =>
             {
-                entity.ToTable("dishes");
+                entity.ToTable("dishes", table =>
+                {
+                    table.HasCheckConstraint(
+                        "CK_dishes_Price_NonNegative",
+                        "\"Price\" >= 0");
+                });
 
                 entity.Property(dish => dish.Price)
                     .HasPrecision(12, 2);
@@ -185,7 +227,18 @@ namespace PlaceGuide.Server.Data
 
             builder.Entity<RestaurantTranslation>(entity =>
             {
-                entity.ToTable("restaurant_translations");
+                entity.ToTable("restaurant_translations", table =>
+                {
+                    table.HasCheckConstraint(
+                        "CK_restaurant_translations_LanguageCode",
+                        "\"LanguageCode\" IN ('vi', 'en', 'zh-CN', 'zh-TW', 'ko', 'ja', 'th', 'fr', 'ru')");
+                });
+
+                entity.Property(translation => translation.CreatedAt)
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                entity.Property(translation => translation.UpdatedAt)
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
                 entity.HasIndex(translation => new
                 {
@@ -216,7 +269,12 @@ namespace PlaceGuide.Server.Data
 
             builder.Entity<DishTranslation>(entity =>
             {
-                entity.ToTable("dish_translations");
+                entity.ToTable("dish_translations", table =>
+                {
+                    table.HasCheckConstraint(
+                        "CK_dish_translations_LanguageCode",
+                        "\"LanguageCode\" IN ('vi', 'en', 'zh-CN', 'zh-TW', 'ko', 'ja', 'th', 'fr', 'ru')");
+                });
 
                 entity.HasIndex(translation => new
                 {
@@ -230,8 +288,14 @@ namespace PlaceGuide.Server.Data
                 entity.Property(translation => translation.IsAutoTranslated)
                     .HasDefaultValue(false);
 
+                entity.Property(translation => translation.Name)
+                    .HasMaxLength(200);
+
                 entity.Property(translation => translation.AutoTranslatedFrom)
                     .HasMaxLength(20);
+
+                entity.Property(translation => translation.CreatedAt)
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
                 entity.Property(translation => translation.UpdatedAt)
                     .HasDefaultValueSql("CURRENT_TIMESTAMP");
@@ -271,7 +335,12 @@ namespace PlaceGuide.Server.Data
 
             builder.Entity<Review>(entity =>
             {
-                entity.ToTable("Review");
+                entity.ToTable("Review", table =>
+                {
+                    table.HasCheckConstraint(
+                        "CK_Review_Rating_Range",
+                        "\"Rating\" BETWEEN 1 AND 5");
+                });
 
                 entity.Property(review => review.IsHidden)
                     .HasDefaultValue(false);
@@ -312,18 +381,49 @@ namespace PlaceGuide.Server.Data
                 entity.HasIndex(review => review.CreatedAt);
                 entity.HasIndex(review => review.IsHidden);
                 entity.HasIndex(review => review.GuestReviewKeyHash);
+
+                entity.HasIndex(review => new
+                    {
+                        review.RestaurantId,
+                        review.GuestReviewKeyHash
+                    })
+                    .IsUnique()
+                    .HasDatabaseName("UX_Review_RestaurantId_GuestReviewKeyHash")
+                    .HasFilter("\"GuestReviewKeyHash\" IS NOT NULL");
             });
 
             builder.Entity<ReviewMedia>(entity =>
             {
-                entity.ToTable("review_media");
+                entity.ToTable("review_media", table =>
+                {
+                    table.HasCheckConstraint(
+                        "CK_review_media_MediaType",
+                        "\"MediaType\" IN ('image', 'video')");
+                    table.HasCheckConstraint(
+                        "CK_review_media_FileSize_Positive",
+                        "\"FileSize\" > 0");
+                    table.HasCheckConstraint(
+                        "CK_review_media_FileSize_Max25MB",
+                        "\"FileSize\" <= 26214400");
+                });
 
                 entity.HasIndex(media => media.ReviewId);
             });
 
             builder.Entity<PaymentOrder>(entity =>
             {
-                entity.ToTable("payment_orders");
+                entity.ToTable("payment_orders", table =>
+                {
+                    table.HasCheckConstraint(
+                        "CK_payment_orders_Status",
+                        "\"Status\" IN ('pending', 'paid', 'expired', 'cancelled', 'failed')");
+                    table.HasCheckConstraint(
+                        "CK_payment_orders_Amount_Positive",
+                        "\"AmountVnd\" > 0");
+                    table.HasCheckConstraint(
+                        "CK_payment_orders_Currency",
+                        "\"Currency\" = 'VND'");
+                });
 
                 entity.HasIndex(order => order.OrderCode)
                     .IsUnique();
@@ -333,6 +433,55 @@ namespace PlaceGuide.Server.Data
                     order.Status,
                     order.ExpiresAt
                 });
+            });
+
+            builder.Entity<AudioListeningEvent>(entity =>
+            {
+                entity.ToTable("audio_listening_events", table =>
+                {
+                    table.HasCheckConstraint(
+                        "CK_audio_listening_events_AudioType",
+                        "\"AudioType\" IN ('restaurant', 'dish')");
+                    table.HasCheckConstraint(
+                        "CK_audio_listening_events_LanguageCode",
+                        "\"LanguageCode\" IN ('vi', 'en', 'zh-CN', 'zh-TW', 'ko', 'ja', 'th', 'fr', 'ru')");
+                    table.HasCheckConstraint(
+                        "CK_audio_listening_events_DishId_By_Type",
+                        "((\"AudioType\" = 'restaurant' AND \"DishId\" IS NULL) OR (\"AudioType\" = 'dish' AND \"DishId\" IS NOT NULL))");
+                });
+
+                entity.Property(audioEvent => audioEvent.IsAdminListen)
+                    .HasDefaultValue(false);
+
+                entity.Property(audioEvent => audioEvent.CreatedAt)
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                entity.HasIndex(audioEvent => audioEvent.CreatedAt);
+                entity.HasIndex(audioEvent => audioEvent.RestaurantId);
+                entity.HasIndex(audioEvent => audioEvent.DishId);
+                entity.HasIndex(audioEvent => audioEvent.AudioType);
+                entity.HasIndex(audioEvent => audioEvent.LanguageCode);
+                entity.HasIndex(audioEvent => audioEvent.DistrictName);
+                entity.HasIndex(audioEvent => new
+                {
+                    audioEvent.CreatedAt,
+                    audioEvent.AudioType
+                });
+                entity.HasIndex(audioEvent => new
+                {
+                    audioEvent.CreatedAt,
+                    audioEvent.LanguageCode
+                });
+
+                entity.HasOne(audioEvent => audioEvent.Restaurant)
+                    .WithMany()
+                    .HasForeignKey(audioEvent => audioEvent.RestaurantId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(audioEvent => audioEvent.Dish)
+                    .WithMany()
+                    .HasForeignKey(audioEvent => audioEvent.DishId)
+                    .OnDelete(DeleteBehavior.SetNull);
             });
         }
     }

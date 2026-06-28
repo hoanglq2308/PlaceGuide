@@ -10,6 +10,7 @@ import AudioPassModalHost from './components/AudioPassModalHost';
 import AudioPassCheckout from './pages/AudioPassCheckout';
 import { LanguageProvider } from './context/LanguageContext';
 import ProtectedRoute from './routes/ProtectedRoute';
+import PublicRoute from './routes/PublicRoute';
 import VisitorPresenceTracker from './components/VisitorPresenceTracker';
 import VisitorActivityTracker from './components/analytics/VisitorActivityTracker';
 import MerchantHome from './pages/Merchant/MerchantHome';
@@ -21,6 +22,8 @@ import MerchantRegistrations from './pages/Admin/MerchantRegistrations';
 import AdminRestaurants from './pages/Admin/AdminRestaurants';
 import AdminReviews from './pages/Admin/AdminReviews';
 import AdminNarrations from './pages/Admin/AdminNarrations';
+import AdminAnalytics from './pages/Admin/AdminAnalytics';
+import AdminSettings from './pages/Admin/AdminSettings';
 import OwnerRestaurantProfile from './pages/Owner/OwnerRestaurantProfile';
 import Dashboard from './pages/Owner/Dashboard';
 import OwnerNarration from './pages/Owner/OwnerNarration';
@@ -35,15 +38,17 @@ function App() {
                 <VisitorPresenceTracker />
                 <VisitorActivityTracker />
                 <Routes>
-                    <Route path="/" element={<Home />} />
-                    <Route path="/login" element={<Login />} />
-                    <Route path="/register" element={<Register />} />
-                    <Route path="/home" element={<Home />} />
-                    <Route path="/restaurants/:id" element={<RestaurantDetail />} />
-                    <Route path="/restaurants/:id/menu" element={<RestaurantMenu />} />
-                    <Route path="/bookmarks" element={<Bookmarks />} />
-                    <Route path="/map" element={<MapView />} />
-                    <Route path="/audio-pass/checkout" element={<AudioPassCheckout />} />
+                    <Route element={<PublicRoute />}>
+                        <Route path="/" element={<Home />} />
+                        <Route path="/login" element={<Login />} />
+                        <Route path="/register" element={<Register />} />
+                        <Route path="/home" element={<Home />} />
+                        <Route path="/restaurants/:id" element={<RestaurantDetail />} />
+                        <Route path="/restaurants/:id/menu" element={<RestaurantMenu />} />
+                        <Route path="/bookmarks" element={<Bookmarks />} />
+                        <Route path="/map" element={<MapView />} />
+                        <Route path="/audio-pass/checkout" element={<AudioPassCheckout />} />
+                    </Route>
                     <Route path="/merchart" element={<Navigate to="/merchant" replace />} />
                     <Route
                         path="/merchant"
@@ -141,6 +146,22 @@ function App() {
                         element={
                             <ProtectedRoute requiredRole="Admin">
                                 <AdminNarrations />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="/admin/analytics"
+                        element={
+                            <ProtectedRoute requiredRole="Admin">
+                                <AdminAnalytics />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="/admin/settings"
+                        element={
+                            <ProtectedRoute requiredRole="Admin">
+                                <AdminSettings />
                             </ProtectedRoute>
                         }
                     />

@@ -38,6 +38,7 @@ namespace PlaceGuide.Server.Controllers
 
             var reviewsQuery = _dbContext.Reviews
                 .AsNoTracking()
+                .Include(r => r.User)   // thêm dòng này
                 .Where(r => r.RestaurantId == restaurantId);
 
             // Đếm tổng và lấy trang dữ liệu trong 2 query riêng, DB tự xử lý
@@ -51,7 +52,7 @@ namespace PlaceGuide.Server.Controllers
                 .Select(r => new OwnerReviewDto
                 {
                     Id = r.Id,
-                    CustomerName = r.CustomerName,
+                   CustomerName = r.User != null ? r.User.FullName : "Khách",
                     Rating = r.Rating,
                     Comment = r.Comment,
                     CreatedAt = r.CreatedAt

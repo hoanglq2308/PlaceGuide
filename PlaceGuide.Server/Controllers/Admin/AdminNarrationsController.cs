@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using PlaceGuide.Server.Configuration;
 using PlaceGuide.Server.Data;
 using PlaceGuide.Server.DTOs;
 using PlaceGuide.Server.Models;
@@ -23,13 +25,16 @@ namespace PlaceGuide.Server.Controllers.Admin
 
         private readonly ApplicationDbContext _dbContext;
         private readonly IAutoTranslationService _autoTranslationService;
+        private readonly TranslationOptions _translationOptions;
 
         public AdminNarrationsController(
             ApplicationDbContext dbContext,
-            IAutoTranslationService autoTranslationService)
+            IAutoTranslationService autoTranslationService,
+            IOptions<TranslationOptions> translationOptions)
         {
             _dbContext = dbContext;
             _autoTranslationService = autoTranslationService;
+            _translationOptions = translationOptions.Value;
         }
 
         [HttpGet]
@@ -295,11 +300,16 @@ namespace PlaceGuide.Server.Controllers.Admin
                     translation = new DishTranslation
                     {
                         DishId = dish.Id,
-                        LanguageCode = canonicalLanguage
+                        LanguageCode = canonicalLanguage,
+                        CreatedAt = now
                     };
                     dish.Translations.Add(translation);
                 }
 
+                if (request.Name is not null)
+                {
+                    translation.Name = NormalizeOptionalText(request.Name);
+                }
                 if (request.Narration is not null)
                 {
                     translation.Narration = nextNarration ?? string.Empty;
@@ -546,7 +556,8 @@ namespace PlaceGuide.Server.Controllers.Admin
                         translation = new DishTranslation
                         {
                             DishId = dish.Id,
-                            LanguageCode = result.TargetLanguageCode
+                            LanguageCode = result.TargetLanguageCode,
+                            CreatedAt = now
                         };
                         dish.Translations.Add(translation);
                     }
@@ -738,7 +749,9 @@ namespace PlaceGuide.Server.Controllers.Admin
             {
                 Id = dish.Id,
                 ContentType = "dish",
-                Title = dish.Name,
+                Title = DishLocalizationService.ResolveDishName(
+                    dish,
+                    languageCode),
                 Subtitle = dish.Restaurant?.Name ?? "Nhà hàng chưa xác định",
                 RestaurantId = dish.RestaurantId,
                 RestaurantName = dish.Restaurant?.Name ?? string.Empty,
@@ -757,7 +770,10 @@ namespace PlaceGuide.Server.Controllers.Admin
                     : selectedNeedsUpdate
                         ? "needsUpdate"
                         : "complete",
-                UpdatedAt = dish.CreatedAt
+                UpdatedAt = dish.Translations
+                    .Where(item => item.UpdatedAt != default)
+                    .Select(item => (DateTime?)item.UpdatedAt)
+                    .Max() ?? dish.CreatedAt
             };
         }
 
@@ -827,7 +843,10 @@ namespace PlaceGuide.Server.Controllers.Admin
                 RestaurantId = dish.RestaurantId,
                 RestaurantName = dish.Restaurant?.Name ?? string.Empty,
                 ImageUrl = dish.ImageUrl,
-                SourceVietnameseNarration = GetDishNarrationForLanguage(dish, "vi"),
+                SourceVietnameseNarration =
+                    DishLocalizationService.GetDishNarrationForLanguage(
+                        dish,
+                        "vi"),
                 Translations = SupportedLanguages
                     .Select(languageCode =>
                     {
@@ -843,9 +862,13 @@ namespace PlaceGuide.Server.Controllers.Admin
                         return new AdminNarrationTranslationDto
                         {
                             LanguageCode = languageCode,
-                            Name = languageCode == "vi" ? dish.Name : null,
-                            Description = translation?.Description ??
-                                GetLegacyDishDescription(dish, languageCode),
+                            Name = translation?.Name ??
+                                (languageCode == "vi" ? dish.Name : null),
+                            Description =
+                                DishLocalizationService
+                                    .GetDishDescriptionForLanguage(
+                                        dish,
+                                        languageCode),
                             Narration = narration,
                             IsMissing = isMissing,
                             NeedsUpdate = needsUpdate,
@@ -995,11 +1018,23 @@ namespace PlaceGuide.Server.Controllers.Admin
             var failedCount = results.Length - successCount - skippedCount;
             var providerNotConfigured = results.Any(item =>
                 item.ErrorMessage == HttpTranslationProvider.NotConfiguredError);
+            var providerQuotaExceeded = results.Any(item =>
+                Contains(item.ErrorMessage, "quota") ||
+                Contains(item.ErrorMessage, "rate limit") ||
+                Contains(item.ErrorMessage, "RESOURCE_EXHAUSTED"));
+            var libreTranslateUnavailable = results.Any(item =>
+                Contains(item.ErrorMessage, "Không kết nối được LibreTranslate") ||
+                Contains(item.ErrorMessage, "LibreTranslate phản hồi quá lâu"));
+            var libreTranslateUnsupportedLanguage = results.Any(item =>
+                Contains(item.ErrorMessage, "LibreTranslate không hỗ trợ ngôn ngữ"));
 
             var response = new AutoTranslateNarrationResponseDto
             {
                 ContentType = contentType,
                 Id = id,
+                ProviderName = string.IsNullOrWhiteSpace(_translationOptions.Provider)
+                    ? "NotConfigured"
+                    : _translationOptions.Provider,
                 SourceLanguageCode = sourceLanguageCode,
                 TotalTargets = targetLanguages.Count,
                 SuccessCount = successCount,
@@ -1008,9 +1043,15 @@ namespace PlaceGuide.Server.Controllers.Admin
                 Results = results,
                 Message = providerNotConfigured
                     ? "Chưa cấu hình dịch tự động. Vui lòng kiểm tra Translation Provider."
-                    : failedCount > 0
-                        ? $"Đã dịch {successCount}/{targetLanguages.Count} ngôn ngữ. Một số ngôn ngữ dịch thất bại."
-                        : $"Đã dịch thành công {successCount}/{targetLanguages.Count} ngôn ngữ."
+                    : providerQuotaExceeded
+                        ? "Gemini đang bị giới hạn quota/rate limit. Vui lòng chờ một lúc rồi dịch từng ngôn ngữ, hoặc đổi API key/nâng hạn mức."
+                        : libreTranslateUnavailable
+                            ? "Không kết nối được LibreTranslate. Vui lòng kiểm tra server dịch local."
+                            : libreTranslateUnsupportedLanguage
+                                ? $"Đã dịch {successCount}/{targetLanguages.Count} ngôn ngữ. Một số ngôn ngữ không được LibreTranslate server hiện tại hỗ trợ."
+                                : failedCount > 0
+                                    ? $"Đã dịch {successCount}/{targetLanguages.Count} ngôn ngữ. Một số ngôn ngữ dịch thất bại."
+                                    : $"Đã dịch thành công {successCount}/{targetLanguages.Count} ngôn ngữ."
             };
 
             return providerNotConfigured
@@ -1030,50 +1071,23 @@ namespace PlaceGuide.Server.Controllers.Admin
                 return translation.Narration;
             }
 
-            return languageCode switch
-            {
-                "vi" => restaurant.NarrationVi,
-                "en" => restaurant.NarrationEn,
-                _ => string.Empty
-            };
+            return string.Empty;
         }
 
         private static bool HasDishNarration(Dish dish, string languageCode)
         {
-            return !string.IsNullOrWhiteSpace(
-                GetDishNarrationForLanguage(dish, languageCode));
+            return DishLocalizationService.HasDishNarration(
+                dish,
+                languageCode);
         }
 
         private static string GetDishNarrationForLanguage(
             Dish dish,
             string languageCode)
         {
-            var translation = dish.Translations.FirstOrDefault(item =>
-                item.LanguageCode.Equals(languageCode, StringComparison.OrdinalIgnoreCase));
-
-            if (!string.IsNullOrWhiteSpace(translation?.Narration))
-            {
-                return translation.Narration;
-            }
-
-            return languageCode switch
-            {
-                "vi" => dish.NarrationVi,
-                "en" => dish.NarrationEn,
-                _ => string.Empty
-            };
-        }
-
-        private static string? GetLegacyDishDescription(
-            Dish dish,
-            string languageCode)
-        {
-            return languageCode switch
-            {
-                "vi" => dish.DescriptionVi,
-                "en" => dish.DescriptionEn,
-                _ => null
-            };
+            return DishLocalizationService.GetDishNarrationForLanguage(
+                dish,
+                languageCode);
         }
 
         private static string? GetCanonicalLanguage(string? languageCode)

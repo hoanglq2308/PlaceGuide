@@ -304,40 +304,49 @@ function AdminDashboard() {
 
             <div className="mt-6 overflow-x-auto pb-2">
               <div className="min-w-[720px]">
-                <div className="flex h-64 items-stretch gap-1 border-b border-[#d9d1ce] px-2 pt-3">
-                  {isChartLoading
-                    ? Array.from({ length: 24 }, (_, index) => (
-                      <div
-                        key={index}
-                        className="flex h-full min-w-5 flex-1 flex-col justify-end"
-                      >
-                        <div className="h-24 animate-pulse bg-[#f0eded]" />
-                      </div>
-                    ))
-                    : hourlyVisitors.map(({ hour, activeVisitors: count }) => {
-                      const height = count === 0
-                        ? '0%'
-                        : `${Math.max(8, (count / maximumHourlyVisitors) * 100)}%`;
+                <div className="grid h-72 grid-rows-[2rem_minmax(0,1fr)] px-2 pt-2">
+                  <div className="flex items-end gap-1 text-xs font-bold tabular-nums text-[#af101a]">
+                    {isChartLoading
+                      ? Array.from({ length: 24 }, (_, index) => (
+                        <span key={index} className="min-w-5 flex-1 text-center" />
+                      ))
+                      : hourlyVisitors.map(({ hour, activeVisitors: count }) => (
+                        <span key={hour} className="min-w-5 flex-1 text-center">
+                          {count || ''}
+                        </span>
+                      ))}
+                  </div>
 
-                      return (
+                  <div className="flex min-h-0 items-end gap-1 border-b border-[#d9d1ce]">
+                    {isChartLoading
+                      ? Array.from({ length: 24 }, (_, index) => (
                         <div
-                          key={hour}
-                          className="flex h-full min-w-5 flex-1 flex-col justify-end"
-                          title={`${hour}: ${count} du khách`}
-                          aria-label={`${hour}: ${count} du khách`}
+                          key={index}
+                          className="flex h-full min-w-5 flex-1 items-end"
                         >
-                          <span className="mb-1 text-center text-xs font-bold tabular-nums text-[#af101a]">
-                            {count || ''}
-                          </span>
-                          <div className="flex flex-1 items-end">
+                          <div className="h-24 w-full animate-pulse bg-[#f0eded]" />
+                        </div>
+                      ))
+                      : hourlyVisitors.map(({ hour, activeVisitors: count }) => {
+                        const height = count === 0
+                          ? '0%'
+                          : `${Math.max(8, (count / maximumHourlyVisitors) * 100)}%`;
+
+                        return (
+                          <div
+                            key={hour}
+                            className="flex h-full min-w-5 flex-1 items-end"
+                            title={`${hour}: ${count} du khách`}
+                            aria-label={`${hour}: ${count} du khách`}
+                          >
                             <div
                               className="w-full bg-[#af101a] transition-[height] duration-300 hover:bg-[#8f0d15]"
                               style={{ height }}
                             />
                           </div>
-                        </div>
-                      );
-                    })}
+                        );
+                      })}
+                  </div>
                 </div>
 
                 <div className="mt-2 flex gap-1 px-2 text-xs font-medium text-[#8f6f6d]">

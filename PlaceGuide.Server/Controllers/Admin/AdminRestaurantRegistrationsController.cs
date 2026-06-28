@@ -140,8 +140,6 @@ namespace PlaceGuide.Server.Controllers.Admin
                 PriceRange = "Đang cập nhật",
                 HighlightDishes = string.Empty,
                 Tags = string.Empty,
-                NarrationVi = "Thông tin quán đang được chủ quán cập nhật.",
-                NarrationEn = "Restaurant information is being updated by the owner.",
                 Latitude = coordinates?.Latitude ?? HoChiMinhFallbackLatitude,
                 Longitude = coordinates?.Longitude ?? HoChiMinhFallbackLongitude,
                 NeedsLocationUpdate = coordinates is null,
@@ -150,6 +148,24 @@ namespace PlaceGuide.Server.Controllers.Admin
                 CreatedAt = now,
                 UpdatedAt = now
             };
+            restaurant.Translations.Add(new RestaurantTranslation
+            {
+                RestaurantId = restaurant.Id,
+                LanguageCode = "vi",
+                Name = registration.RestaurantName,
+                Narration = "Thông tin quán đang được chủ quán cập nhật.",
+                CreatedAt = now,
+                UpdatedAt = now
+            });
+            restaurant.Translations.Add(new RestaurantTranslation
+            {
+                RestaurantId = restaurant.Id,
+                LanguageCode = "en",
+                Name = registration.RestaurantName,
+                Narration = "Restaurant information is being updated by the owner.",
+                CreatedAt = now,
+                UpdatedAt = now
+            });
 
             // Transaction bảo đảm không có trạng thái "đơn đã duyệt nhưng quán chưa tạo" hoặc ngược lại.
             await using var transaction = await _dbContext.Database.BeginTransactionAsync();

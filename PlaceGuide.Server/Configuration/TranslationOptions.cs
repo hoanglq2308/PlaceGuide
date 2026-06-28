@@ -11,5 +11,13 @@ namespace PlaceGuide.Server.Configuration
         public string Model { get; set; } = "gemini-3.5-flash";
         public string ApiKeyHeader { get; set; } = "X-API-Key";
         public int TimeoutSeconds { get; set; } = 60;
+        public LibreTranslateOptions LibreTranslate { get; set; } = new();
+    }
+
+    public sealed class LibreTranslateOptions
+    {
+        public string BaseUrl { get; set; } = "http://localhost:5000";
+        public string ApiKey { get; set; } = string.Empty;
+        public int TimeoutSeconds { get; set; } = 30;
     }
 }

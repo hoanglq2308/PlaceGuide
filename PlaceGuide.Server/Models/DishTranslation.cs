@@ -12,6 +12,9 @@ namespace PlaceGuide.Server.Models
         [MaxLength(16)]
         public string LanguageCode { get; set; } = string.Empty;
 
+        [MaxLength(200)]
+        public string? Name { get; set; }
+
         [Required]
         public string Description { get; set; } = string.Empty;
 
@@ -26,6 +29,8 @@ namespace PlaceGuide.Server.Models
 
         [MaxLength(20)]
         public string? AutoTranslatedFrom { get; set; }
+
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
