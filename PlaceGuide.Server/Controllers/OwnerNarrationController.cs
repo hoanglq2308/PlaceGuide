@@ -1,10 +1,11 @@
 // Controllers/OwnerNarrationController.cs
+using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PlaceGuide.Server.Data;
-using PlaceGuide.Server.DTOs;
+using PlaceGuide.Server.Models;
 
 namespace PlaceGuide.Server.Controllers
 {
@@ -13,125 +14,107 @@ namespace PlaceGuide.Server.Controllers
     [Route("api/owner/narration")]
     public sealed class OwnerNarrationController : ControllerBase
     {
-        private const long MaxAudioSize = 20 * 1024 * 1024; // 20MB
+        private const int MaxNarrationLength = 3000;
 
         private readonly ApplicationDbContext _dbContext;
-        private readonly IWebHostEnvironment _environment;
 
-        public OwnerNarrationController(ApplicationDbContext dbContext, IWebHostEnvironment environment)
+        public OwnerNarrationController(ApplicationDbContext dbContext)
         {
             _dbContext = dbContext;
-            _environment = environment;
         }
 
-        [HttpPost]
-        [Consumes("multipart/form-data")]
-        public async Task<ActionResult<NarrationUploadResponseDto>> UploadNarration([FromForm] IFormFile audio)
+        // GET /api/owner/narration
+        // Lấy toàn bộ text narration hiện có của quán (tất cả ngôn ngữ)
+        [HttpGet]
+        public async Task<IActionResult> GetNarrations()
         {
             var restaurant = await GetCurrentRestaurantAsync();
             if (restaurant is null)
-            {
                 return NotFound(new { message = "Tài khoản của bạn chưa có nhà hàng được duyệt." });
-            }
 
-            if (audio is null || audio.Length <= 0)
-            {
-                return BadRequest(new { message = "File audio không hợp lệ." });
-            }
+            var translations = await _dbContext.RestaurantTranslations
+                .Where(t => t.RestaurantId == restaurant.Id)
+                .Select(t => new { t.LanguageCode, Narration = t.Narration ?? "", t.UpdatedAt })
+                .ToListAsync();
 
-            if (audio.Length > MaxAudioSize)
+            return Ok(new
             {
-                return BadRequest(new { message = "File audio tối đa 20MB." });
-            }
+                restaurantId = restaurant.Id,
+                storyFallback = restaurant.Story,
+                descriptionFallback = restaurant.Description,
+                translations
+            });
+        }
 
-            var detectedExtension = await DetectAudioExtensionAsync(audio);
-            if (detectedExtension is null)
+        // POST /api/owner/narration/text
+        // Lưu text narration cho một ngôn ngữ
+        [HttpPost("text")]
+        public async Task<IActionResult> SaveNarrationText([FromBody] SaveNarrationTextDto request)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var restaurant = await GetCurrentRestaurantAsync();
+            if (restaurant is null)
+                return NotFound(new { message = "Tài khoản của bạn chưa có nhà hàng được duyệt." });
+
+            var text = request.Narration?.Trim() ?? "";
+            if (text.Length > MaxNarrationLength)
+                return BadRequest(new { message = $"Nội dung thuyết minh tối đa {MaxNarrationLength} ký tự." });
+
+            var translation = await _dbContext.RestaurantTranslations
+                .FirstOrDefaultAsync(t => t.RestaurantId == restaurant.Id && t.LanguageCode == request.LanguageCode);
+
+            if (translation is null)
             {
-                return BadRequest(new
+                translation = new RestaurantTranslation
                 {
-                    message = "File không phải định dạng âm thanh hợp lệ (MP3/WAV)."
-                });
+                    Id = Guid.NewGuid(),
+                    RestaurantId = restaurant.Id,
+                    LanguageCode = request.LanguageCode,
+                    CreatedAt = DateTime.UtcNow
+                };
+                _dbContext.RestaurantTranslations.Add(translation);
             }
 
-            var audioUrl = await SaveAudioFileAsync(restaurant.Id, audio, detectedExtension);
+            translation.Narration = text;
+            translation.UpdatedAt = DateTime.UtcNow;
+            translation.IsAutoTranslated = false;
+            translation.AutoTranslatedAt = null;
+            translation.AutoTranslatedFrom = null;
 
-         
+            // Lưu tiếng Việt → đánh dấu các ngôn ngữ khác cần cập nhật
+            if (request.LanguageCode == "vi")
+            {
+                await _dbContext.RestaurantTranslations
+                    .Where(t => t.RestaurantId == restaurant.Id && t.LanguageCode != "vi")
+                    .ExecuteUpdateAsync(s => s.SetProperty(t => t.NeedsUpdate, true));
+            }
+            else
+            {
+                translation.NeedsUpdate = false;
+            }
+
             restaurant.UpdatedAt = DateTime.UtcNow;
             await _dbContext.SaveChangesAsync();
 
-            return Ok(new NarrationUploadResponseDto { AudioUrl = audioUrl });
+            return Ok(new { translation.LanguageCode, Narration = translation.Narration ?? "", translation.UpdatedAt });
         }
 
-        /// <summary>
-        /// Đọc Magic Bytes (file signature) thật của file, KHÔNG tin vào
-        /// đuôi file hoặc ContentType do client gửi lên. Chống upload
-        /// file script/html giả mạo đuôi .mp3/.wav.
-        /// </summary>
-        private static async Task<string?> DetectAudioExtensionAsync(IFormFile file)
-        {
-            var header = new byte[12];
-
-            await using var stream = file.OpenReadStream();
-            var bytesRead = await stream.ReadAsync(header, 0, header.Length);
-            if (bytesRead < 4)
-            {
-                return null;
-            }
-
-            // WAV: 52 49 46 46 ("RIFF") .... 57 41 56 45 ("WAVE") tại byte 8-11
-            if (header[0] == 0x52 && header[1] == 0x49 && header[2] == 0x46 && header[3] == 0x46 &&
-                bytesRead >= 12 &&
-                header[8] == 0x57 && header[9] == 0x41 && header[10] == 0x56 && header[11] == 0x45)
-            {
-                return ".wav";
-            }
-
-            // MP3 với ID3 tag: 49 44 33 ("ID3")
-            if (header[0] == 0x49 && header[1] == 0x44 && header[2] == 0x33)
-            {
-                return ".mp3";
-            }
-
-            // MP3 không ID3, bắt đầu trực tiếp bằng MPEG frame sync:
-            // 0xFF kèm byte thứ 2 dạng 0xE_ hoặc 0xF_ (FF FB / FF FA / FF F3 / FF F2...)
-            if (header[0] == 0xFF && (header[1] & 0xE0) == 0xE0)
-            {
-                return ".mp3";
-            }
-
-            return null;
-        }
-
-        private async Task<string> SaveAudioFileAsync(Guid restaurantId, IFormFile audio, string extension)
-        {
-            var webRootPath = string.IsNullOrWhiteSpace(_environment.WebRootPath)
-                ? Path.Combine(_environment.ContentRootPath, "wwwroot")
-                : _environment.WebRootPath;
-
-            var uploadDirectory = Path.Combine(webRootPath, "Uploads", "Narrations", restaurantId.ToString());
-            Directory.CreateDirectory(uploadDirectory);
-
-            // Ép đuôi file theo magic bytes đã xác thực, KHÔNG dùng tên file gốc từ client.
-            var storedFileName = $"narration-{Guid.NewGuid():N}{extension}";
-            var storedFilePath = Path.Combine(uploadDirectory, storedFileName);
-
-            await using var stream = audio.OpenReadStream();
-            stream.Position = 0;
-            await using var fileStream = System.IO.File.Create(storedFilePath);
-            await stream.CopyToAsync(fileStream);
-
-            return $"/Uploads/Narrations/{restaurantId}/{storedFileName}";
-        }
-
-        private async Task<PlaceGuide.Server.Models.Restaurant?> GetCurrentRestaurantAsync()
+        private async Task<Restaurant?> GetCurrentRestaurantAsync()
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (!long.TryParse(userId, out var ownerId))
-            {
-                return null;
-            }
-
+            if (!long.TryParse(userId, out var ownerId)) return null;
             return await _dbContext.Restaurants.FirstOrDefaultAsync(r => r.OwnerUserId == ownerId);
         }
     }
-}
+
+    public sealed class SaveNarrationTextDto
+    {
+        [Required]
+        [RegularExpression("^(vi|en|zh-CN|zh-TW|ko|ja|th|fr|ru)$", ErrorMessage = "Mã ngôn ngữ không hợp lệ.")]
+        public string LanguageCode { get; set; } = "vi";
+
+        public string? Narration { get; set; }
+    }
+} 

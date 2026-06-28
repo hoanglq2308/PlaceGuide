@@ -55,3 +55,29 @@ export async function updateOwnerSettings(payload) {
     throw unwrapError(error, 'Không thể cập nhật cài đặt.');
   }
 }
+
+
+// Thêm 2 hàm này vào file ownerService.js hiện có
+
+export async function getOwnerNarrations() {
+  const response = await fetch('/api/owner/narration', {
+    headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.message || 'Không thể tải thuyết minh.');
+  return data;
+}
+
+export async function saveNarrationText(languageCode, narration) {
+  const response = await fetch('/api/owner/narration/text', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${localStorage.getItem('token')}`,
+    },
+    body: JSON.stringify({ languageCode, narration }),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.message || 'Lưu thuyết minh thất bại.');
+  return data;
+}
