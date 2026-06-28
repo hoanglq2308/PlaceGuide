@@ -1,0 +1,53 @@
+services:
+  - type: web
+    name: placeguide-api
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/health
+    autoDeployTrigger: commit
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: placeguide-db
+          property: connectionString
+      - key: Jwt__Key
+        generateValue: true
+      - key: Jwt__Issuer
+        value: PlaceGuide.Server
+      - key: Jwt__Audience
+        value: PlaceGuide.Client
+      - key: Cors__AllowedOrigins
+        sync: false
+      - key: AdminBootstrap__Email
+        sync: false
+      - key: PayOSOptions__ClientId
+        sync: false
+      - key: PayOSOptions__ApiKey
+        sync: false
+      - key: PayOSOptions__ChecksumKey
+        sync: false
+      - key: PayOSOptions__WebhookUrl
+        sync: false
+      - key: PayOSOptions__ClientCheckoutUrl
+        sync: false
+      - key: AudioPassPayment__AmountVnd
+        value: "49000"
+      - key: AudioPassPayment__TransferContentPrefix
+        value: VINAAUDIO
+      - key: Translation__Provider
+        sync: false
+      - key: Translation__ApiKey
+        sync: false
+      - key: Translation__Endpoint
+        sync: false
+      - key: Translation__Model
+        value: gemini-3.5-flash
+
+databases:
+  - name: placeguide-db
+    plan: free
+    databaseName: placeguide
+    user: placeguide

@@ -1,0 +1,14 @@
+.git
+.vs
+.vscode
+**/bin
+**/obj
+**/node_modules
+**/dist
+artifacts
+out
+PlaceGuide.Server.zip
+PlaceGuide.Server/wwwroot/uploads
+PlaceGuide.Server/Uploads
+**/*.user
+**/*.log

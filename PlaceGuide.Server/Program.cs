@@ -9,9 +9,16 @@ using PlaceGuide.Server.Models;
 using System.Text;
 using PlaceGuide.Server.Configuration;
 using PayOS;
+using Npgsql;
 using AppPayOSOptions = PlaceGuide.Server.Configuration.PayOSOptions;
 
 var builder = WebApplication.CreateBuilder(args);
+var databaseConnectionString = ResolveDatabaseConnectionString(
+    builder.Configuration);
+var configuredCorsOrigins = (builder.Configuration["Cors:AllowedOrigins"] ?? string.Empty)
+    .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+    .Select(origin => origin.TrimEnd('/'))
+    .ToHashSet(StringComparer.OrdinalIgnoreCase);
 // cau hinh Identity
 builder.Services.AddIdentity<ApplicationUser, IdentityRole<long>>(options =>
 {
@@ -55,16 +62,23 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AllowFrontend",
         policy =>
         {
-            policy.WithOrigins(
+            var localOrigins = new HashSet<string>(
+                [
                     "http://localhost:5173",
                     "http://127.0.0.1:5173",
                     "http://localhost:5174",
                     "http://127.0.0.1:5174",
                     "http://localhost:3000",
                     "http://127.0.0.1:3000"
-                )
-                  .AllowAnyHeader()
-                  .AllowAnyMethod();
+                ],
+                StringComparer.OrdinalIgnoreCase);
+
+            policy
+                .SetIsOriginAllowed(origin =>
+                    localOrigins.Contains(origin.TrimEnd('/')) ||
+                    configuredCorsOrigins.Contains(origin.TrimEnd('/')))
+                .AllowAnyHeader()
+                .AllowAnyMethod();
         });
 });
 
@@ -114,11 +128,18 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 builder.Services.AddDbContext<PlaceGuide.Server.Data.ApplicationDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseNpgsql(databaseConnectionString));
 
 var app = builder.Build();
 
-if (app.Environment.IsDevelopment())
+var payOSWebhookUrl = builder.Configuration["PayOSOptions:WebhookUrl"];
+var hasPayOSConfiguration =
+    Uri.TryCreate(payOSWebhookUrl, UriKind.Absolute, out _) &&
+    !string.IsNullOrWhiteSpace(builder.Configuration["PayOSOptions:ClientId"]) &&
+    !string.IsNullOrWhiteSpace(builder.Configuration["PayOSOptions:ApiKey"]) &&
+    !string.IsNullOrWhiteSpace(builder.Configuration["PayOSOptions:ChecksumKey"]);
+
+if (hasPayOSConfiguration)
 {
     app.Lifetime.ApplicationStarted.Register(() =>
     {
@@ -154,7 +175,12 @@ using (var scope = app.Services.CreateScope())
         var context = services.GetRequiredService<ApplicationDbContext>();
 
         // Lệnh CanConnect() sẽ trả về true nếu ping thành công tới DB
-        if (context.Database.CanConnect())
+        if (app.Environment.IsProduction())
+        {
+            await context.Database.MigrateAsync();
+        }
+
+        if (await context.Database.CanConnectAsync())
         {
             Console.WriteLine("✅ THÀNH CÔNG: Đã kết nối tới PostgreSQL!");
 
@@ -182,6 +208,11 @@ using (var scope = app.Services.CreateScope())
     catch (Exception ex)
     {
         Console.WriteLine($"❌ LỖI KẾT NỐI: {ex.Message}");
+
+        if (app.Environment.IsProduction())
+        {
+            throw;
+        }
     }
 }
 
@@ -213,8 +244,55 @@ app.UseAuthentication();
 
 app.UseAuthorization();
 
+app.MapGet("/api/health", () => Results.Ok(new
+{
+    status = "ok",
+    environment = app.Environment.EnvironmentName,
+    timestampUtc = DateTimeOffset.UtcNow
+}));
+
 app.MapControllers();
 
 app.MapFallbackToFile("/index.html");
 
 app.Run();
+
+static string ResolveDatabaseConnectionString(IConfiguration configuration)
+{
+    var databaseUrl = configuration["DATABASE_URL"];
+    if (string.IsNullOrWhiteSpace(databaseUrl))
+    {
+        return configuration.GetConnectionString("DefaultConnection")
+            ?? throw new InvalidOperationException(
+                "Database connection is not configured. Set DATABASE_URL or ConnectionStrings:DefaultConnection.");
+    }
+
+    if (!Uri.TryCreate(databaseUrl, UriKind.Absolute, out var databaseUri) ||
+        !string.Equals(
+            databaseUri.Scheme,
+            "postgresql",
+            StringComparison.OrdinalIgnoreCase) &&
+        !string.Equals(
+            databaseUri.Scheme,
+            "postgres",
+            StringComparison.OrdinalIgnoreCase))
+    {
+        throw new InvalidOperationException("DATABASE_URL is not a valid PostgreSQL URL.");
+    }
+
+    var credentials = databaseUri.UserInfo.Split(':', 2);
+    if (credentials.Length != 2)
+    {
+        throw new InvalidOperationException("DATABASE_URL does not contain database credentials.");
+    }
+
+    return new NpgsqlConnectionStringBuilder
+    {
+        Host = databaseUri.Host,
+        Port = databaseUri.IsDefaultPort ? 5432 : databaseUri.Port,
+        Database = databaseUri.AbsolutePath.TrimStart('/'),
+        Username = Uri.UnescapeDataString(credentials[0]),
+        Password = Uri.UnescapeDataString(credentials[1]),
+        SslMode = SslMode.Prefer
+    }.ConnectionString;
+}
