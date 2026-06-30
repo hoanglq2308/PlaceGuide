@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import ToastMessage from '../components/ToastMessage';
 import RestaurantCard from '../components/RestaurantCard';
 import LanguageSelector from '../components/LanguageSelector';
+import AudioStopButton from '../components/AudioStopButton';
 import { useLanguage } from '../context/LanguageContext';
 import { mockRestaurants } from '../data/mockRestaurants';
 import { getRestaurantAudioWithPass } from '../services/audioGuideService';
@@ -12,7 +13,8 @@ import {
     sortRestaurantsByDistance,
 } from '../utils/distance';
 import { filterRestaurants, PRICE_FILTERS } from '../utils/restaurantFilters';
-import { getLocalizedText, getSpeechLocale } from '../i18n/languageConfig';
+import { getLocalizedText } from '../i18n/languageConfig';
+import { useSpeechNarration } from '../hooks/useSpeechNarration';
 
 const RESTAURANTS_PER_PAGE = 9;
 const FILTER_BUTTON_BASE_CLASS =
@@ -39,6 +41,10 @@ function Home() {
     const [toast, setToast] = useState({
         message: '',
         type: 'info',
+    });
+    const { isSpeaking, speakNarration, stopNarration } = useSpeechNarration({
+        language,
+        onStatus: setToast,
     });
 
     useEffect(() => {
@@ -128,7 +134,7 @@ function Home() {
         `${FILTER_BUTTON_BASE_CLASS} ${isActive ? FILTER_BUTTON_ACTIVE_CLASS : FILTER_BUTTON_INACTIVE_CLASS
         }`;
     const handleLogin = () => {
-        window.speechSynthesis?.cancel();
+        stopNarration();
         navigate('/login');
     };
 
@@ -174,29 +180,7 @@ function Home() {
     };
 
     const speakText = (text, missingMessage) => {
-        if (!window.speechSynthesis) {
-            setToast({
-                message: 'Trình duyệt không hỗ trợ đọc thuyết minh.',
-                type: 'warning',
-            });
-            return;
-        }
-
-        if (!text) {
-            setToast({
-                message: missingMessage,
-                type: 'warning',
-            });
-            return;
-        }
-
-        window.speechSynthesis.cancel();
-
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = getSpeechLocale(language);
-        utterance.rate = 0.95;
-
-        window.speechSynthesis.speak(utterance);
+        speakNarration(text, { missingMessage });
     };
 
     const handleSpeakRestaurant = async (restaurant) => {
@@ -209,7 +193,10 @@ function Home() {
         }
 
         try {
-            const audio = await getRestaurantAudioWithPass(restaurant.id);
+            const audio = await getRestaurantAudioWithPass(
+                restaurant.id,
+                language
+            );
             const text = getLocalizedText(audio?.narration, language);
 
             if (audio.passCreated) {
@@ -239,6 +226,10 @@ function Home() {
                         type: 'info',
                     })
                 }
+            />
+            <AudioStopButton
+                visible={isSpeaking}
+                onStop={stopNarration}
             />
 
             {/* Top Navigation */}

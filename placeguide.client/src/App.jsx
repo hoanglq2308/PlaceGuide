@@ -12,6 +12,7 @@ import { LanguageProvider } from './context/LanguageContext';
 import ProtectedRoute from './routes/ProtectedRoute';
 import PublicRoute from './routes/PublicRoute';
 import VisitorPresenceTracker from './components/VisitorPresenceTracker';
+import NearbyAutoNarration from './components/NearbyAutoNarration';
 import VisitorActivityTracker from './components/analytics/VisitorActivityTracker';
 import MerchantHome from './pages/Merchant/MerchantHome';
 import MerchantRegister from './pages/Merchant/MerchantRegister';
@@ -36,6 +37,7 @@ function App() {
             <LanguageProvider>
                 <AudioPassModalHost />
                 <VisitorPresenceTracker />
+                <NearbyAutoNarration />
                 <VisitorActivityTracker />
                 <Routes>
                     <Route element={<PublicRoute />}>

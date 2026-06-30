@@ -2,8 +2,9 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import ToastMessage from '../components/ToastMessage';
 import LanguageSelector from '../components/LanguageSelector';
+import AudioStopButton from '../components/AudioStopButton';
 import { useLanguage } from '../context/LanguageContext';
-import { getLocalizedText, getSpeechLocale } from '../i18n/languageConfig';
+import { getLocalizedText } from '../i18n/languageConfig';
 import {
     getDishAudioWithPass,
     getRestaurantAudioWithPass,
@@ -17,6 +18,7 @@ import {
     isFavoriteRestaurant,
     removeFavoriteRestaurant,
 } from '../utils/favoriteStorage';
+import { useSpeechNarration } from '../hooks/useSpeechNarration';
 
 const FALLBACK_IMAGE =
     'https://images.unsplash.com/photo-1555396273-367ea4eb4db5';
@@ -89,6 +91,10 @@ function RestaurantDetail() {
         message: '',
         type: 'info',
     });
+    const { isSpeaking, speakNarration, stopNarration } = useSpeechNarration({
+        language,
+        onStatus: setToast,
+    });
 
     useEffect(() => {
         let isActive = true;
@@ -133,7 +139,6 @@ function RestaurantDetail() {
 
         return () => {
             isActive = false;
-            window.speechSynthesis?.cancel();
         };
     }, [id]);
 
@@ -182,7 +187,7 @@ function RestaurantDetail() {
     }, []);
 
     const handleGoBack = () => {
-        window.speechSynthesis?.cancel();
+        stopNarration();
         navigate('/home');
     };
 
@@ -219,29 +224,10 @@ function RestaurantDetail() {
     };
 
     const handleSpeakText = (text, missingMessage) => {
-        if (!window.speechSynthesis) {
-            setToast({
-                message: t('speechUnsupported'),
-                type: 'warning',
-            });
-            return;
-        }
-
-        if (!text) {
-            setToast({
-                message: missingMessage,
-                type: 'warning',
-            });
-            return;
-        }
-
-        window.speechSynthesis.cancel();
-
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = getSpeechLocale(language);
-        utterance.rate = 0.95;
-
-        window.speechSynthesis.speak(utterance);
+        speakNarration(text, {
+            missingMessage,
+            unsupportedMessage: t('speechUnsupported'),
+        });
     };
 
     const handleSpeakDish = async (dish) => {
@@ -378,6 +364,10 @@ function RestaurantDetail() {
                         type: 'info',
                     })
                 }
+            />
+            <AudioStopButton
+                visible={isSpeaking}
+                onStop={stopNarration}
             />
 
             <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-lg border-b border-red-100 shadow-sm">

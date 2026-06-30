@@ -3,11 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import RestaurantCard from '../components/RestaurantCard';
 import LanguageSelector from '../components/LanguageSelector';
 import ToastMessage from '../components/ToastMessage';
+import AudioStopButton from '../components/AudioStopButton';
 import { useLanguage } from '../context/LanguageContext';
-import { getLocalizedText, getSpeechLocale } from '../i18n/languageConfig';
+import { getLocalizedText } from '../i18n/languageConfig';
 import { getRestaurantAudioWithPass } from '../services/audioGuideService';
 import { getRestaurants } from '../services/restaurantService';
 import { getFavoriteRestaurantIds } from '../utils/favoriteStorage';
+import { useSpeechNarration } from '../hooks/useSpeechNarration';
 
 function Bookmarks() {
     const navigate = useNavigate();
@@ -19,6 +21,10 @@ function Bookmarks() {
     const [toast, setToast] = useState({
         message: '',
         type: 'info',
+    });
+    const { isSpeaking, speakNarration, stopNarration } = useSpeechNarration({
+        language,
+        onStatus: setToast,
     });
 
     useEffect(() => {
@@ -56,34 +62,11 @@ function Bookmarks() {
 
         return () => {
             isActive = false;
-            window.speechSynthesis?.cancel();
         };
     }, []);
 
     const speakText = (text, missingMessage) => {
-        if (!window.speechSynthesis) {
-            setToast({
-                message: 'Trình duyệt không hỗ trợ đọc thuyết minh.',
-                type: 'warning',
-            });
-            return;
-        }
-
-        if (!text) {
-            setToast({
-                message: missingMessage,
-                type: 'warning',
-            });
-            return;
-        }
-
-        window.speechSynthesis.cancel();
-
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = getSpeechLocale(language);
-        utterance.rate = 0.95;
-
-        window.speechSynthesis.speak(utterance);
+        speakNarration(text, { missingMessage });
     };
 
     const handleSpeakRestaurant = async (restaurant) => {
@@ -96,7 +79,7 @@ function Bookmarks() {
         }
 
         try {
-            const audio = await getRestaurantAudioWithPass(restaurant.id);
+            const audio = await getRestaurantAudioWithPass(restaurant.id, language);
             const text = getLocalizedText(audio?.narration, language);
 
             if (audio.passCreated) {
@@ -126,6 +109,10 @@ function Bookmarks() {
                         type: 'info',
                     })
                 }
+            />
+            <AudioStopButton
+                visible={isSpeaking}
+                onStop={stopNarration}
             />
 
             <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-lg border-b border-red-100 shadow-sm">

@@ -9,6 +9,8 @@ const API_URL = import.meta.env.VITE_API_URL?.replace (/\/$/, '');
 const AUDIO_PASS_REQUIRED_EVENT = 'placeguide:audio-pass-required';
 const AUDIO_PASS_TOKEN_KEY = 'placeGuideAudioPassToken';
 const VISITOR_DEVICE_KEY = 'placeGuideVisitorDeviceId';
+export const AUDIO_PASS_TOKEN_CHANGED_EVENT =
+    'placeguide:audio-pass-token-changed';
 
 function getApiUrl(path){
     if(!API_URL)
@@ -19,14 +21,25 @@ function getApiUrl(path){
 function getStoreAudioPassToken(){
     return localStorage.getItem(AUDIO_PASS_TOKEN_KEY);
 }
+
+function notifyAudioPassTokenChanged(){
+    window.dispatchEvent(new Event(AUDIO_PASS_TOKEN_CHANGED_EVENT));
+}
+
+export function hasStoredAudioPassToken(){
+    return Boolean(getStoreAudioPassToken());
+}
+
 export function saveAudioPassToken(token){
     if(!token)
         return;
     localStorage.setItem(AUDIO_PASS_TOKEN_KEY,token);
+    notifyAudioPassTokenChanged();
 }
 
 function clearAudioPassToken(){
     localStorage.removeItem(AUDIO_PASS_TOKEN_KEY);
+    notifyAudioPassTokenChanged();
 }
 
 function getAuthHeaders(){
@@ -149,52 +162,69 @@ async function restoreAudioPassFromPaidCheckout() {
     return false;
 }
 
-async function withGuestAudioPass(fetchAudio) {
-  try {
-    return await fetchAudio();
-  } catch (error) {
-    if (!isAudioPassRequiredError(error)) {
-      throw error;
+async function withGuestAudioPass(fetchAudio, options = {}) {
+    const { promptOnRequired = true } = options;
+
+    try {
+        return await fetchAudio();
+    } catch (error) {
+        if (!isAudioPassRequiredError(error)) {
+            throw error;
+        }
+
+        clearAudioPassToken();
+
+        if (await restoreAudioPassFromPaidCheckout()) {
+            return fetchAudio();
+        }
+
+        if (promptOnRequired) {
+            await requestAudioPassPurchasePrompt(error.message);
+        }
+
+        throw error;
     }
-
-    clearAudioPassToken();
-
-    if (await restoreAudioPassFromPaidCheckout()) {
-      return fetchAudio();
-    }
-
-    await requestAudioPassPurchasePrompt(error.message);
-
-    throw error;
-  }
 }
 
-export async function getRestaurantAudioWithPass(restaurantId, languageCode = 'vi') {
+export async function getRestaurantAudioWithPass(
+    restaurantId,
+    languageCode = 'vi',
+    options = {}
+) {
     if (!restaurantId) {
         throw new Error('Thiếu mã quán ăn!');
     }
 
-    return withGuestAudioPass(() =>
-        requestPremiumAudio(
-            `/restaurants/${encodeURIComponent(
-                restaurantId
-            )}/audio?languageCode=${encodeURIComponent(languageCode)}`
-        )
+    return withGuestAudioPass(
+        () =>
+            requestPremiumAudio(
+                `/restaurants/${encodeURIComponent(
+                    restaurantId
+                )}/audio?languageCode=${encodeURIComponent(languageCode)}`
+            ),
+        options
     );
 }
 
-export async function getDishAudioWithPass(restaurantId, dishId, languageCode = 'vi') {
+export async function getDishAudioWithPass(
+    restaurantId,
+    dishId,
+    languageCode = 'vi',
+    options = {}
+) {
     if (!restaurantId || !dishId) {
         throw new Error('Thiếu mã quán ăn hoặc món ăn!');
     }
 
-    return withGuestAudioPass(() =>
-        requestPremiumAudio(
-            `/restaurants/${encodeURIComponent(
-                restaurantId
-            )}/dishes/${encodeURIComponent(
-                dishId
-            )}/audio?languageCode=${encodeURIComponent(languageCode)}`
-        )
+    return withGuestAudioPass(
+        () =>
+            requestPremiumAudio(
+                `/restaurants/${encodeURIComponent(
+                    restaurantId
+                )}/dishes/${encodeURIComponent(
+                    dishId
+                )}/audio?languageCode=${encodeURIComponent(languageCode)}`
+            ),
+        options
     );
 }
