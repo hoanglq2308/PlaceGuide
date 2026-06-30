@@ -742,18 +742,7 @@ function RestaurantDetail() {
                                                                 </span>
                                                             )}
 
-                                                            {dish.allergyInfo && (
-                                                                <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider">
-                                                                    {t('allergy')}
-                                                                </span>
-                                                            )}
                                                         </div>
-
-                                                        {dish.allergyInfo && (
-                                                            <p className="text-xs text-gray-500">
-                                                                {dish.allergyInfo}
-                                                            </p>
-                                                        )}
 
                                                         <button
                                                             type="button"

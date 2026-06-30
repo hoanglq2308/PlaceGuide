@@ -2,18 +2,35 @@
 import { useEffect, useState } from 'react';
 import OwnerSidebar from '../../components/OwnerSidebar';
 import { getOwnerNarrations, saveNarrationText } from '../../services/ownerService';
+import {
+  getLanguageDisplayName,
+  LANGUAGE_OPTIONS
+} from '../../i18n/languageConfig';
 
-const LANGUAGES = [
-  { code: 'vi',    label: 'Tiếng Việt', flag: '🇻🇳', speechCode: 'vi-VN' },
-  { code: 'en',    label: 'English',    flag: '🇺🇸', speechCode: 'en-US' },
-  { code: 'ko',    label: '한국어',       flag: '🇰🇷', speechCode: 'ko-KR' },
-  { code: 'zh-CN', label: '中文 简体',   flag: '🇨🇳', speechCode: 'zh-CN' },
-  { code: 'zh-TW', label: '中文 繁體',   flag: '🇹🇼', speechCode: 'zh-TW' },
-  { code: 'ja',    label: '日本語',       flag: '🇯🇵', speechCode: 'ja-JP' },
-  { code: 'th',    label: 'ภาษาไทย',     flag: '🇹🇭', speechCode: 'th-TH' },
-  { code: 'fr',    label: 'Français',   flag: '🇫🇷', speechCode: 'fr-FR' },
-  { code: 'ru',    label: 'Русский',    flag: '🇷🇺', speechCode: 'ru-RU' },
-];
+const LANGUAGE_FLAGS = {
+  vi: '🇻🇳',
+  en: '🇺🇸',
+  ko: '🇰🇷',
+  'zh-CN': '🇨🇳',
+  'zh-TW': '🇹🇼',
+  ja: '🇯🇵',
+  th: '🇹🇭',
+  id: '🇮🇩',
+  ms: '🇲🇾',
+  tl: '🇵🇭',
+  de: '🇩🇪',
+  es: '🇪🇸',
+  hi: '🇮🇳',
+  fr: '🇫🇷',
+  ru: '🇷🇺'
+};
+
+const LANGUAGES = LANGUAGE_OPTIONS.map((language) => ({
+  code: language.code,
+  label: getLanguageDisplayName(language.code, 'vi'),
+  flag: LANGUAGE_FLAGS[language.code] || '🌐',
+  speechCode: language.speechLocale
+}));
 
 const MAX = 3000;
 

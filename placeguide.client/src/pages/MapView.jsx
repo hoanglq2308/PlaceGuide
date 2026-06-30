@@ -13,8 +13,12 @@ import markerIcon from 'leaflet/dist/images/marker-icon.png';
 import markerShadow from 'leaflet/dist/images/marker-shadow.png';
 import ToastMessage from '../components/ToastMessage';
 import { getRestaurants } from '../services/restaurantService';
-import { addDistanceToRestaurants } from '../utils/distance';
+import {
+    addDistanceToRestaurants,
+    sortRestaurantsByDistance,
+} from '../utils/distance';
 import { getCurrentUserLocation } from '../utils/geolocation';
+import { filterRestaurants, PRICE_FILTERS } from '../utils/restaurantFilters';
 
 delete L.Icon.Default.prototype._getIconUrl;
 
@@ -338,25 +342,36 @@ function RestaurantListCard({
     );
 }
 
-function FilterChips() {
-    const chips = ['Gần nhất', 'Đang mở cửa', 'Giá rẻ', 'Món chay', 'Không cay'];
+function FilterChips({ filters, onToggle }) {
+    const chips = [
+        { key: 'nearest', label: 'Gần nhất' },
+        { key: 'openOnly', label: 'Đang mở cửa' },
+        { key: 'cheapOnly', label: 'Giá rẻ' },
+        { key: 'vegetarianOnly', label: 'Món chay' },
+        { key: 'spicyOnly', label: 'Cay' },
+    ];
 
     return (
         <div className="pointer-events-none absolute left-0 top-4 z-[500] flex w-full justify-center px-4">
             <div className="pointer-events-auto flex max-w-full gap-2 overflow-x-auto rounded-full border border-white/60 bg-white/75 p-2 shadow-sm backdrop-blur-xl [scrollbar-width:none]">
-                {chips.map((chip, index) => (
-                    <button
-                        key={chip}
-                        type="button"
-                        className={`whitespace-nowrap rounded-full px-4 py-1.5 text-sm font-bold transition-colors ${
-                            index === 0
-                                ? 'bg-[#b71422] text-white shadow-md'
-                                : 'border border-[#e4beba]/35 bg-white/70 text-[#5b403e] hover:bg-white'
-                        }`}
-                    >
-                        {chip}
-                    </button>
-                ))}
+                {chips.map((chip) => {
+                    const isActive = Boolean(filters[chip.key]);
+
+                    return (
+                        <button
+                            key={chip.key}
+                            type="button"
+                            onClick={() => onToggle(chip.key)}
+                            className={`whitespace-nowrap rounded-full px-4 py-1.5 text-sm font-bold transition-colors ${
+                                isActive
+                                    ? 'bg-[#b71422] text-white shadow-md'
+                                    : 'border border-[#e4beba]/35 bg-white/70 text-[#5b403e] hover:bg-white'
+                            }`}
+                        >
+                            {chip.label}
+                        </button>
+                    );
+                })}
             </div>
         </div>
     );
@@ -370,6 +385,13 @@ function MapView() {
     const [userLocation, setUserLocation] = useState(null);
     const [selectedRestaurantId, setSelectedRestaurantId] = useState(null);
     const [isGettingLocation, setIsGettingLocation] = useState(false);
+    const [filters, setFilters] = useState({
+        nearest: false,
+        openOnly: false,
+        cheapOnly: false,
+        vegetarianOnly: false,
+        spicyOnly: false,
+    });
     const [toast, setToast] = useState({
         message: '',
         type: 'info',
@@ -416,13 +438,42 @@ function MapView() {
         [restaurants, userLocation]
     );
 
+    const filteredRestaurants = useMemo(() => {
+        const filtered = filterRestaurants(restaurantsWithDistance, {
+            searchText: '',
+            openOnly: filters.openOnly,
+            vegetarianOnly: filters.vegetarianOnly,
+            spicyOnly: filters.spicyOnly,
+            priceFilter: filters.cheapOnly
+                ? PRICE_FILTERS.CHEAP
+                : PRICE_FILTERS.ALL,
+        });
+
+        if (filters.nearest && userLocation) {
+            return sortRestaurantsByDistance(filtered, userLocation);
+        }
+
+        return filtered;
+    }, [filters, restaurantsWithDistance, userLocation]);
+
     const mappedRestaurants = useMemo(
         () =>
-            restaurantsWithDistance
+            filteredRestaurants
                 .map(getMappableRestaurant)
                 .filter((restaurant) => restaurant !== null),
-        [restaurantsWithDistance]
+        [filteredRestaurants]
     );
+
+    useEffect(() => {
+        if (
+            selectedRestaurantId &&
+            !mappedRestaurants.some(
+                (restaurant) => restaurant.id === selectedRestaurantId
+            )
+        ) {
+            setSelectedRestaurantId(null);
+        }
+    }, [mappedRestaurants, selectedRestaurantId]);
 
     const selectedRestaurant = useMemo(
         () =>
@@ -458,6 +509,21 @@ function MapView() {
 
     const viewDetails = (restaurant) => {
         navigate(`/restaurants/${restaurant.id}`);
+    };
+
+    const handleToggleFilter = (filterKey) => {
+        if (filterKey === 'nearest' && !userLocation) {
+            setToast({
+                message: 'Hãy bấm "Dùng vị trí của tôi" trước khi lọc gần nhất.',
+                type: 'info',
+            });
+            return;
+        }
+
+        setFilters((currentFilters) => ({
+            ...currentFilters,
+            [filterKey]: !currentFilters[filterKey],
+        }));
     };
 
     const handleGetLocation = async () => {
@@ -647,7 +713,10 @@ function MapView() {
                             <MapZoomControls />
                         </MapContainer>
 
-                        <FilterChips />
+                        <FilterChips
+                            filters={filters}
+                            onToggle={handleToggleFilter}
+                        />
 
                         <button
                             type="button"

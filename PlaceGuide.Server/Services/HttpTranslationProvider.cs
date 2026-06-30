@@ -598,7 +598,9 @@ namespace PlaceGuide.Server.Services
 
             return new HttpRequestMessage(HttpMethod.Post, requestUrl)
             {
-                Content = JsonContent.Create(payload)
+                // LibreTranslate 1.9.x declares /translate parameters as formData.
+                // Sending JSON returns 400 even when the language models are installed.
+                Content = new FormUrlEncodedContent(payload)
             };
         }
 
@@ -820,6 +822,12 @@ namespace PlaceGuide.Server.Services
                 "ko" => "Korean",
                 "ja" => "Japanese",
                 "th" => "Thai",
+                "id" => "Indonesian",
+                "ms" => "Malay",
+                "tl" => "Tagalog",
+                "de" => "German",
+                "es" => "Spanish",
+                "hi" => "Hindi",
                 "fr" => "French",
                 "ru" => "Russian",
                 _ => languageCode

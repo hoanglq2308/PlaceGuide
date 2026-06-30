@@ -335,18 +335,7 @@ function RestaurantMenu() {
                                                         </span>
                                                     )}
 
-                                                    {dish.allergyInfo && (
-                                                        <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider">
-                                                            Dị ứng
-                                                        </span>
-                                                    )}
                                                 </div>
-
-                                                {dish.allergyInfo && (
-                                                    <p className="text-xs text-gray-500">
-                                                        {dish.allergyInfo}
-                                                    </p>
-                                                )}
 
                                                 <button
                                                     type="button"

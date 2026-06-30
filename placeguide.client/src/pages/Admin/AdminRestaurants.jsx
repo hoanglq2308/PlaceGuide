@@ -407,18 +407,6 @@ function AdminRestaurants() {
                 Theo dõi, kiểm duyệt và quản lý hồ sơ các quán ăn trên hệ thống.
               </p>
             </div>
-
-            <div className="relative w-full max-w-xl lg:w-[460px]">
-              <span className="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[20px] text-[#6e6a66]">
-                search
-              </span>
-              <input
-                value={searchText}
-                onChange={(event) => setSearchText(event.target.value)}
-                placeholder="Tìm tên quán, địa chỉ, số điện thoại hoặc chủ sở hữu..."
-                className="h-11 w-full rounded-lg border border-[#e5e1da] bg-white pl-10 pr-3 text-sm outline-none transition-colors focus:border-[#b71422] focus:ring-1 focus:ring-[#b71422]"
-              />
-            </div>
           </div>
         </header>
 
@@ -455,8 +443,31 @@ function AdminRestaurants() {
             />
           </section>
 
-          <section className="flex flex-col gap-4 rounded-lg border border-[#e5e1da] bg-[#f4f3f1] p-4 sm:flex-row sm:items-center sm:justify-between">
+          <section className="flex flex-col gap-4 rounded-lg border border-[#e5e1da] bg-[#f4f3f1] p-4 xl:flex-row xl:items-center xl:justify-between">
             <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+              <div className="relative w-full sm:min-w-[320px] xl:w-[420px]">
+                <span className="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[20px] text-[#6e6a66]">
+                  search
+                </span>
+                <input
+                  value={searchText}
+                  onChange={(event) => setSearchText(event.target.value)}
+                  placeholder="Tìm tên quán, địa chỉ, số điện thoại hoặc chủ sở hữu..."
+                  aria-label="Tìm kiếm nhà hàng"
+                  className="h-10 w-full rounded-lg border border-[#e5e1da] bg-white pl-10 pr-10 text-sm outline-none transition-colors focus:border-[#b71422] focus:ring-1 focus:ring-[#b71422]"
+                />
+                {searchText && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchText('')}
+                    className="absolute right-2 top-1/2 grid h-7 w-7 -translate-y-1/2 place-items-center rounded-full text-[#6e6a66] transition-colors hover:bg-[#efeeeb] hover:text-[#b71422]"
+                    aria-label="Xóa từ khóa tìm kiếm nhà hàng"
+                  >
+                    <span className="material-symbols-outlined text-[18px]">close</span>
+                  </button>
+                )}
+              </div>
+
               <button
                 type="button"
                 className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-[#e5e1da] bg-white px-4 py-2 text-sm font-bold text-[#1a1c1a] sm:w-auto"

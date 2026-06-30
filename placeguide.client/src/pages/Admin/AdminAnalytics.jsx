@@ -8,6 +8,10 @@ import {
   getReviewAnalytics,
   getVisitorAnalytics
 } from '../../services/adminAnalyticsService';
+import {
+  getLanguageDisplayName,
+  LANGUAGE_OPTIONS
+} from '../../i18n/languageConfig';
 
 const STATUS_LABELS = {
   paid: 'Đã thanh toán',
@@ -27,17 +31,12 @@ const STATUS_COLORS = {
   expired: '#5b403e'
 };
 
-const LANGUAGE_LABELS = {
-  vi: 'Tiếng Việt',
-  en: 'English',
-  ja: '日本語',
-  ko: '한국어',
-  'zh-CN': '中文',
-  'zh-TW': '繁體中文',
-  th: 'ภาษาไทย',
-  fr: 'Français',
-  ru: 'Русский'
-};
+const LANGUAGE_LABELS = Object.fromEntries(
+  LANGUAGE_OPTIONS.map((language) => [
+    language.code,
+    getLanguageDisplayName(language.code, 'vi')
+  ])
+);
 
 function getVietnamDate(offsetDays = 0) {
   const now = new Date();

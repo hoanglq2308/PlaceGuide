@@ -7,22 +7,44 @@ import {
   getAdminNarrations,
   updateAdminNarration
 } from '../../services/adminNarrationService';
+import {
+  getLanguageDisplayName,
+  LANGUAGE_OPTIONS
+} from '../../i18n/languageConfig';
 
 const PAGE_SIZE = 10;
 const FALLBACK_IMAGE =
   'https://images.unsplash.com/photo-1555396273-367ea4eb4db5';
 
-const LANGUAGES = [
-  { code: 'vi', label: 'Tiếng Việt', shortLabel: 'VI', speechCode: 'vi-VN' },
-  { code: 'en', label: 'English', shortLabel: 'EN', speechCode: 'en-US' },
-  { code: 'zh-CN', label: '中文 (简体)', shortLabel: 'ZH-CN', speechCode: 'zh-CN' },
-  { code: 'zh-TW', label: '中文 (繁體)', shortLabel: 'ZH-TW', speechCode: 'zh-TW' },
-  { code: 'ko', label: '한국어', shortLabel: 'KO', speechCode: 'ko-KR' },
-  { code: 'ja', label: '日本語', shortLabel: 'JA', speechCode: 'ja-JP' },
-  { code: 'th', label: 'ภาษาไทย', shortLabel: 'TH', speechCode: 'th-TH' },
-  { code: 'fr', label: 'Français', shortLabel: 'FR', speechCode: 'fr-FR' },
-  { code: 'ru', label: 'Русский', shortLabel: 'RU', speechCode: 'ru-RU' }
+const LANGUAGES = LANGUAGE_OPTIONS.map((language) => ({
+  code: language.code,
+  label: getLanguageDisplayName(language.code, 'vi'),
+  shortLabel: language.shortLabel,
+  speechCode: language.speechLocale
+}));
+
+// Đây là nhóm ngôn ngữ LibreTranslate có mã hỗ trợ phổ biến.
+// Server local vẫn cần tải model tương ứng thì mới dịch tự động được.
+const AUTO_TRANSLATE_LANGUAGE_CODES = [
+  'en',
+  'zh-CN',
+  'zh-TW',
+  'ko',
+  'ja',
+  'th',
+  'id',
+  'ms',
+  'tl',
+  'de',
+  'es',
+  'hi',
+  'fr',
+  'ru'
 ];
+const AUTO_TRANSLATE_LANGUAGE_SET = new Set(AUTO_TRANSLATE_LANGUAGE_CODES);
+const AUTO_TRANSLATE_LANGUAGES = LANGUAGES.filter((language) =>
+  AUTO_TRANSLATE_LANGUAGE_SET.has(language.code)
+);
 
 const STATUS_OPTIONS = [
   { value: 'all', label: 'Tất cả trạng thái' },
@@ -326,11 +348,19 @@ export default function AdminNarrations() {
     }
 
     const isTranslateAll = detailLanguageCode === 'vi';
+
+    if (!isTranslateAll && !AUTO_TRANSLATE_LANGUAGE_SET.has(detailLanguageCode)) {
+      setToast({
+        message:
+          'Provider dịch hiện tại chưa hỗ trợ tự động dịch ngôn ngữ này. Bạn có thể nhập thủ công hoặc đổi provider sang Gemini/Azure.',
+        type: 'warning'
+      });
+      return;
+    }
+
     setAutoTranslateTargets(
       isTranslateAll
-        ? LANGUAGES
-            .filter((language) => language.code !== 'vi')
-            .map((language) => language.code)
+        ? AUTO_TRANSLATE_LANGUAGES.map((language) => language.code)
         : [detailLanguageCode]
     );
     setOverwriteExisting(!isTranslateAll);
@@ -412,18 +442,6 @@ export default function AdminNarrations() {
                 Kiểm tra, chỉnh sửa và nghe thử nội dung thuyết minh đa ngôn ngữ.
               </p>
             </div>
-
-            <div className="relative w-full xl:max-w-[520px]">
-              <span className="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[20px] text-[#6e6a66]">
-                search
-              </span>
-              <input
-                value={searchText}
-                onChange={(event) => setSearchText(event.target.value)}
-                placeholder="Tìm theo tên quán, tên món hoặc nội dung..."
-                className="h-11 w-full rounded-lg border border-[#e5e1da] bg-white pl-10 pr-3 text-sm outline-none transition-colors focus:border-[#b71422] focus:ring-1 focus:ring-[#b71422]"
-              />
-            </div>
           </div>
         </header>
 
@@ -479,6 +497,29 @@ export default function AdminNarrations() {
             </div>
 
             <div className="flex flex-col gap-3 border-b border-[#e5e1da] bg-[#f4f3f1]/60 p-4 sm:flex-row sm:flex-wrap sm:items-center">
+              <div className="relative w-full sm:min-w-[320px] xl:w-[460px]">
+                <span className="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[20px] text-[#6e6a66]">
+                  search
+                </span>
+                <input
+                  value={searchText}
+                  onChange={(event) => setSearchText(event.target.value)}
+                  placeholder="Tìm theo tên quán, tên món hoặc nội dung..."
+                  aria-label="Tìm kiếm thuyết minh"
+                  className="h-10 w-full rounded-lg border border-[#e5e1da] bg-white pl-10 pr-10 text-sm outline-none transition-colors focus:border-[#b71422] focus:ring-1 focus:ring-[#b71422]"
+                />
+                {searchText && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchText('')}
+                    className="absolute right-2 top-1/2 grid h-7 w-7 -translate-y-1/2 place-items-center rounded-full text-[#6e6a66] transition-colors hover:bg-[#efeeeb] hover:text-[#b71422]"
+                    aria-label="Xóa từ khóa tìm kiếm thuyết minh"
+                  >
+                    <span className="material-symbols-outlined text-[18px]">close</span>
+                  </button>
+                )}
+              </div>
+
               <select
                 value={languageCode}
                 onChange={(event) => setLanguageCode(event.target.value)}
@@ -988,12 +1029,18 @@ export default function AdminNarrations() {
                     type="button"
                     onClick={openAutoTranslateDialog}
                     disabled={
-                      !detail.sourceVietnameseNarration || isAutoTranslating
+                      !detail.sourceVietnameseNarration ||
+                      isAutoTranslating ||
+                      (detailLanguageCode !== 'vi' &&
+                        !AUTO_TRANSLATE_LANGUAGE_SET.has(detailLanguageCode))
                     }
                     title={
-                      detail.sourceVietnameseNarration
-                        ? ''
-                        : 'Chưa có nội dung tiếng Việt để dịch'
+                      !detail.sourceVietnameseNarration
+                        ? 'Chưa có nội dung tiếng Việt để dịch'
+                        : detailLanguageCode !== 'vi' &&
+                            !AUTO_TRANSLATE_LANGUAGE_SET.has(detailLanguageCode)
+                          ? 'Provider hiện tại chưa hỗ trợ tự động dịch ngôn ngữ này'
+                          : ''
                     }
                     className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg border border-[#e5e1da] bg-[#efeeeb] px-4 py-2.5 text-sm font-bold text-[#5b403e] hover:bg-[#e3e2e0] disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none"
                   >
@@ -1068,8 +1115,15 @@ export default function AdminNarrations() {
                   Hệ thống sẽ dùng nội dung tiếng Việt hiện tại để cập nhật{' '}
                   {autoTranslateTargets.length === 1
                     ? `bản dịch ${languageLabel(autoTranslateTargets[0])}.`
-                    : `${autoTranslateTargets.length} ngôn ngữ khác.`}
+                    : `${autoTranslateTargets.length} ngôn ngữ provider hiện hỗ trợ.`}
                 </p>
+                {detailLanguageCode === 'vi' && (
+                  <p className="mt-2 text-xs leading-5 text-[#8a5100]">
+                    Nếu LibreTranslate local chưa tải model cho một ngôn ngữ,
+                    hệ thống sẽ báo ngôn ngữ đó chưa được server dịch hiện tại
+                    hỗ trợ.
+                  </p>
+                )}
               </div>
             </div>
 

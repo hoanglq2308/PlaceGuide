@@ -94,20 +94,34 @@ export function matchesVegetarian(restaurant, vegetarianOnly) {
     ]);
 }
 
-export function matchesNonSpicy(restaurant, nonSpicyOnly) {
-    if (!nonSpicyOnly) {
+export function matchesSpicy(restaurant, spicyOnly) {
+    if (!spicyOnly) {
         return true;
     }
 
-    return hasAnyKeyword(restaurant, [
+    const searchableText = getSearchableText(restaurant);
+    const nonSpicyKeywords = [
         'khong cay',
         'khong spicy',
         'non spicy',
         'non-spicy',
-        'mild',
         'not spicy',
         'it cay',
-    ]);
+    ];
+
+    if (nonSpicyKeywords.some((keyword) => searchableText.includes(keyword))) {
+        return false;
+    }
+
+    return [
+        'cay',
+        'spicy',
+        'hot',
+        'chili',
+        'sate',
+        'sa te',
+        'ot',
+    ].some((keyword) => searchableText.includes(keyword));
 }
 
 export function matchesPriceFilter(restaurant, priceFilter) {
@@ -142,7 +156,7 @@ export function filterRestaurants(restaurants, filters) {
             matchesSearch(restaurant, filters.searchText) &&
             matchesOpenOnly(restaurant, filters.openOnly) &&
             matchesVegetarian(restaurant, filters.vegetarianOnly) &&
-            matchesNonSpicy(restaurant, filters.nonSpicyOnly) &&
+            matchesSpicy(restaurant, filters.spicyOnly) &&
             matchesPriceFilter(restaurant, filters.priceFilter)
     );
 }

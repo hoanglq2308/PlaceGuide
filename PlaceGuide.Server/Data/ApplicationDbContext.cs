@@ -231,7 +231,7 @@ namespace PlaceGuide.Server.Data
                 {
                     table.HasCheckConstraint(
                         "CK_restaurant_translations_LanguageCode",
-                        "\"LanguageCode\" IN ('vi', 'en', 'zh-CN', 'zh-TW', 'ko', 'ja', 'th', 'fr', 'ru')");
+                        "\"LanguageCode\" IN ('vi', 'en', 'zh-CN', 'zh-TW', 'ko', 'ja', 'th', 'id', 'ms', 'tl', 'de', 'es', 'hi', 'fr', 'ru')");
                 });
 
                 entity.Property(translation => translation.CreatedAt)
@@ -273,7 +273,7 @@ namespace PlaceGuide.Server.Data
                 {
                     table.HasCheckConstraint(
                         "CK_dish_translations_LanguageCode",
-                        "\"LanguageCode\" IN ('vi', 'en', 'zh-CN', 'zh-TW', 'ko', 'ja', 'th', 'fr', 'ru')");
+                        "\"LanguageCode\" IN ('vi', 'en', 'zh-CN', 'zh-TW', 'ko', 'ja', 'th', 'id', 'ms', 'tl', 'de', 'es', 'hi', 'fr', 'ru')");
                 });
 
                 entity.HasIndex(translation => new
@@ -444,7 +444,7 @@ namespace PlaceGuide.Server.Data
                         "\"AudioType\" IN ('restaurant', 'dish')");
                     table.HasCheckConstraint(
                         "CK_audio_listening_events_LanguageCode",
-                        "\"LanguageCode\" IN ('vi', 'en', 'zh-CN', 'zh-TW', 'ko', 'ja', 'th', 'fr', 'ru')");
+                        "\"LanguageCode\" IN ('vi', 'en', 'zh-CN', 'zh-TW', 'ko', 'ja', 'th', 'id', 'ms', 'tl', 'de', 'es', 'hi', 'fr', 'ru')");
                     table.HasCheckConstraint(
                         "CK_audio_listening_events_DishId_By_Type",
                         "((\"AudioType\" = 'restaurant' AND \"DishId\" IS NULL) OR (\"AudioType\" = 'dish' AND \"DishId\" IS NOT NULL))");

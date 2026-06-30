@@ -1,4 +1,7 @@
-import { LANGUAGE_OPTIONS } from '../i18n/languageConfig';
+import {
+  getLanguageDisplayName,
+  LANGUAGE_OPTIONS
+} from '../i18n/languageConfig';
 import { useLanguage } from '../context/LanguageContext';
 
 function LanguageSelector({ className = '' }) {
@@ -19,7 +22,7 @@ function LanguageSelector({ className = '' }) {
       >
         {LANGUAGE_OPTIONS.map((option) => (
           <option key={option.code} value={option.code}>
-            {option.label}
+            {getLanguageDisplayName(option.code, language)}
           </option>
         ))}
       </select>

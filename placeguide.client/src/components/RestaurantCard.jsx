@@ -7,6 +7,7 @@ function RestaurantCard({ restaurant, language, onSpeak }) {
     const reviewCount = Number(restaurant.reviewCount) || 0;
     const ratingValue = Number(restaurant.rating);
     const hasReviewRating = reviewCount > 0 && Number.isFinite(ratingValue);
+    const isClosed = restaurant?.isOpen === false;
 
     const handleViewDetails = () => {
         if (!restaurant.id) return;
@@ -31,6 +32,15 @@ function RestaurantCard({ restaurant, language, onSpeak }) {
                     </span>
                     <span className="truncate">{restaurant.badge}</span>
                 </div>
+
+                {isClosed && (
+                    <div className="absolute left-3 top-3 flex max-w-[calc(100%-1.5rem)] items-center gap-1 rounded-full bg-stone-900/90 px-3 py-1 text-xs font-semibold text-white shadow-lg backdrop-blur">
+                        <span className="material-symbols-outlined text-[14px]">
+                            schedule
+                        </span>
+                        <span className="truncate">{t('closedNow')}</span>
+                    </div>
+                )}
             </div>
 
             <div className="p-4 space-y-4 sm:p-5">

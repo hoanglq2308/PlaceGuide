@@ -33,7 +33,7 @@ function Home() {
     const [currentPage, setCurrentPage] = useState(1);
     const [openOnly, setOpenOnly] = useState(false);
     const [vegetarianOnly, setVegetarianOnly] = useState(false);
-    const [nonSpicyOnly, setNonSpicyOnly] = useState(false);
+    const [spicyOnly, setSpicyOnly] = useState(false);
     const [priceFilter, setPriceFilter] = useState(PRICE_FILTERS.ALL);
     const [distanceSortEnabled, setDistanceSortEnabled] = useState(false);
     const [toast, setToast] = useState({
@@ -84,7 +84,7 @@ function Home() {
             searchText,
             openOnly,
             vegetarianOnly,
-            nonSpicyOnly,
+            spicyOnly,
             priceFilter,
         });
 
@@ -98,7 +98,7 @@ function Home() {
         searchText,
         openOnly,
         vegetarianOnly,
-        nonSpicyOnly,
+        spicyOnly,
         priceFilter,
         distanceSortEnabled,
         userLocation,
@@ -446,17 +446,14 @@ function Home() {
                         <button
                             type="button"
                             onClick={() => {
-                                setNonSpicyOnly((value) => !value);
+                                setSpicyOnly((value) => !value);
                                 setCurrentPage(1);
                             }}
-                            className={getFilterButtonClass(nonSpicyOnly)}
+                            className={getFilterButtonClass(spicyOnly)}
                         >
-                            {t('nonSpicy')}
+                            {t('spicy')}
                         </button>
 
-                        <button className="px-5 py-2 rounded-full border border-gray-300 bg-white text-sm font-semibold hover:border-red-700 hover:text-red-700 transition-all">
-                            {t('allergy')}
-                        </button>
                     </div>
                 </section>
 

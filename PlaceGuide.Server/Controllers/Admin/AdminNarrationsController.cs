@@ -20,7 +20,14 @@ namespace PlaceGuide.Server.Controllers.Admin
 
         private static readonly string[] SupportedLanguages =
         [
-            "vi", "en", "zh-CN", "zh-TW", "ko", "ja", "th", "fr", "ru"
+            "vi", "en", "zh-CN", "zh-TW", "ko", "ja", "th",
+            "id", "ms", "tl", "de", "es", "hi", "fr", "ru"
+        ];
+
+        private static readonly string[] DefaultAutoTranslateLanguages =
+        [
+            "en", "zh-CN", "zh-TW", "ko", "ja", "th",
+            "id", "ms", "tl", "de", "es", "hi", "fr", "ru"
         ];
 
         private readonly ApplicationDbContext _dbContext;
@@ -444,34 +451,21 @@ namespace PlaceGuide.Server.Controllers.Admin
                         continue;
                     }
 
-                    var translation = restaurant.Translations.FirstOrDefault(item =>
-                        item.LanguageCode.Equals(
-                            result.TargetLanguageCode,
-                            StringComparison.OrdinalIgnoreCase));
-
-                    if (translation is null)
-                    {
-                        translation = new RestaurantTranslation
-                        {
-                            RestaurantId = restaurant.Id,
-                            LanguageCode = result.TargetLanguageCode,
-                            CreatedAt = now
-                        };
-                        restaurant.Translations.Add(translation);
-                    }
-
-                    translation.Narration = result.TranslatedText.Trim();
-                    translation.NeedsUpdate = false;
-                    translation.IsAutoTranslated = true;
-                    translation.AutoTranslatedAt = now;
-                    translation.AutoTranslatedFrom = "vi";
-                    translation.UpdatedAt = now;
+                    await UpsertRestaurantTranslationNarrationAsync(
+                        restaurant.Id,
+                        result.TargetLanguageCode,
+                        result.TranslatedText.Trim(),
+                        sourceLanguageCode,
+                        now,
+                        cancellationToken);
                 }
 
                 if (translationResults.Any(result => result.Success))
                 {
-                    restaurant.UpdatedAt = now;
-                    await _dbContext.SaveChangesAsync(cancellationToken);
+                    await TouchRestaurantAsync(
+                        restaurant.Id,
+                        now,
+                        cancellationToken);
                 }
 
                 return CreateAutoTranslationActionResult(
@@ -546,33 +540,13 @@ namespace PlaceGuide.Server.Controllers.Admin
                         continue;
                     }
 
-                    var translation = dish.Translations.FirstOrDefault(item =>
-                        item.LanguageCode.Equals(
-                            result.TargetLanguageCode,
-                            StringComparison.OrdinalIgnoreCase));
-
-                    if (translation is null)
-                    {
-                        translation = new DishTranslation
-                        {
-                            DishId = dish.Id,
-                            LanguageCode = result.TargetLanguageCode,
-                            CreatedAt = now
-                        };
-                        dish.Translations.Add(translation);
-                    }
-
-                    translation.Narration = result.TranslatedText.Trim();
-                    translation.NeedsUpdate = false;
-                    translation.IsAutoTranslated = true;
-                    translation.AutoTranslatedAt = now;
-                    translation.AutoTranslatedFrom = "vi";
-                    translation.UpdatedAt = now;
-                }
-
-                if (translationResults.Any(result => result.Success))
-                {
-                    await _dbContext.SaveChangesAsync(cancellationToken);
+                    await UpsertDishTranslationNarrationAsync(
+                        dish.Id,
+                        result.TargetLanguageCode,
+                        result.TranslatedText.Trim(),
+                        sourceLanguageCode,
+                        now,
+                        cancellationToken);
                 }
 
                 return CreateAutoTranslationActionResult(
@@ -932,7 +906,7 @@ namespace PlaceGuide.Server.Controllers.Admin
             if (requestedLanguages is null || requestedLanguages.Count == 0)
             {
                 return new TargetLanguagesResult(
-                    SupportedLanguages.Where(code => code != "vi").ToArray(),
+                    DefaultAutoTranslateLanguages,
                     null);
             }
 
@@ -997,6 +971,76 @@ namespace PlaceGuide.Server.Controllers.Admin
                 TranslatedText = result.TranslatedText,
                 ErrorMessage = result.ErrorMessage
             };
+        }
+
+        private async Task UpsertRestaurantTranslationNarrationAsync(
+            Guid restaurantId,
+            string languageCode,
+            string narration,
+            string sourceLanguageCode,
+            DateTime now,
+            CancellationToken cancellationToken)
+        {
+            // Dùng upsert theo unique index (RestaurantId, LanguageCode) để tránh lỗi
+            // concurrency khi EF đang track translation cũ nhưng database đã đổi trạng thái.
+            await _dbContext.Database.ExecuteSqlInterpolatedAsync($"""
+                INSERT INTO public.restaurant_translations
+                    ("Id", "RestaurantId", "LanguageCode", "Narration",
+                     "NeedsUpdate", "IsAutoTranslated", "AutoTranslatedAt",
+                     "AutoTranslatedFrom", "CreatedAt", "UpdatedAt")
+                VALUES
+                    ({Guid.NewGuid()}, {restaurantId}, {languageCode}, {narration},
+                     FALSE, TRUE, {now}, {sourceLanguageCode}, {now}, {now})
+                ON CONFLICT ("RestaurantId", "LanguageCode") DO UPDATE SET
+                    "Narration" = EXCLUDED."Narration",
+                    "NeedsUpdate" = FALSE,
+                    "IsAutoTranslated" = TRUE,
+                    "AutoTranslatedAt" = EXCLUDED."AutoTranslatedAt",
+                    "AutoTranslatedFrom" = EXCLUDED."AutoTranslatedFrom",
+                    "UpdatedAt" = EXCLUDED."UpdatedAt";
+                """, cancellationToken);
+        }
+
+        private async Task UpsertDishTranslationNarrationAsync(
+            Guid dishId,
+            string languageCode,
+            string narration,
+            string sourceLanguageCode,
+            DateTime now,
+            CancellationToken cancellationToken)
+        {
+            // DishTranslation.Description đang bắt buộc non-null, nên khi tạo mới
+            // bản dịch chỉ cho narration thì lưu Description rỗng để giữ schema hiện tại.
+            await _dbContext.Database.ExecuteSqlInterpolatedAsync($"""
+                INSERT INTO public.dish_translations
+                    ("Id", "DishId", "LanguageCode", "Description", "Narration",
+                     "NeedsUpdate", "IsAutoTranslated", "AutoTranslatedAt",
+                     "AutoTranslatedFrom", "CreatedAt", "UpdatedAt")
+                VALUES
+                    ({Guid.NewGuid()}, {dishId}, {languageCode}, {string.Empty}, {narration},
+                     FALSE, TRUE, {now}, {sourceLanguageCode}, {now}, {now})
+                ON CONFLICT ("DishId", "LanguageCode") DO UPDATE SET
+                    "Narration" = EXCLUDED."Narration",
+                    "NeedsUpdate" = FALSE,
+                    "IsAutoTranslated" = TRUE,
+                    "AutoTranslatedAt" = EXCLUDED."AutoTranslatedAt",
+                    "AutoTranslatedFrom" = EXCLUDED."AutoTranslatedFrom",
+                    "UpdatedAt" = EXCLUDED."UpdatedAt";
+                """, cancellationToken);
+        }
+
+        private async Task TouchRestaurantAsync(
+            Guid restaurantId,
+            DateTime now,
+            CancellationToken cancellationToken)
+        {
+            await _dbContext.Restaurants
+                .Where(restaurant => restaurant.Id == restaurantId)
+                .ExecuteUpdateAsync(
+                    setters => setters.SetProperty(
+                        restaurant => restaurant.UpdatedAt,
+                        now),
+                    cancellationToken);
         }
 
         private IActionResult CreateAutoTranslationActionResult(
