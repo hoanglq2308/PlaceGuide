@@ -5,6 +5,8 @@ namespace PlaceGuide.Server.Configuration
         public const string SectionName = "Translation";
 
         public string Provider { get; set; } = string.Empty;
+        public string FallbackProvider { get; set; } = "LibreTranslate";
+        public bool EnableFallback { get; set; } = true;
         public string Endpoint { get; set; } = string.Empty;
         public string ApiKey { get; set; } = string.Empty;
         public string Region { get; set; } = string.Empty;

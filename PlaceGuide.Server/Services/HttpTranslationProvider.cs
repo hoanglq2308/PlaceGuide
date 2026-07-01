@@ -32,7 +32,20 @@ namespace PlaceGuide.Server.Services
                 "Gemini",
                 StringComparison.OrdinalIgnoreCase))
             {
-                return await TranslateWithGeminiAsync(
+                var geminiResult = await TranslateWithGeminiAsync(
+                    sourceText,
+                    sourceLanguageCode,
+                    targetLanguageCode,
+                    cancellationToken);
+
+                if (geminiResult.Success || !ShouldFallbackToLibreTranslate())
+                {
+                    return geminiResult;
+                }
+
+                // Khi Gemini hết quota/rate-limit hoặc lỗi tạm thời, thử LibreTranslate
+                // ngay để admin không phải đổi provider thủ công trong user-secrets.
+                return await TranslateWithLibreTranslateAsync(
                     sourceText,
                     sourceLanguageCode,
                     targetLanguageCode,
@@ -177,7 +190,7 @@ namespace PlaceGuide.Server.Services
 
             try
             {
-                const int maxAttempts = 3;
+                var maxAttempts = ShouldFallbackToLibreTranslate() ? 1 : 3;
 
                 for (var attempt = 1; attempt <= maxAttempts; attempt++)
                 {
@@ -533,6 +546,15 @@ namespace PlaceGuide.Server.Services
             return _options.LibreTranslate.TimeoutSeconds > 0
                 ? _options.LibreTranslate.TimeoutSeconds
                 : _options.TimeoutSeconds;
+        }
+
+        private bool ShouldFallbackToLibreTranslate()
+        {
+            return _options.EnableFallback &&
+                _options.FallbackProvider.Equals(
+                    "LibreTranslate",
+                    StringComparison.OrdinalIgnoreCase) &&
+                TryGetLibreTranslateBaseUri(out _);
         }
 
         private async Task<IReadOnlySet<string>>
