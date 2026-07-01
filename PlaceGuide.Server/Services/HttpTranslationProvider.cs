@@ -1,5 +1,6 @@
 using System.Net.Http.Json;
 using System.Text.Json;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using PlaceGuide.Server.Configuration;
 
@@ -12,14 +13,17 @@ namespace PlaceGuide.Server.Services
 
         private readonly HttpClient _httpClient;
         private readonly TranslationOptions _options;
+        private readonly IHostEnvironment _environment;
         private IReadOnlySet<string>? _libreTranslateSupportedLanguages;
 
         public HttpTranslationProvider(
             HttpClient httpClient,
-            IOptions<TranslationOptions> options)
+            IOptions<TranslationOptions> options,
+            IHostEnvironment environment)
         {
             _httpClient = httpClient;
             _options = options.Value;
+            _environment = environment;
         }
 
         public async Task<TranslationResult> TranslateAsync(
@@ -550,11 +554,24 @@ namespace PlaceGuide.Server.Services
 
         private bool ShouldFallbackToLibreTranslate()
         {
-            return _options.EnableFallback &&
-                _options.FallbackProvider.Equals(
+            if (!_options.EnableFallback ||
+                !_options.FallbackProvider.Equals(
                     "LibreTranslate",
-                    StringComparison.OrdinalIgnoreCase) &&
-                TryGetLibreTranslateBaseUri(out _);
+                    StringComparison.OrdinalIgnoreCase) ||
+                !TryGetLibreTranslateBaseUri(out var baseUri))
+            {
+                return false;
+            }
+
+            // Trên deploy, localhost là container/server deploy chứ không phải máy dev.
+            // Chỉ cho fallback localhost khi chạy Development; Production cần URL public.
+            return _environment.IsDevelopment() || !IsLocalhost(baseUri);
+        }
+
+        private static bool IsLocalhost(Uri uri)
+        {
+            return uri.IsLoopback ||
+                uri.Host.Equals("localhost", StringComparison.OrdinalIgnoreCase);
         }
 
         private async Task<IReadOnlySet<string>>
