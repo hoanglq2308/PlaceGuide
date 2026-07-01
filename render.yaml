@@ -38,13 +38,13 @@ services:
       - key: AudioPassPayment__TransferContentPrefix
         value: VINAAUDIO
       - key: Translation__Provider
+        value: LibreTranslate
+      - key: Translation__LibreTranslate__BaseUrl
         sync: false
-      - key: Translation__ApiKey
+      - key: Translation__LibreTranslate__ApiKey
         sync: false
-      - key: Translation__Endpoint
-        sync: false
-      - key: Translation__Model
-        value: gemini-3.5-flash
+      - key: Translation__LibreTranslate__TimeoutSeconds
+        value: "60"
 
 databases:
   - name: placeguide-db

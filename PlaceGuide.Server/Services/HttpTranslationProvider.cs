@@ -530,9 +530,13 @@ namespace PlaceGuide.Server.Services
             var baseUrl = _options.LibreTranslate.BaseUrl;
             if (string.IsNullOrWhiteSpace(baseUrl))
             {
-                baseUrl = string.IsNullOrWhiteSpace(_options.Endpoint)
-                    ? "http://localhost:5000"
-                    : _options.Endpoint;
+                if (!_environment.IsDevelopment())
+                {
+                    baseUri = new Uri("http://localhost:5000");
+                    return false;
+                }
+
+                baseUrl = "http://localhost:5000";
             }
 
             if (Uri.TryCreate(baseUrl, UriKind.Absolute, out var parsedUri))

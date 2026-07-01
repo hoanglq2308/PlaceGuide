@@ -18,7 +18,7 @@ namespace PlaceGuide.Server.Configuration
 
     public sealed class LibreTranslateOptions
     {
-        public string BaseUrl { get; set; } = "http://localhost:5000";
+        public string BaseUrl { get; set; } = string.Empty;
         public string ApiKey { get; set; } = string.Empty;
         public int TimeoutSeconds { get; set; } = 30;
     }
